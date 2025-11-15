@@ -197,7 +197,7 @@ export default function CreateWorkout() {
                     id="video_url"
                     value={workoutData.video_url}
                     onChange={(e) => setWorkoutData({ ...workoutData, video_url: e.target.value })}
-                    placeholder="https://youtube.com/watch?v=..."
+                    placeholder="https://vimeo.com/..."
                   />
                 </div>
 
