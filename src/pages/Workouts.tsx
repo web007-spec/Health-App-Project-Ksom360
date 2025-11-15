@@ -2,7 +2,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, Clock, Users, Copy, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Filter, Clock, Users, Copy, Edit, Trash2, UserPlus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { AssignWorkoutDialog } from "@/components/AssignWorkoutDialog";
 
 const workoutTemplates = [
   {
@@ -82,6 +83,8 @@ export default function Workouts() {
   const queryClient = useQueryClient();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [workoutToAssign, setWorkoutToAssign] = useState<{ id: string; name: string } | null>(null);
 
   // Fetch workout plans from database
   const { data: workoutPlans, isLoading } = useQuery({
@@ -298,31 +301,39 @@ export default function Workouts() {
                     <p className="text-sm text-muted-foreground mb-3">
                       {workout.workout_plan_exercises?.[0]?.count || 0} exercises
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
+                      <Button 
+                        size="sm" 
+                        className="flex-1 min-w-[80px]"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setWorkoutToAssign({ id: workout.id, name: workout.name });
+                          setAssignDialogOpen(true);
+                        }}
+                      >
+                        <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+                        Assign
+                      </Button>
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="flex-1"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/workouts/edit/${workout.id}`);
                         }}
                       >
-                        <Edit className="h-3.5 w-3.5 mr-1.5" />
-                        Edit
+                        <Edit className="h-3.5 w-3.5" />
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="flex-1"
                         onClick={(e) => {
                           e.stopPropagation();
                           duplicateMutation.mutate(workout.id);
                         }}
                         disabled={duplicateMutation.isPending}
                       >
-                        <Copy className="h-3.5 w-3.5 mr-1.5" />
-                        Duplicate
+                        <Copy className="h-3.5 w-3.5" />
                       </Button>
                       <Button 
                         variant="ghost" 
@@ -384,6 +395,16 @@ export default function Workouts() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Assign Workout Dialog */}
+      {workoutToAssign && (
+        <AssignWorkoutDialog
+          open={assignDialogOpen}
+          onOpenChange={setAssignDialogOpen}
+          workoutId={workoutToAssign.id}
+          workoutName={workoutToAssign.name}
+        />
+      )}
     </DashboardLayout>
   );
 }

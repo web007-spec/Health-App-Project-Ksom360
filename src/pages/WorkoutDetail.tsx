@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, Dumbbell, Target, Edit, Copy, Trash2, Play } from "lucide-react";
+import { ArrowLeft, Clock, Dumbbell, Target, Edit, Copy, Trash2, Play, UserPlus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -19,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AssignWorkoutDialog } from "@/components/AssignWorkoutDialog";
 
 export default function WorkoutDetail() {
   const { id } = useParams();
@@ -26,6 +27,7 @@ export default function WorkoutDetail() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
 
   const { data: workout, isLoading } = useQuery({
     queryKey: ["workout-detail", id],
@@ -178,6 +180,10 @@ export default function WorkoutDetail() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button size="sm" onClick={() => setAssignDialogOpen(true)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Assign to Clients
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate(`/workouts/edit/${id}`)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit
@@ -375,6 +381,16 @@ export default function WorkoutDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Assign Workout Dialog */}
+      {workout && (
+        <AssignWorkoutDialog
+          open={assignDialogOpen}
+          onOpenChange={setAssignDialogOpen}
+          workoutId={workout.id}
+          workoutName={workout.name}
+        />
+      )}
     </DashboardLayout>
   );
 }
