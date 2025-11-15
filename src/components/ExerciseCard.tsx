@@ -53,7 +53,7 @@ export function ExerciseCard({ exercise, onEdit }: ExerciseCardProps) {
             <img 
               src={exercise.image_url} 
               alt={exercise.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover object-center"
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
