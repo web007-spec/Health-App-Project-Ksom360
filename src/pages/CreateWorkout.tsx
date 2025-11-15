@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Plus, Trash2, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ExercisePickerDialog } from "@/components/ExercisePickerDialog";
 
 export default function CreateWorkout() {
   const navigate = useNavigate();
@@ -30,6 +31,8 @@ export default function CreateWorkout() {
   });
 
   const [selectedExercises, setSelectedExercises] = useState<any[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [editingExerciseIndex, setEditingExerciseIndex] = useState<number | null>(null);
 
   const { data: exercises } = useQuery({
     queryKey: ["exercises", user?.id],
@@ -121,6 +124,21 @@ export default function CreateWorkout() {
     const updated = [...selectedExercises];
     updated[index] = { ...updated[index], [field]: value };
     setSelectedExercises(updated);
+  };
+
+  const openExercisePicker = (index: number) => {
+    setEditingExerciseIndex(index);
+    setPickerOpen(true);
+  };
+
+  const handleExerciseSelect = (exerciseId: string) => {
+    if (editingExerciseIndex !== null) {
+      updateExercise(editingExerciseIndex, "exercise_id", exerciseId);
+    }
+  };
+
+  const getExerciseName = (exerciseId: string) => {
+    return exercises?.find(ex => ex.id === exerciseId)?.name || "Select exercise";
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -268,21 +286,14 @@ export default function CreateWorkout() {
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex-1">
                             <Label>Exercise</Label>
-                            <Select
-                              value={ex.exercise_id}
-                              onValueChange={(value) => updateExercise(index, "exercise_id", value)}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full justify-start"
+                              onClick={() => openExercisePicker(index)}
                             >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select exercise" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {exercises?.map((exercise) => (
-                                  <SelectItem key={exercise.id} value={exercise.id}>
-                                    {exercise.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              {getExerciseName(ex.exercise_id)}
+                            </Button>
                           </div>
                           <Button
                             type="button"
@@ -359,6 +370,14 @@ export default function CreateWorkout() {
           </div>
         </form>
       </div>
+
+      <ExercisePickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        exercises={exercises || []}
+        selectedExerciseId={editingExerciseIndex !== null ? selectedExercises[editingExerciseIndex]?.exercise_id : undefined}
+        onSelectExercise={handleExerciseSelect}
+      />
     </DashboardLayout>
   );
 }
