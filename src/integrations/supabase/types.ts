@@ -377,9 +377,11 @@ export type Database = {
           difficulty: Database["public"]["Enums"]["workout_difficulty"]
           duration_minutes: number
           id: string
+          image_url: string | null
           name: string
           trainer_id: string
           updated_at: string
+          video_url: string | null
         }
         Insert: {
           category: string
@@ -388,9 +390,11 @@ export type Database = {
           difficulty: Database["public"]["Enums"]["workout_difficulty"]
           duration_minutes: number
           id?: string
+          image_url?: string | null
           name: string
           trainer_id: string
           updated_at?: string
+          video_url?: string | null
         }
         Update: {
           category?: string
@@ -399,9 +403,11 @@ export type Database = {
           difficulty?: Database["public"]["Enums"]["workout_difficulty"]
           duration_minutes?: number
           id?: string
+          image_url?: string | null
           name?: string
           trainer_id?: string
           updated_at?: string
+          video_url?: string | null
         }
         Relationships: [
           {
