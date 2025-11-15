@@ -53,6 +53,10 @@ export function CreateOndemandWorkoutDialog({
 
   const levelLabels = labels?.filter((l) => l.category === "level") || [];
   const durationLabels = labels?.filter((l) => l.category === "duration") || [];
+  const intensityLabels = labels?.filter((l) => l.category === "intensity") || [];
+  const typeLabels = labels?.filter((l) => l.category === "type") || [];
+  const bodyPartLabels = labels?.filter((l) => l.category === "body_part") || [];
+  const locationLabels = labels?.filter((l) => l.category === "location") || [];
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -133,7 +137,7 @@ export function CreateOndemandWorkoutDialog({
 
     if (!hasLevel || !hasDuration) {
       toast({
-        title: "Please select Level and Duration labels",
+        title: "Level and Duration are required",
         variant: "destructive",
       });
       return;
@@ -227,10 +231,10 @@ export function CreateOndemandWorkoutDialog({
           </div>
 
           <div className="space-y-3">
-            <Label>Workout Labels * (Level and Duration required)</Label>
+            <Label>Workout Labels (Level & Duration required)</Label>
             
             <div className="space-y-2">
-              <div className="font-medium text-sm">Level</div>
+              <div className="font-medium text-sm text-red-500">Level *</div>
               <div className="flex flex-wrap gap-2">
                 {levelLabels.map((label) => (
                   <Badge
@@ -246,7 +250,7 @@ export function CreateOndemandWorkoutDialog({
             </div>
 
             <div className="space-y-2">
-              <div className="font-medium text-sm">Duration</div>
+              <div className="font-medium text-sm text-red-500">Duration *</div>
               <div className="flex flex-wrap gap-2">
                 {durationLabels.map((label) => (
                   <Badge
@@ -260,6 +264,78 @@ export function CreateOndemandWorkoutDialog({
                 ))}
               </div>
             </div>
+
+            {intensityLabels.length > 0 && (
+              <div className="space-y-2">
+                <div className="font-medium text-sm">Intensity</div>
+                <div className="flex flex-wrap gap-2">
+                  {intensityLabels.map((label) => (
+                    <Badge
+                      key={label.id}
+                      variant={selectedLabels.includes(label.id) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => toggleLabel(label.id)}
+                    >
+                      {label.value}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {typeLabels.length > 0 && (
+              <div className="space-y-2">
+                <div className="font-medium text-sm">Type</div>
+                <div className="flex flex-wrap gap-2">
+                  {typeLabels.map((label) => (
+                    <Badge
+                      key={label.id}
+                      variant={selectedLabels.includes(label.id) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => toggleLabel(label.id)}
+                    >
+                      {label.value}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {bodyPartLabels.length > 0 && (
+              <div className="space-y-2">
+                <div className="font-medium text-sm">Body Part</div>
+                <div className="flex flex-wrap gap-2">
+                  {bodyPartLabels.map((label) => (
+                    <Badge
+                      key={label.id}
+                      variant={selectedLabels.includes(label.id) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => toggleLabel(label.id)}
+                    >
+                      {label.value}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {locationLabels.length > 0 && (
+              <div className="space-y-2">
+                <div className="font-medium text-sm">Location</div>
+                <div className="flex flex-wrap gap-2">
+                  {locationLabels.map((label) => (
+                    <Badge
+                      key={label.id}
+                      variant={selectedLabels.includes(label.id) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => toggleLabel(label.id)}
+                    >
+                      {label.value}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2 pt-4">
