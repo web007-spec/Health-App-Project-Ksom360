@@ -16,6 +16,7 @@ import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientWorkouts from "./pages/client/ClientWorkouts";
 import ClientProgress from "./pages/client/ClientProgress";
 import ClientNutrition from "./pages/client/ClientNutrition";
+import ClientCalendar from "./pages/client/ClientCalendar";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -45,6 +46,7 @@ const App = () => (
           <Route path="/client/workouts" element={<ProtectedRoute><ClientWorkouts /></ProtectedRoute>} />
           <Route path="/client/progress" element={<ProtectedRoute><ClientProgress /></ProtectedRoute>} />
           <Route path="/client/nutrition" element={<ProtectedRoute><ClientNutrition /></ProtectedRoute>} />
+          <Route path="/client/calendar" element={<ProtectedRoute><ClientCalendar /></ProtectedRoute>} />
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
