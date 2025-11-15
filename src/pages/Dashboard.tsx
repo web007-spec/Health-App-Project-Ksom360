@@ -1,12 +1,13 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { StatCard } from "@/components/StatCard";
 import { ClientCard } from "@/components/ClientCard";
-import { Users, Dumbbell, TrendingUp, DollarSign, Plus } from "lucide-react";
+import { Users, Dumbbell, TrendingUp, DollarSign, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useCreateDemoClient } from "@/hooks/useCreateDemoClient";
 
 const mockClients = [
   {
@@ -52,6 +53,7 @@ const recentActivity = [
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const createDemoClient = useCreateDemoClient();
 
   // Fetch trainer clients
   const { data: clients } = useQuery({
@@ -100,9 +102,15 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold text-foreground">Welcome back, Coach!</h1>
             <p className="text-muted-foreground mt-1">Here's what's happening with your clients today.</p>
           </div>
-          <Button size="lg" className="gap-2">
+          <Button 
+            size="lg" 
+            className="gap-2"
+            onClick={() => createDemoClient.mutate()}
+            disabled={createDemoClient.isPending}
+          >
+            {createDemoClient.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             <Plus className="h-4 w-4" />
-            Add Client
+            Create Demo Client
           </Button>
         </div>
 
