@@ -4,10 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Filter, Clock, Users, Copy, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 const workoutTemplates = [
   {
@@ -75,6 +78,10 @@ const difficultyColors = {
 export default function Workouts() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
 
   // Fetch workout plans from database
   const { data: workoutPlans, isLoading } = useQuery({
@@ -94,6 +101,121 @@ export default function Workouts() {
     },
     enabled: !!user?.id,
   });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (workoutId: string) => {
+      const { error } = await supabase
+        .from("workout_plans")
+        .delete()
+        .eq("id", workoutId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
+      toast({
+        title: "Success",
+        description: "Workout deleted successfully",
+      });
+      setDeleteDialogOpen(false);
+      setWorkoutToDelete(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete workout",
+        variant: "destructive",
+      });
+      console.error("Error deleting workout:", error);
+    },
+  });
+
+  // Duplicate mutation
+  const duplicateMutation = useMutation({
+    mutationFn: async (workoutId: string) => {
+      // Get the workout plan
+      const { data: workout, error: workoutError } = await supabase
+        .from("workout_plans")
+        .select("*")
+        .eq("id", workoutId)
+        .single();
+
+      if (workoutError) throw workoutError;
+
+      // Create duplicate workout
+      const { data: newWorkout, error: newWorkoutError } = await supabase
+        .from("workout_plans")
+        .insert({
+          name: `${workout.name} (Copy)`,
+          description: workout.description,
+          category: workout.category,
+          difficulty: workout.difficulty,
+          duration_minutes: workout.duration_minutes,
+          trainer_id: user?.id,
+        })
+        .select()
+        .single();
+
+      if (newWorkoutError) throw newWorkoutError;
+
+      // Get exercises from original workout
+      const { data: exercises, error: exercisesError } = await supabase
+        .from("workout_plan_exercises")
+        .select("*")
+        .eq("workout_plan_id", workoutId);
+
+      if (exercisesError) throw exercisesError;
+
+      // Copy exercises to new workout
+      if (exercises && exercises.length > 0) {
+        const newExercises = exercises.map((ex) => ({
+          workout_plan_id: newWorkout.id,
+          exercise_id: ex.exercise_id,
+          sets: ex.sets,
+          reps: ex.reps,
+          duration_seconds: ex.duration_seconds,
+          rest_seconds: ex.rest_seconds,
+          order_index: ex.order_index,
+          notes: ex.notes,
+        }));
+
+        const { error: insertError } = await supabase
+          .from("workout_plan_exercises")
+          .insert(newExercises);
+
+        if (insertError) throw insertError;
+      }
+
+      return newWorkout;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
+      toast({
+        title: "Success",
+        description: "Workout duplicated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to duplicate workout",
+        variant: "destructive",
+      });
+      console.error("Error duplicating workout:", error);
+    },
+  });
+
+  const handleDelete = (workoutId: string) => {
+    setWorkoutToDelete(workoutId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (workoutToDelete) {
+      deleteMutation.mutate(workoutToDelete);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -181,7 +303,10 @@ export default function Workouts() {
                         variant="outline" 
                         size="sm" 
                         className="flex-1"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/workouts/edit/${workout.id}`);
+                        }}
                       >
                         <Edit className="h-3.5 w-3.5 mr-1.5" />
                         Edit
@@ -190,7 +315,11 @@ export default function Workouts() {
                         variant="outline" 
                         size="sm" 
                         className="flex-1"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          duplicateMutation.mutate(workout.id);
+                        }}
+                        disabled={duplicateMutation.isPending}
                       >
                         <Copy className="h-3.5 w-3.5 mr-1.5" />
                         Duplicate
@@ -198,7 +327,10 @@ export default function Workouts() {
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(workout.id);
+                        }}
                       >
                         <Trash2 className="h-3.5 w-3.5 text-destructive" />
                       </Button>
@@ -231,6 +363,27 @@ export default function Workouts() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Workout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this workout? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
