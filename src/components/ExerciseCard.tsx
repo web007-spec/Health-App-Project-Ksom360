@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Play } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Play, Edit } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -16,9 +17,10 @@ interface Exercise {
 
 interface ExerciseCardProps {
   exercise: Exercise;
+  onEdit?: (exercise: Exercise) => void;
 }
 
-export function ExerciseCard({ exercise }: ExerciseCardProps) {
+export function ExerciseCard({ exercise, onEdit }: ExerciseCardProps) {
   const [showVideoDialog, setShowVideoDialog] = useState(false);
 
   const getVideoEmbedUrl = (url: string | null) => {
@@ -73,7 +75,19 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
         </div>
 
         <CardContent className="p-4 space-y-3">
-          <h3 className="font-semibold text-lg text-foreground line-clamp-1">{exercise.name}</h3>
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-semibold text-lg text-foreground line-clamp-1 flex-1">{exercise.name}</h3>
+            {onEdit && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onEdit(exercise)}
+                className="h-8 w-8 shrink-0"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
           
           <div className="flex flex-wrap gap-2">
             {exercise.equipment && (
