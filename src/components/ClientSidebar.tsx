@@ -1,4 +1,4 @@
-import { Home, Dumbbell, TrendingUp, Utensils, MessageSquare, User, CalendarDays } from "lucide-react";
+import { Home, Dumbbell, TrendingUp, Utensils, MessageSquare, Settings, CalendarDays } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -19,7 +19,7 @@ const mainItems = [
   { title: "Progress", url: "/client/progress", icon: TrendingUp },
   { title: "Nutrition", url: "/client/nutrition", icon: Utensils },
   { title: "Messages", url: "/messages", icon: MessageSquare },
-  { title: "Profile", url: "/client/profile", icon: User },
+  { title: "Settings", url: "/client/settings", icon: Settings },
 ];
 
 export function ClientSidebar() {
