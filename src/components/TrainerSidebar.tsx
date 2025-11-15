@@ -15,7 +15,8 @@ import {
 const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Clients", url: "/clients", icon: Users },
-  { title: "Workouts", url: "/workouts", icon: Dumbbell },
+  { title: "Exercises", url: "/exercises", icon: Dumbbell },
+  { title: "Workouts", url: "/workouts", icon: Calendar },
   { title: "Schedule", url: "/schedule", icon: Calendar },
   { title: "Messages", url: "/messages", icon: MessageSquare },
   { title: "Analytics", url: "/analytics", icon: TrendingUp },
