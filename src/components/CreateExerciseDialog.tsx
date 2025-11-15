@@ -89,8 +89,8 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
       if (imageFile && user?.id) {
         setIsUploading(true);
         try {
-          // Compress the image
-          const compressedBlob = await compressImage(imageFile, 800, 800, 0.8);
+          // Compress the image to thumbnail size (400x400)
+          const compressedBlob = await compressImage(imageFile, 400, 400, 0.85);
           
           // Generate unique filename
           const fileExt = imageFile.name.split('.').pop();
