@@ -24,6 +24,12 @@ import ClientCalendar from "./pages/client/ClientCalendar";
 import ClientSettings from "./pages/client/ClientSettings";
 import ClientGoals from "./pages/client/ClientGoals";
 import ClientTasks from "./pages/client/ClientTasks";
+import ClientResourceHub from "./pages/client/ClientResourceHub";
+import ClientWorkoutHub from "./pages/client/ClientWorkoutHub";
+import ResourceLibrary from "./pages/ResourceLibrary";
+import ResourceCollections from "./pages/ResourceCollections";
+import OndemandWorkouts from "./pages/OndemandWorkouts";
+import WorkoutCollections from "./pages/WorkoutCollections";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -51,6 +57,10 @@ const App = () => (
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
           <Route path="/tasks" element={<ProtectedRoute><TaskLibrary /></ProtectedRoute>} />
+          <Route path="/resources" element={<ProtectedRoute><ResourceLibrary /></ProtectedRoute>} />
+          <Route path="/resource-collections" element={<ProtectedRoute><ResourceCollections /></ProtectedRoute>} />
+          <Route path="/ondemand-workouts" element={<ProtectedRoute><OndemandWorkouts /></ProtectedRoute>} />
+          <Route path="/workout-collections" element={<ProtectedRoute><WorkoutCollections /></ProtectedRoute>} />
           
           {/* Client Routes */}
           <Route path="/client" element={<ProtectedRoute><ClientDashboard /></ProtectedRoute>} />
@@ -61,6 +71,8 @@ const App = () => (
           <Route path="/client/settings" element={<ProtectedRoute><ClientSettings /></ProtectedRoute>} />
           <Route path="/client/goals" element={<ProtectedRoute><ClientGoals /></ProtectedRoute>} />
           <Route path="/client/tasks" element={<ProtectedRoute><ClientTasks /></ProtectedRoute>} />
+          <Route path="/client/resources" element={<ProtectedRoute><ClientResourceHub /></ProtectedRoute>} />
+          <Route path="/client/workouts-hub" element={<ProtectedRoute><ClientWorkoutHub /></ProtectedRoute>} />
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

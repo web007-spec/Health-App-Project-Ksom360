@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Dumbbell, Calendar, MessageSquare, Settings, TrendingUp, Target, CheckSquare } from "lucide-react";
+import { LayoutDashboard, Users, Dumbbell, Calendar, MessageSquare, Settings, TrendingUp, Target, CheckSquare, FileText, Play } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -21,6 +21,13 @@ const mainItems = [
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
   { title: "Messages", url: "/messages", icon: MessageSquare },
   { title: "Analytics", url: "/analytics", icon: TrendingUp },
+];
+
+const studioItems = [
+  { title: "Resources", url: "/resources", icon: FileText },
+  { title: "Resource Collections", url: "/resource-collections", icon: FileText },
+  { title: "On-Demand Workouts", url: "/ondemand-workouts", icon: Play },
+  { title: "Workout Collections", url: "/workout-collections", icon: Play },
 ];
 
 const bottomItems = [
@@ -57,6 +64,28 @@ export function TrainerSidebar() {
                     <NavLink
                       to={item.url}
                       end
+                      className="hover:bg-sidebar-accent"
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>On-Demand Studio</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {studioItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
                       className="hover:bg-sidebar-accent"
                       activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                     >

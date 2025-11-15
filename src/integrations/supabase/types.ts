@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      category_workouts: {
+        Row: {
+          category_id: string
+          id: string
+          order_index: number
+          workout_id: string
+        }
+        Insert: {
+          category_id: string
+          id?: string
+          order_index: number
+          workout_id: string
+        }
+        Update: {
+          category_id?: string
+          id?: string
+          order_index?: number
+          workout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_workouts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "workout_collection_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "category_workouts_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "ondemand_workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_collection_access: {
+        Row: {
+          client_id: string
+          collection_id: string
+          granted_at: string
+          id: string
+        }
+        Insert: {
+          client_id: string
+          collection_id: string
+          granted_at?: string
+          id?: string
+        }
+        Update: {
+          client_id?: string
+          collection_id?: string
+          granted_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_collection_access_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_collection_access_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "resource_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_tasks: {
         Row: {
           assigned_at: string
@@ -73,6 +145,42 @@ export type Database = {
           },
         ]
       }
+      client_workout_collection_access: {
+        Row: {
+          client_id: string
+          collection_id: string
+          granted_at: string
+          id: string
+        }
+        Insert: {
+          client_id: string
+          collection_id: string
+          granted_at?: string
+          id?: string
+        }
+        Update: {
+          client_id?: string
+          collection_id?: string
+          granted_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_workout_collection_access_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_workout_collection_access_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "workout_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_workouts: {
         Row: {
           assigned_at: string
@@ -124,6 +232,41 @@ export type Database = {
             columns: ["workout_plan_id"]
             isOneToOne: false
             referencedRelation: "workout_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_sections: {
+        Row: {
+          collection_id: string
+          created_at: string
+          id: string
+          layout_type: Database["public"]["Enums"]["layout_type"] | null
+          name: string
+          order_index: number
+        }
+        Insert: {
+          collection_id: string
+          created_at?: string
+          id?: string
+          layout_type?: Database["public"]["Enums"]["layout_type"] | null
+          name: string
+          order_index: number
+        }
+        Update: {
+          collection_id?: string
+          created_at?: string
+          id?: string
+          layout_type?: Database["public"]["Enums"]["layout_type"] | null
+          name?: string
+          order_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_sections_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "resource_collections"
             referencedColumns: ["id"]
           },
         ]
@@ -386,6 +529,60 @@ export type Database = {
           },
         ]
       }
+      ondemand_workouts: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          thumbnail_url: string | null
+          trainer_id: string
+          type: Database["public"]["Enums"]["ondemand_workout_type"]
+          updated_at: string
+          video_url: string | null
+          workout_plan_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          thumbnail_url?: string | null
+          trainer_id: string
+          type: Database["public"]["Enums"]["ondemand_workout_type"]
+          updated_at?: string
+          video_url?: string | null
+          workout_plan_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          thumbnail_url?: string | null
+          trainer_id?: string
+          type?: Database["public"]["Enums"]["ondemand_workout_type"]
+          updated_at?: string
+          video_url?: string | null
+          workout_plan_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ondemand_workouts_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ondemand_workouts_workout_plan_id_fkey"
+            columns: ["workout_plan_id"]
+            isOneToOne: false
+            referencedRelation: "workout_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -456,6 +653,124 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resource_collections: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_published: boolean | null
+          name: string
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean | null
+          name: string
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean | null
+          name?: string
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resource_collections_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resources: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          file_path: string | null
+          id: string
+          name: string
+          trainer_id: string
+          type: Database["public"]["Enums"]["resource_type"]
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          file_path?: string | null
+          id?: string
+          name: string
+          trainer_id: string
+          type: Database["public"]["Enums"]["resource_type"]
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          file_path?: string | null
+          id?: string
+          name?: string
+          trainer_id?: string
+          type?: Database["public"]["Enums"]["resource_type"]
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resources_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      section_resources: {
+        Row: {
+          id: string
+          order_index: number
+          resource_id: string
+          section_id: string
+        }
+        Insert: {
+          id?: string
+          order_index: number
+          resource_id: string
+          section_id: string
+        }
+        Update: {
+          id?: string
+          order_index?: number
+          resource_id?: string
+          section_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_resources_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "section_resources_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "collection_sections"
             referencedColumns: ["id"]
           },
         ]
@@ -534,6 +849,123 @@ export type Database = {
           },
           {
             foreignKeyName: "trainer_clients_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_collection_categories: {
+        Row: {
+          collection_id: string
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          order_index: number
+        }
+        Insert: {
+          collection_id: string
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          order_index: number
+        }
+        Update: {
+          collection_id?: string
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          order_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_collection_categories_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "workout_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_collections: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_published: boolean | null
+          name: string
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean | null
+          name: string
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_published?: boolean | null
+          name?: string
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_collections_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_labels: {
+        Row: {
+          category: Database["public"]["Enums"]["label_category"]
+          created_at: string
+          id: string
+          is_default: boolean | null
+          trainer_id: string | null
+          value: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["label_category"]
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          trainer_id?: string | null
+          value: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["label_category"]
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          trainer_id?: string | null
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_labels_trainer_id_fkey"
             columns: ["trainer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -642,6 +1074,36 @@ export type Database = {
           },
         ]
       }
+      workout_workout_labels: {
+        Row: {
+          label_id: string
+          workout_id: string
+        }
+        Insert: {
+          label_id: string
+          workout_id: string
+        }
+        Update: {
+          label_id?: string
+          workout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_workout_labels_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "workout_labels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_workout_labels_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "ondemand_workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -651,6 +1113,16 @@ export type Database = {
     }
     Enums: {
       client_status: "active" | "paused" | "pending"
+      label_category:
+        | "level"
+        | "duration"
+        | "intensity"
+        | "type"
+        | "body_part"
+        | "location"
+      layout_type: "large_cards" | "narrow_cards" | "small_cards" | "list"
+      ondemand_workout_type: "regular" | "video"
+      resource_type: "link" | "document" | "form"
       task_type:
         | "general"
         | "progress_photo"
@@ -787,6 +1259,17 @@ export const Constants = {
   public: {
     Enums: {
       client_status: ["active", "paused", "pending"],
+      label_category: [
+        "level",
+        "duration",
+        "intensity",
+        "type",
+        "body_part",
+        "location",
+      ],
+      layout_type: ["large_cards", "narrow_cards", "small_cards", "list"],
+      ondemand_workout_type: ["regular", "video"],
+      resource_type: ["link", "document", "form"],
       task_type: ["general", "progress_photo", "body_metrics", "form", "habit"],
       user_role: ["trainer", "client"],
       workout_difficulty: ["beginner", "intermediate", "advanced"],
