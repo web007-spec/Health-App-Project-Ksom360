@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import Workouts from "./pages/Workouts";
 import WorkoutDetail from "./pages/WorkoutDetail";
 import CreateWorkout from "./pages/CreateWorkout";
+import Exercises from "./pages/Exercises";
 import Clients from "./pages/Clients";
 import Auth from "./pages/Auth";
 import ClientDashboard from "./pages/client/ClientDashboard";
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/workouts" element={<ProtectedRoute><Workouts /></ProtectedRoute>} />
           <Route path="/workouts/:id" element={<ProtectedRoute><WorkoutDetail /></ProtectedRoute>} />
           <Route path="/workouts/create" element={<ProtectedRoute><CreateWorkout /></ProtectedRoute>} />
+          <Route path="/exercises" element={<ProtectedRoute><Exercises /></ProtectedRoute>} />
           <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
           
           {/* Client Routes */}
