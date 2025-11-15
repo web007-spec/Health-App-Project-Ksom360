@@ -5,6 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import Workouts from "./pages/Workouts";
+import WorkoutDetail from "./pages/WorkoutDetail";
+import CreateWorkout from "./pages/CreateWorkout";
+import Clients from "./pages/Clients";
 import Auth from "./pages/Auth";
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientWorkouts from "./pages/client/ClientWorkouts";
@@ -27,6 +30,9 @@ const App = () => (
           {/* Trainer Routes */}
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/workouts" element={<ProtectedRoute><Workouts /></ProtectedRoute>} />
+          <Route path="/workouts/:id" element={<ProtectedRoute><WorkoutDetail /></ProtectedRoute>} />
+          <Route path="/workouts/create" element={<ProtectedRoute><CreateWorkout /></ProtectedRoute>} />
+          <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
           
           {/* Client Routes */}
           <Route path="/client" element={<ProtectedRoute><ClientDashboard /></ProtectedRoute>} />
