@@ -7,6 +7,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { showBrowserNotification } from "@/lib/notifications";
+import confetti from "canvas-confetti";
 
 export default function ClientGoals() {
   const { user } = useAuth();
@@ -32,16 +34,66 @@ export default function ClientGoals() {
   // Update goal progress
   const updateProgressMutation = useMutation({
     mutationFn: async ({ goalId, value }: { goalId: string; value: number }) => {
+      // Get current goal to check if achievement is reached
+      const { data: currentGoal } = await supabase
+        .from("fitness_goals")
+        .select("*")
+        .eq("id", goalId)
+        .single();
+
       const { error } = await supabase
         .from("fitness_goals")
-        .update({ current_value: value })
+        .update({ current_value: value, updated_at: new Date().toISOString() })
         .eq("id", goalId)
         .eq("client_id", user?.id);
 
       if (error) throw error;
+      
+      return { currentGoal, newValue: value };
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["client-goals"] });
+      
+      const { currentGoal, newValue } = data;
+      
+      // Check if goal is achieved
+      if (currentGoal && currentGoal.target_value && newValue >= currentGoal.target_value) {
+        const wasNotAchieved = !currentGoal.current_value || currentGoal.current_value < currentGoal.target_value;
+        
+        if (wasNotAchieved) {
+          // Mark goal as completed
+          await supabase
+            .from("fitness_goals")
+            .update({ 
+              status: "completed", 
+              completed_at: new Date().toISOString() 
+            })
+            .eq("id", currentGoal.id);
+          
+          // Trigger celebration
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+          
+          // Show browser notification
+          showBrowserNotification("🎉 Goal Achieved!", {
+            body: `Congratulations! You've achieved your goal: ${currentGoal.title}`,
+            icon: "/favicon.ico",
+          });
+          
+          // Show toast with celebration
+          toast({
+            title: "🎉 Goal Achieved!",
+            description: `Amazing work! You've reached your goal: ${currentGoal.title}`,
+          });
+          
+          return;
+        }
+      }
+      
+      // Regular progress update toast
       toast({
         title: "Success",
         description: "Progress updated successfully",

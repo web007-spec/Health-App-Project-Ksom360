@@ -11,6 +11,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import confetti from "canvas-confetti";
 
 export default function Goals() {
   const { user } = useAuth();
@@ -82,6 +83,20 @@ export default function Goals() {
   // Update goal status
   const updateStatusMutation = useMutation({
     mutationFn: async ({ goalId, status }: { goalId: string; status: string }) => {
+      // Get goal details for celebration
+      const { data: goal } = await supabase
+        .from("fitness_goals")
+        .select("*")
+        .eq("id", goalId)
+        .single();
+
+      // Get client profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", goal?.client_id)
+        .single();
+
       const updates: any = { status };
       if (status === "completed") {
         updates.completed_at = new Date().toISOString();
@@ -94,14 +109,33 @@ export default function Goals() {
         .eq("trainer_id", user?.id);
 
       if (error) throw error;
+      
+      return { goal, status, clientName: profile?.full_name };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["goals"] });
       queryClient.invalidateQueries({ queryKey: ["client-goals"] });
-      toast({
-        title: "Success",
-        description: "Goal status updated",
-      });
+      
+      const { goal, status, clientName } = data;
+      
+      if (status === "completed" && goal) {
+        // Trigger celebration for trainer
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+        
+        toast({
+          title: "🎉 Goal Completed!",
+          description: `${clientName || "Client"} has achieved their goal: ${goal.title}`,
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Goal status updated",
+        });
+      }
     },
     onError: (error: Error) => {
       toast({
