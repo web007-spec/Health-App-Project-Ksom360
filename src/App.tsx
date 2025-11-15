@@ -28,8 +28,10 @@ import ClientResourceHub from "./pages/client/ClientResourceHub";
 import ClientWorkoutHub from "./pages/client/ClientWorkoutHub";
 import ResourceLibrary from "./pages/ResourceLibrary";
 import ResourceCollections from "./pages/ResourceCollections";
+import ResourceCollectionDetail from "./pages/ResourceCollectionDetail";
 import OndemandWorkouts from "./pages/OndemandWorkouts";
 import WorkoutCollections from "./pages/WorkoutCollections";
+import WorkoutCollectionDetail from "./pages/WorkoutCollectionDetail";
 import WorkoutLabels from "./pages/WorkoutLabels";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -60,8 +62,10 @@ const App = () => (
           <Route path="/tasks" element={<ProtectedRoute><TaskLibrary /></ProtectedRoute>} />
           <Route path="/resources" element={<ProtectedRoute><ResourceLibrary /></ProtectedRoute>} />
           <Route path="/resource-collections" element={<ProtectedRoute><ResourceCollections /></ProtectedRoute>} />
+          <Route path="/resource-collections/:id" element={<ProtectedRoute><ResourceCollectionDetail /></ProtectedRoute>} />
           <Route path="/ondemand-workouts" element={<ProtectedRoute><OndemandWorkouts /></ProtectedRoute>} />
           <Route path="/workout-collections" element={<ProtectedRoute><WorkoutCollections /></ProtectedRoute>} />
+          <Route path="/workout-collections/:id" element={<ProtectedRoute><WorkoutCollectionDetail /></ProtectedRoute>} />
           <Route path="/workout-labels" element={<ProtectedRoute><WorkoutLabels /></ProtectedRoute>} />
           
           {/* Client Routes */}
