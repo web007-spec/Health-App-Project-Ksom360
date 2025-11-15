@@ -1,7 +1,7 @@
 import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Minus, Image as ImageIcon } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -9,10 +9,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { LogProgressDialog } from "@/components/LogProgressDialog";
 import { format, parseISO } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function ClientProgress() {
   const { user } = useAuth();
   const [logDialogOpen, setLogDialogOpen] = useState(false);
+  const [selectedPhotos, setSelectedPhotos] = useState<string[] | null>(null);
 
   // Fetch progress entries
   const { data: progressEntries, isLoading } = useQuery({
@@ -262,6 +264,25 @@ export default function ClientProgress() {
                           </div>
                         )}
                       </div>
+                      {entry.photos && Array.isArray(entry.photos) && entry.photos.length > 0 && (
+                        <div className="mt-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                            <p className="text-sm font-medium">Progress Photos</p>
+                          </div>
+                          <div className="grid grid-cols-4 gap-2">
+                            {entry.photos.map((photoUrl: string, idx: number) => (
+                              <img
+                                key={idx}
+                                src={photoUrl}
+                                alt={`Progress photo ${idx + 1}`}
+                                className="w-full h-20 object-cover rounded-lg border border-border cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => setSelectedPhotos(entry.photos as string[])}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {entry.notes && (
                         <p className="text-sm text-muted-foreground mt-3 italic">{entry.notes}</p>
                       )}
@@ -289,6 +310,24 @@ export default function ClientProgress() {
       </div>
 
       <LogProgressDialog open={logDialogOpen} onOpenChange={setLogDialogOpen} />
+      
+      <Dialog open={selectedPhotos !== null} onOpenChange={() => setSelectedPhotos(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Progress Photos</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4">
+            {selectedPhotos?.map((photoUrl, idx) => (
+              <img
+                key={idx}
+                src={photoUrl}
+                alt={`Progress photo ${idx + 1}`}
+                className="w-full h-auto rounded-lg border border-border"
+              />
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </ClientLayout>
   );
 }
