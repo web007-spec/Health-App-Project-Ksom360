@@ -1,4 +1,4 @@
-import { Home, Dumbbell, TrendingUp, Utensils, MessageSquare, Settings, CalendarDays, Target, CheckSquare } from "lucide-react";
+import { Home, Dumbbell, TrendingUp, Utensils, MessageSquare, Settings, CalendarDays, Target, CheckSquare, FileText, Play } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -21,6 +21,14 @@ const mainItems = [
   { title: "Progress", url: "/client/progress", icon: TrendingUp },
   { title: "Nutrition", url: "/client/nutrition", icon: Utensils },
   { title: "Messages", url: "/messages", icon: MessageSquare },
+];
+
+const ondemandItems = [
+  { title: "Resource Hub", url: "/client/resources", icon: FileText },
+  { title: "Workout Hub", url: "/client/workouts-hub", icon: Play },
+];
+
+const bottomItems = [
   { title: "Settings", url: "/client/settings", icon: Settings },
 ];
 
@@ -66,6 +74,52 @@ export function ClientSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>On-Demand</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {ondemandItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
+                      end
+                      className="hover:bg-sidebar-accent"
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <div className="mt-auto">
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {bottomItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        className="hover:bg-sidebar-accent"
+                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </div>
       </SidebarContent>
     </Sidebar>
   );
