@@ -113,6 +113,95 @@ export type Database = {
           },
         ]
       }
+      fitness_goals: {
+        Row: {
+          client_id: string
+          completed_at: string | null
+          created_at: string | null
+          current_value: number | null
+          description: string | null
+          goal_type: string
+          id: string
+          start_date: string
+          status: string
+          target_date: string
+          target_value: number | null
+          title: string
+          trainer_id: string
+          unit: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          current_value?: number | null
+          description?: string | null
+          goal_type: string
+          id?: string
+          start_date?: string
+          status?: string
+          target_date: string
+          target_value?: number | null
+          title: string
+          trainer_id: string
+          unit?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          current_value?: number | null
+          description?: string | null
+          goal_type?: string
+          id?: string
+          start_date?: string
+          status?: string
+          target_date?: string
+          target_value?: number | null
+          title?: string
+          trainer_id?: string
+          unit?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      goal_milestones: {
+        Row: {
+          achieved_at: string | null
+          created_at: string | null
+          goal_id: string
+          id: string
+          target_value: number
+          title: string
+        }
+        Insert: {
+          achieved_at?: string | null
+          created_at?: string | null
+          goal_id: string
+          id?: string
+          target_value: number
+          title: string
+        }
+        Update: {
+          achieved_at?: string | null
+          created_at?: string | null
+          goal_id?: string
+          id?: string
+          target_value?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_milestones_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "fitness_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string

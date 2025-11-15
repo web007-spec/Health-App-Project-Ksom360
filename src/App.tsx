@@ -13,6 +13,7 @@ import Exercises from "./pages/Exercises";
 import Clients from "./pages/Clients";
 import Messages from "./pages/Messages";
 import Analytics from "./pages/Analytics";
+import Goals from "./pages/Goals";
 import Auth from "./pages/Auth";
 import ClientDashboard from "./pages/client/ClientDashboard";
 import ClientWorkouts from "./pages/client/ClientWorkouts";
@@ -20,6 +21,7 @@ import ClientProgress from "./pages/client/ClientProgress";
 import ClientNutrition from "./pages/client/ClientNutrition";
 import ClientCalendar from "./pages/client/ClientCalendar";
 import ClientSettings from "./pages/client/ClientSettings";
+import ClientGoals from "./pages/client/ClientGoals";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -45,6 +47,7 @@ const App = () => (
           <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
           <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+          <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
           
           {/* Client Routes */}
           <Route path="/client" element={<ProtectedRoute><ClientDashboard /></ProtectedRoute>} />
@@ -53,6 +56,7 @@ const App = () => (
           <Route path="/client/nutrition" element={<ProtectedRoute><ClientNutrition /></ProtectedRoute>} />
           <Route path="/client/calendar" element={<ProtectedRoute><ClientCalendar /></ProtectedRoute>} />
           <Route path="/client/settings" element={<ProtectedRoute><ClientSettings /></ProtectedRoute>} />
+          <Route path="/client/goals" element={<ProtectedRoute><ClientGoals /></ProtectedRoute>} />
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
