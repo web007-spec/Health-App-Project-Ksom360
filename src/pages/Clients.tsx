@@ -8,12 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, MessageSquare, TrendingUp, Plus } from "lucide-react";
+import { Search, MessageSquare, TrendingUp, Plus, Settings } from "lucide-react";
 import { useState } from "react";
+import { AddClientDialog } from "@/components/AddClientDialog";
+import { ClientStatusDialog } from "@/components/ClientStatusDialog";
 
 export default function Clients() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+  const [addClientDialogOpen, setAddClientDialogOpen] = useState(false);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<{
+    id: string;
+    status: "active" | "paused" | "pending";
+    name: string;
+  } | null>(null);
 
   const { data: clients, isLoading } = useQuery({
     queryKey: ["clients", user?.id],
@@ -83,6 +92,21 @@ export default function Clients() {
                 <TrendingUp className="h-4 w-4" />
                 Progress
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2"
+                onClick={() => {
+                  setSelectedClient({
+                    id: client.id,
+                    status: client.status,
+                    name: client.client?.full_name || "Client",
+                  });
+                  setStatusDialogOpen(true);
+                }}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
             </div>
 
             <div className="mt-3 text-xs text-muted-foreground">
@@ -102,7 +126,7 @@ export default function Clients() {
             <h1 className="text-3xl font-bold">Clients</h1>
             <p className="text-muted-foreground mt-1">Manage your client relationships</p>
           </div>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setAddClientDialogOpen(true)}>
             <Plus className="h-4 w-4" />
             Add Client
           </Button>
@@ -185,6 +209,23 @@ export default function Clients() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Add Client Dialog */}
+      <AddClientDialog
+        open={addClientDialogOpen}
+        onOpenChange={setAddClientDialogOpen}
+      />
+
+      {/* Client Status Dialog */}
+      {selectedClient && (
+        <ClientStatusDialog
+          open={statusDialogOpen}
+          onOpenChange={setStatusDialogOpen}
+          clientRelationId={selectedClient.id}
+          currentStatus={selectedClient.status}
+          clientName={selectedClient.name}
+        />
+      )}
     </DashboardLayout>
   );
 }
