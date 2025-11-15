@@ -25,6 +25,8 @@ export default function CreateWorkout() {
     category: "",
     difficulty: "beginner" as const,
     duration_minutes: 30,
+    video_url: "",
+    image_url: "",
   });
 
   const [selectedExercises, setSelectedExercises] = useState<any[]>([]);
@@ -186,6 +188,28 @@ export default function CreateWorkout() {
                   placeholder="Describe the workout goals and focus areas..."
                   rows={3}
                 />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="video_url">Demo Video URL</Label>
+                  <Input
+                    id="video_url"
+                    value={workoutData.video_url}
+                    onChange={(e) => setWorkoutData({ ...workoutData, video_url: e.target.value })}
+                    placeholder="https://youtube.com/watch?v=..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="image_url">Cover Image URL</Label>
+                  <Input
+                    id="image_url"
+                    value={workoutData.image_url}
+                    onChange={(e) => setWorkoutData({ ...workoutData, image_url: e.target.value })}
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
