@@ -4,6 +4,9 @@ import { ClientCard } from "@/components/ClientCard";
 import { Users, Dumbbell, TrendingUp, DollarSign, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const mockClients = [
   {
@@ -48,6 +51,46 @@ const recentActivity = [
 ];
 
 export default function Dashboard() {
+  const { user } = useAuth();
+
+  // Fetch trainer clients
+  const { data: clients } = useQuery({
+    queryKey: ["trainer-clients", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trainer_clients")
+        .select(`
+          *,
+          client:profiles!trainer_clients_client_id_fkey(*)
+        `)
+        .eq("trainer_id", user?.id)
+        .order("assigned_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch workout plans count
+  const { data: workoutStats } = useQuery({
+    queryKey: ["workout-stats", user?.id],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("workout_plans")
+        .select("*", { count: "exact", head: true })
+        .eq("trainer_id", user?.id);
+
+      if (error) throw error;
+      return { total: count || 0 };
+    },
+    enabled: !!user?.id,
+  });
+
+  // Calculate stats
+  const activeClients = clients?.filter(c => c.status === "active").length || 0;
+  const totalWorkouts = workoutStats?.total || 0;
+  
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
@@ -67,30 +110,30 @@ export default function Dashboard() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Active Clients"
-            value={28}
-            change="+3 this week"
-            changeType="positive"
+            value={activeClients}
+            change={activeClients > 0 ? `+${activeClients} total` : "No clients yet"}
+            changeType={activeClients > 0 ? "positive" : "neutral"}
             icon={Users}
           />
           <StatCard
             title="Workouts Created"
-            value={142}
-            change="+12 this month"
-            changeType="positive"
+            value={totalWorkouts}
+            change={totalWorkouts > 0 ? "In your library" : "Create your first"}
+            changeType={totalWorkouts > 0 ? "positive" : "neutral"}
             icon={Dumbbell}
           />
           <StatCard
             title="Avg. Progress"
-            value="67%"
-            change="+5%"
-            changeType="positive"
+            value="--"
+            change="Coming soon"
+            changeType="neutral"
             icon={TrendingUp}
           />
           <StatCard
             title="Monthly Revenue"
-            value="$8,400"
-            change="+18%"
-            changeType="positive"
+            value="--"
+            change="Coming soon"
+            changeType="neutral"
             icon={DollarSign}
           />
         </div>
@@ -102,11 +145,35 @@ export default function Dashboard() {
               <h2 className="text-xl font-bold text-foreground">Active Clients</h2>
               <Button variant="ghost" size="sm">View All</Button>
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {mockClients.map((client) => (
-                <ClientCard key={client.name} {...client} />
-              ))}
-            </div>
+            {clients && clients.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                {clients.slice(0, 4).map((relationship) => (
+                  <ClientCard
+                    key={relationship.id}
+                    name={relationship.client?.full_name || relationship.client?.email || "Client"}
+                    avatar={`https://api.dicebear.com/7.x/avataaars/svg?seed=${relationship.client?.email}`}
+                    program="Training Program"
+                    progress={0}
+                    lastCheckIn="Recently"
+                    status={relationship.status}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                  <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No clients yet</h3>
+                  <p className="text-muted-foreground mb-4 max-w-sm">
+                    Start building your roster by adding your first client
+                  </p>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add First Client
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Recent Activity */}
@@ -114,18 +181,30 @@ export default function Dashboard() {
             <h2 className="text-xl font-bold text-foreground">Recent Activity</h2>
             <Card>
               <CardContent className="p-4">
-                <div className="space-y-4">
-                  {recentActivity.map((activity, index) => (
-                    <div key={index} className="flex gap-3">
-                      <div className="h-2 w-2 rounded-full bg-primary mt-2 flex-shrink-0" />
-                      <div className="flex-1 space-y-1">
-                        <p className="text-sm font-medium text-foreground">{activity.client}</p>
-                        <p className="text-sm text-muted-foreground">{activity.action}</p>
-                        <p className="text-xs text-muted-foreground">{activity.time}</p>
+                {clients && clients.length > 0 ? (
+                  <div className="space-y-4">
+                    {clients.slice(0, 4).map((relationship, index) => (
+                      <div key={index} className="flex gap-3">
+                        <div className="h-2 w-2 rounded-full bg-primary mt-2 flex-shrink-0" />
+                        <div className="flex-1 space-y-1">
+                          <p className="text-sm font-medium text-foreground">
+                            {relationship.client?.full_name || relationship.client?.email}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {relationship.status === "active" ? "Active client" : "Pending approval"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Added {new Date(relationship.assigned_at).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-sm text-muted-foreground">No activity yet</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -141,7 +220,7 @@ export default function Dashboard() {
                 </Button>
                 <Button variant="outline" className="w-full justify-start" size="sm">
                   <Users className="h-4 w-4 mr-2" />
-                  Schedule Check-in
+                  Add New Client
                 </Button>
                 <Button variant="outline" className="w-full justify-start" size="sm">
                   <TrendingUp className="h-4 w-4 mr-2" />
