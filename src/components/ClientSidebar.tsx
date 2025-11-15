@@ -17,7 +17,7 @@ const mainItems = [
   { title: "My Workouts", url: "/client/workouts", icon: Dumbbell },
   { title: "Progress", url: "/client/progress", icon: TrendingUp },
   { title: "Nutrition", url: "/client/nutrition", icon: Utensils },
-  { title: "Messages", url: "/client/messages", icon: MessageSquare },
+  { title: "Messages", url: "/messages", icon: MessageSquare },
   { title: "Profile", url: "/client/profile", icon: User },
 ];
 

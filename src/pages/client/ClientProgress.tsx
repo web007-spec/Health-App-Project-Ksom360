@@ -1,32 +1,103 @@
 import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, TrendingUp, TrendingDown } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-
-const weightData = [
-  { date: "Nov 1", weight: 178 },
-  { date: "Nov 8", weight: 177 },
-  { date: "Nov 15", weight: 175 },
-  { date: "Nov 22", weight: 174 },
-];
-
-const measurements = [
-  { name: "Weight", current: "175 lbs", change: "-3 lbs", trend: "down" },
-  { name: "Body Fat", current: "18%", change: "-2%", trend: "down" },
-  { name: "Chest", current: "42 in", change: "+0.5 in", trend: "up" },
-  { name: "Waist", current: "32 in", change: "-1 in", trend: "down" },
-  { name: "Arms", current: "15.5 in", change: "+0.3 in", trend: "up" },
-  { name: "Legs", current: "24 in", change: "+0.5 in", trend: "up" },
-];
-
-const progressPhotos = [
-  { date: "Nov 1, 2025", url: "https://api.dicebear.com/7.x/shapes/svg?seed=photo1" },
-  { date: "Oct 1, 2025", url: "https://api.dicebear.com/7.x/shapes/svg?seed=photo2" },
-  { date: "Sep 1, 2025", url: "https://api.dicebear.com/7.x/shapes/svg?seed=photo3" },
-];
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { LogProgressDialog } from "@/components/LogProgressDialog";
+import { format, parseISO } from "date-fns";
 
 export default function ClientProgress() {
+  const { user } = useAuth();
+  const [logDialogOpen, setLogDialogOpen] = useState(false);
+
+  // Fetch progress entries
+  const { data: progressEntries, isLoading } = useQuery({
+    queryKey: ["progress-entries", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("progress_entries")
+        .select("*")
+        .eq("client_id", user?.id)
+        .order("entry_date", { ascending: true });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Prepare chart data
+  const weightData = progressEntries?.filter((e) => e.weight).map((e) => ({
+    date: format(parseISO(e.entry_date), "MMM d"),
+    weight: e.weight,
+  })) || [];
+
+  const bodyFatData = progressEntries?.filter((e) => e.body_fat_percentage).map((e) => ({
+    date: format(parseISO(e.entry_date), "MMM d"),
+    bodyFat: e.body_fat_percentage,
+  })) || [];
+
+  // Calculate current vs previous values
+  const latest = progressEntries?.[progressEntries.length - 1];
+  const previous = progressEntries?.[progressEntries.length - 2];
+
+  const calculateChange = (current: number | null | undefined, prev: number | null | undefined) => {
+    if (!current || !prev) return null;
+    return current - prev;
+  };
+
+  const weightChange = calculateChange(latest?.weight, previous?.weight);
+  const bodyFatChange = calculateChange(latest?.body_fat_percentage, previous?.body_fat_percentage);
+
+  // Extract measurements from latest entry
+  const latestMeasurements = latest?.measurements as any;
+  const previousMeasurements = previous?.measurements as any;
+
+  const measurements = [
+    {
+      name: "Chest",
+      current: latestMeasurements?.chest,
+      change: calculateChange(latestMeasurements?.chest, previousMeasurements?.chest),
+    },
+    {
+      name: "Waist",
+      current: latestMeasurements?.waist,
+      change: calculateChange(latestMeasurements?.waist, previousMeasurements?.waist),
+    },
+    {
+      name: "Hips",
+      current: latestMeasurements?.hips,
+      change: calculateChange(latestMeasurements?.hips, previousMeasurements?.hips),
+    },
+    {
+      name: "Arms",
+      current: latestMeasurements?.arms,
+      change: calculateChange(latestMeasurements?.arms, previousMeasurements?.arms),
+    },
+    {
+      name: "Thighs",
+      current: latestMeasurements?.thighs,
+      change: calculateChange(latestMeasurements?.thighs, previousMeasurements?.thighs),
+    },
+  ].filter((m) => m.current !== undefined && m.current !== null);
+
+  if (isLoading) {
+    return (
+      <ClientLayout>
+        <div className="p-6 flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading progress...</p>
+          </div>
+        </div>
+      </ClientLayout>
+    );
+  }
+
   return (
     <ClientLayout>
       <div className="p-6 space-y-6">
@@ -35,118 +106,189 @@ export default function ClientProgress() {
             <h1 className="text-3xl font-bold text-foreground">Progress Tracking</h1>
             <p className="text-muted-foreground mt-1">Monitor your fitness journey</p>
           </div>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setLogDialogOpen(true)}>
             <Plus className="h-4 w-4" />
             Log Progress
           </Button>
         </div>
 
-        {/* Weight Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Weight Trend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={weightData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis domain={[170, 180]} />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="weight"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                  dot={{ fill: "hsl(var(--primary))", r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Measurements */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Body Measurements</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {measurements.map((measurement, index) => (
-                <div
-                  key={index}
-                  className="p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <p className="text-sm font-medium text-muted-foreground">{measurement.name}</p>
-                    {measurement.trend === "down" ? (
-                      <TrendingDown className="h-4 w-4 text-success" />
-                    ) : (
-                      <TrendingUp className="h-4 w-4 text-primary" />
+        {progressEntries && progressEntries.length > 0 ? (
+          <>
+            {/* Key Metrics */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Weight</span>
+                    {weightChange !== null && (
+                      <span className={`text-sm flex items-center gap-1 ${weightChange > 0 ? "text-destructive" : "text-success"}`}>
+                        {weightChange > 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                        {Math.abs(weightChange).toFixed(1)}kg
+                      </span>
                     )}
-                  </div>
-                  <p className="text-2xl font-bold text-foreground mb-1">{measurement.current}</p>
-                  <p className="text-sm text-muted-foreground">{measurement.change}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">{latest?.weight ? `${latest.weight}kg` : "—"}</p>
+                </CardContent>
+              </Card>
 
-        {/* Progress Photos */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Progress Photos</CardTitle>
-            <Button variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Photo
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
-              {progressPhotos.map((photo, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="aspect-[3/4] rounded-lg border-2 border-border overflow-hidden bg-muted">
-                    <img
-                      src={photo.url}
-                      alt={`Progress ${photo.date}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <p className="text-sm text-center text-muted-foreground">{photo.date}</p>
-                </div>
-              ))}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Body Fat %</span>
+                    {bodyFatChange !== null && (
+                      <span className={`text-sm flex items-center gap-1 ${bodyFatChange > 0 ? "text-destructive" : "text-success"}`}>
+                        {bodyFatChange > 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                        {Math.abs(bodyFatChange).toFixed(1)}%
+                      </span>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">{latest?.body_fat_percentage ? `${latest.body_fat_percentage}%` : "—"}</p>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Personal Records */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Personal Records</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {[
-                { exercise: "Bench Press", weight: "225 lbs", date: "Nov 12, 2025" },
-                { exercise: "Squat", weight: "315 lbs", date: "Nov 10, 2025" },
-                { exercise: "Deadlift", weight: "405 lbs", date: "Nov 8, 2025" },
-              ].map((record, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 rounded-lg border border-border"
-                >
-                  <div>
-                    <p className="font-medium text-foreground">{record.exercise}</p>
-                    <p className="text-sm text-muted-foreground">{record.date}</p>
+            {/* Weight Chart */}
+            {weightData.length > 1 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Weight Trend</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={weightData}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="date" className="text-xs" />
+                      <YAxis className="text-xs" />
+                      <Tooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="weight"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={2}
+                        dot={{ fill: "hsl(var(--primary))", r: 4 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Body Fat Chart */}
+            {bodyFatData.length > 1 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Body Fat % Trend</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={bodyFatData}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="date" className="text-xs" />
+                      <YAxis className="text-xs" />
+                      <Tooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="bodyFat"
+                        stroke="hsl(var(--accent))"
+                        strokeWidth={2}
+                        dot={{ fill: "hsl(var(--accent))", r: 4 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Measurements */}
+            {measurements.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Body Measurements (cm)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {measurements.map((measurement) => (
+                      <div key={measurement.name} className="p-4 rounded-lg border border-border">
+                        <div className="flex items-start justify-between mb-2">
+                          <p className="text-sm font-medium text-muted-foreground">{measurement.name}</p>
+                          {measurement.change !== null && measurement.change !== 0 && (
+                            <span className={`flex items-center gap-1 text-xs ${measurement.change > 0 ? "text-primary" : "text-success"}`}>
+                              {measurement.change > 0 ? (
+                                <TrendingUp className="h-3 w-3" />
+                              ) : measurement.change < 0 ? (
+                                <TrendingDown className="h-3 w-3" />
+                              ) : (
+                                <Minus className="h-3 w-3" />
+                              )}
+                              {Math.abs(measurement.change).toFixed(1)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-2xl font-bold">{measurement.current}cm</p>
+                      </div>
+                    ))}
                   </div>
-                  <p className="text-lg font-bold text-primary">{record.weight}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Progress History */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Progress History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {progressEntries.slice().reverse().map((entry) => (
+                    <div key={entry.id} className="p-4 border rounded-lg">
+                      <div className="flex items-start justify-between mb-2">
+                        <p className="font-medium">{format(parseISO(entry.entry_date), "PPP")}</p>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        {entry.weight && (
+                          <div>
+                            <p className="text-muted-foreground">Weight</p>
+                            <p className="font-medium">{entry.weight}kg</p>
+                          </div>
+                        )}
+                        {entry.body_fat_percentage && (
+                          <div>
+                            <p className="text-muted-foreground">Body Fat</p>
+                            <p className="font-medium">{entry.body_fat_percentage}%</p>
+                          </div>
+                        )}
+                      </div>
+                      {entry.notes && (
+                        <p className="text-sm text-muted-foreground mt-3 italic">{entry.notes}</p>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No progress entries yet</h3>
+              <p className="text-muted-foreground mb-4">
+                Start tracking your progress to see your fitness journey
+              </p>
+              <Button onClick={() => setLogDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Log Your First Entry
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      <LogProgressDialog open={logDialogOpen} onOpenChange={setLogDialogOpen} />
     </ClientLayout>
   );
 }
