@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const workoutTemplates = [
   {
@@ -73,6 +74,7 @@ const difficultyColors = {
 
 export default function Workouts() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Fetch workout plans from database
   const { data: workoutPlans, isLoading } = useQuery({
@@ -115,7 +117,7 @@ export default function Workouts() {
             <h1 className="text-3xl font-bold text-foreground">Workout Library</h1>
             <p className="text-muted-foreground mt-1">Create and manage workout plans for your clients</p>
           </div>
-          <Button size="lg" className="gap-2 w-full md:w-auto">
+          <Button size="lg" className="gap-2 w-full md:w-auto" onClick={() => navigate("/workouts/create")}>
             <Plus className="h-4 w-4" />
             Create New Workout
           </Button>
@@ -140,7 +142,11 @@ export default function Workouts() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {workoutPlans && workoutPlans.length > 0 ? (
             workoutPlans.map((workout) => (
-              <Card key={workout.id} className="hover:shadow-lg transition-shadow">
+              <Card 
+                key={workout.id} 
+                className="hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => navigate(`/workouts/${workout.id}`)}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="space-y-1 flex-1">
@@ -171,15 +177,29 @@ export default function Workouts() {
                       {workout.workout_plan_exercises?.[0]?.count || 0} exercises
                     </p>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Edit className="h-3.5 w-3.5 mr-1.5" />
                         Edit
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Copy className="h-3.5 w-3.5 mr-1.5" />
                         Duplicate
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Trash2 className="h-3.5 w-3.5 text-destructive" />
                       </Button>
                     </div>
