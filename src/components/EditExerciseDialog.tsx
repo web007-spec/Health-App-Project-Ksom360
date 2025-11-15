@@ -46,6 +46,7 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -61,6 +62,7 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
       });
       setImagePreview(exercise.image_url);
       setImageFile(null);
+      setRemoveImage(false);
     }
   }, [exercise]);
 
@@ -97,7 +99,8 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
 
   const clearImage = () => {
     setImageFile(null);
-    setImagePreview(exercise?.image_url || null);
+    setImagePreview(null);
+    setRemoveImage(true);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -109,8 +112,12 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
 
       let imageUrl = exercise.image_url;
 
+      // Remove image if user clicked the X button
+      if (removeImage) {
+        imageUrl = null;
+      }
       // Upload new image if file is selected
-      if (imageFile && user?.id) {
+      else if (imageFile && user?.id) {
         setIsUploading(true);
         try {
           const compressedBlob = await compressImage(imageFile, 400, 400, 0.85);
@@ -182,6 +189,7 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
     });
     setImageFile(null);
     setImagePreview(null);
+    setRemoveImage(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
