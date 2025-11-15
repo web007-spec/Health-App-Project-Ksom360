@@ -30,6 +30,7 @@ import ResourceLibrary from "./pages/ResourceLibrary";
 import ResourceCollections from "./pages/ResourceCollections";
 import OndemandWorkouts from "./pages/OndemandWorkouts";
 import WorkoutCollections from "./pages/WorkoutCollections";
+import WorkoutLabels from "./pages/WorkoutLabels";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -61,6 +62,7 @@ const App = () => (
           <Route path="/resource-collections" element={<ProtectedRoute><ResourceCollections /></ProtectedRoute>} />
           <Route path="/ondemand-workouts" element={<ProtectedRoute><OndemandWorkouts /></ProtectedRoute>} />
           <Route path="/workout-collections" element={<ProtectedRoute><WorkoutCollections /></ProtectedRoute>} />
+          <Route path="/workout-labels" element={<ProtectedRoute><WorkoutLabels /></ProtectedRoute>} />
           
           {/* Client Routes */}
           <Route path="/client" element={<ProtectedRoute><ClientDashboard /></ProtectedRoute>} />
