@@ -1,4 +1,4 @@
-import { Home, Dumbbell, TrendingUp, Utensils, MessageSquare, Settings, CalendarDays, Target } from "lucide-react";
+import { Home, Dumbbell, TrendingUp, Utensils, MessageSquare, Settings, CalendarDays, Target, CheckSquare } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -17,6 +17,7 @@ const mainItems = [
   { title: "My Workouts", url: "/client/workouts", icon: Dumbbell },
   { title: "Calendar", url: "/client/calendar", icon: CalendarDays },
   { title: "Goals", url: "/client/goals", icon: Target },
+  { title: "Tasks", url: "/client/tasks", icon: CheckSquare },
   { title: "Progress", url: "/client/progress", icon: TrendingUp },
   { title: "Nutrition", url: "/client/nutrition", icon: Utensils },
   { title: "Messages", url: "/messages", icon: MessageSquare },

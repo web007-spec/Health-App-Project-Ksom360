@@ -8,16 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, MessageSquare, TrendingUp, Plus, Settings } from "lucide-react";
+import { Search, MessageSquare, TrendingUp, Plus, Settings, CheckSquare } from "lucide-react";
 import { useState } from "react";
 import { AddClientDialog } from "@/components/AddClientDialog";
 import { ClientStatusDialog } from "@/components/ClientStatusDialog";
+import { AssignTaskDialog } from "@/components/AssignTaskDialog";
 
 export default function Clients() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [addClientDialogOpen, setAddClientDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [assignTaskDialogOpen, setAssignTaskDialogOpen] = useState(false);
+  const [selectedClientForTask, setSelectedClientForTask] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<{
     id: string;
     status: "active" | "paused" | "pending";
@@ -87,6 +90,18 @@ export default function Clients() {
               <Button size="sm" variant="outline" className="flex-1 gap-2">
                 <MessageSquare className="h-4 w-4" />
                 Message
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="flex-1 gap-2"
+                onClick={() => {
+                  setSelectedClientForTask(client.client_id);
+                  setAssignTaskDialogOpen(true);
+                }}
+              >
+                <CheckSquare className="h-4 w-4" />
+                Task
               </Button>
               <Button size="sm" variant="outline" className="flex-1 gap-2">
                 <TrendingUp className="h-4 w-4" />
@@ -224,6 +239,15 @@ export default function Clients() {
           clientRelationId={selectedClient.id}
           currentStatus={selectedClient.status}
           clientName={selectedClient.name}
+        />
+      )}
+
+      {/* Assign Task Dialog */}
+      {selectedClientForTask && (
+        <AssignTaskDialog
+          clientId={selectedClientForTask}
+          open={assignTaskDialogOpen}
+          onOpenChange={setAssignTaskDialogOpen}
         />
       )}
     </DashboardLayout>
