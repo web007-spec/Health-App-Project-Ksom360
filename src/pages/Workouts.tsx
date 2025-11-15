@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Filter, Clock, Users, Copy, Edit, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const workoutTemplates = [
   {
@@ -69,6 +72,40 @@ const difficultyColors = {
 };
 
 export default function Workouts() {
+  const { user } = useAuth();
+
+  // Fetch workout plans from database
+  const { data: workoutPlans, isLoading } = useQuery({
+    queryKey: ["workout-plans", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("workout_plans")
+        .select(`
+          *,
+          workout_plan_exercises(count)
+        `)
+        .eq("trainer_id", user?.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="p-6 flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading workouts...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
@@ -101,54 +138,60 @@ export default function Workouts() {
 
         {/* Workout Templates Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {workoutTemplates.map((workout) => (
-            <Card key={workout.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1 flex-1">
-                    <CardTitle className="text-lg">{workout.name}</CardTitle>
-                    <Badge variant="secondary" className="text-xs">
-                      {workout.category}
+          {workoutPlans && workoutPlans.length > 0 ? (
+            workoutPlans.map((workout) => (
+              <Card key={workout.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1 flex-1">
+                      <CardTitle className="text-lg">{workout.name}</CardTitle>
+                      <Badge variant="secondary" className="text-xs">
+                        {workout.category}
+                      </Badge>
+                    </div>
+                    <Badge className={difficultyColors[workout.difficulty as keyof typeof difficultyColors]}>
+                      {workout.difficulty}
                     </Badge>
                   </div>
-                  <Badge className={difficultyColors[workout.difficulty as keyof typeof difficultyColors]}>
-                    {workout.difficulty}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    <span>{workout.duration}</span>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span>{workout.duration_minutes} min</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                      <span>0 clients</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Users className="h-4 w-4" />
-                    <span>{workout.assignedTo} clients</span>
+                  
+                  <div className="pt-2 border-t border-border">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {workout.workout_plan_exercises?.[0]?.count || 0} exercises
+                    </p>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Edit className="h-3.5 w-3.5 mr-1.5" />
+                        Edit
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1">
+                        <Copy className="h-3.5 w-3.5 mr-1.5" />
+                        Duplicate
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="pt-2 border-t border-border">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {workout.exercises} exercises
-                  </p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1">
-                      <Edit className="h-3.5 w-3.5 mr-1.5" />
-                      Edit
-                    </Button>
-                    <Button variant="outline" size="sm" className="flex-1">
-                      <Copy className="h-3.5 w-3.5 mr-1.5" />
-                      Duplicate
-                    </Button>
-                    <Button variant="ghost" size="sm">
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <p className="text-muted-foreground">No workout plans yet. Create your first one!</p>
+            </div>
+          )}
         </div>
 
         {/* Create Workout CTA */}
