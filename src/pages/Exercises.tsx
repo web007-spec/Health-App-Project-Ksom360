@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Plus, Video, ArrowUpDown, Dumbbell } from "lucide-react";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { CreateExerciseDialog } from "@/components/CreateExerciseDialog";
+import { EditExerciseDialog } from "@/components/EditExerciseDialog";
 
 const muscleGroups = ["chest", "back", "shoulders", "arms", "legs", "glutes", "core", "cardio", "full body"];
 const equipmentTypes = ["bodyweight", "dumbbells", "barbell", "machine", "resistance bands", "kettlebell", "cable"];
@@ -22,6 +23,8 @@ export default function Exercises() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedExercise, setSelectedExercise] = useState<any>(null);
 
   const { data: exercises, isLoading } = useQuery({
     queryKey: ["exercises", user?.id],
@@ -62,6 +65,11 @@ export default function Exercises() {
   });
 
   const videoDemoCount = exercises?.filter(ex => ex.video_url).length || 0;
+
+  const handleEditExercise = (exercise: any) => {
+    setSelectedExercise(exercise);
+    setIsEditDialogOpen(true);
+  };
 
   return (
     <DashboardLayout>
@@ -188,7 +196,11 @@ export default function Exercises() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sortedExercises.map((exercise) => (
-              <ExerciseCard key={exercise.id} exercise={exercise} />
+              <ExerciseCard 
+                key={exercise.id} 
+                exercise={exercise} 
+                onEdit={handleEditExercise}
+              />
             ))}
           </div>
         )}
@@ -197,6 +209,12 @@ export default function Exercises() {
       <CreateExerciseDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
+      />
+
+      <EditExerciseDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        exercise={selectedExercise}
       />
     </DashboardLayout>
   );
