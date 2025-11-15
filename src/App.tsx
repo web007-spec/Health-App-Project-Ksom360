@@ -6,6 +6,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import Workouts from "./pages/Workouts";
 import Auth from "./pages/Auth";
+import ClientDashboard from "./pages/client/ClientDashboard";
+import ClientWorkouts from "./pages/client/ClientWorkouts";
+import ClientProgress from "./pages/client/ClientProgress";
+import ClientNutrition from "./pages/client/ClientNutrition";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -19,8 +23,17 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<Auth />} />
+          
+          {/* Trainer Routes */}
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/workouts" element={<ProtectedRoute><Workouts /></ProtectedRoute>} />
+          
+          {/* Client Routes */}
+          <Route path="/client" element={<ProtectedRoute><ClientDashboard /></ProtectedRoute>} />
+          <Route path="/client/workouts" element={<ProtectedRoute><ClientWorkouts /></ProtectedRoute>} />
+          <Route path="/client/progress" element={<ProtectedRoute><ClientProgress /></ProtectedRoute>} />
+          <Route path="/client/nutrition" element={<ProtectedRoute><ClientNutrition /></ProtectedRoute>} />
+          
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
