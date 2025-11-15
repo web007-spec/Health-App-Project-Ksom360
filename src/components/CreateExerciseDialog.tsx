@@ -4,12 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dumbbell } from "lucide-react";
-import { useState } from "react";
+import { Dumbbell, Upload, X } from "lucide-react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { compressImage } from "@/lib/imageCompression";
 
 interface CreateExerciseDialogProps {
   open: boolean;
@@ -33,12 +34,95 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
     video_url: "",
   });
 
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 10MB before compression)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setImageFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const createExerciseMutation = useMutation({
     mutationFn: async () => {
+      let imageUrl = formData.image_url;
+
+      // Upload image if file is selected
+      if (imageFile && user?.id) {
+        setIsUploading(true);
+        try {
+          // Compress the image
+          const compressedBlob = await compressImage(imageFile, 800, 800, 0.8);
+          
+          // Generate unique filename
+          const fileExt = imageFile.name.split('.').pop();
+          const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+          
+          // Upload to Supabase Storage
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('exercise-images')
+            .upload(fileName, compressedBlob, {
+              contentType: 'image/jpeg',
+              upsert: false,
+            });
+
+          if (uploadError) throw uploadError;
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('exercise-images')
+            .getPublicUrl(fileName);
+
+          imageUrl = publicUrl;
+        } finally {
+          setIsUploading(false);
+        }
+      }
+
+      // Insert exercise with image URL
       const { data, error } = await supabase
         .from("exercises")
         .insert({
           ...formData,
+          image_url: imageUrl,
           trainer_id: user?.id,
         })
         .select()
@@ -63,6 +147,7 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
         image_url: "",
         video_url: "",
       });
+      clearImage();
     },
     onError: (error: Error) => {
       toast({
@@ -164,30 +249,63 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
             />
           </div>
 
-          {/* Image and Video URLs */}
-          <div className="grid grid-cols-1 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="image_url">Exercise Image/Thumbnail</Label>
-              <Input
-                id="image_url"
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                placeholder="Paste image URL here..."
-              />
-            </div>
+          {/* Image Upload */}
+          <div className="space-y-2">
+            <Label htmlFor="image_upload">Exercise Image/Thumbnail</Label>
+            
+            {imagePreview ? (
+              <div className="relative">
+                <img 
+                  src={imagePreview} 
+                  alt="Preview" 
+                  className="w-full h-48 object-cover rounded-lg border border-border"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2"
+                  onClick={clearImage}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+              >
+                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-sm text-muted-foreground mb-2">
+                  Click to upload exercise image
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Image will be automatically compressed and resized
+                </p>
+              </div>
+            )}
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="video_url">Demo Video</Label>
-              <Input
-                id="video_url"
-                value={formData.video_url}
-                onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-                placeholder="https://vimeo.com/..."
-              />
-              <p className="text-xs text-muted-foreground">
-                Paste YouTube, Vimeo, or direct video URL
-              </p>
-            </div>
+          {/* Video URL */}
+          <div className="space-y-2">
+            <Label htmlFor="video_url">Demo Video</Label>
+            <Input
+              id="video_url"
+              value={formData.video_url}
+              onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
+              placeholder="https://vimeo.com/..."
+            />
+            <p className="text-xs text-muted-foreground">
+              Paste YouTube, Vimeo, or direct video URL
+            </p>
           </div>
 
           {/* Action Buttons */}
@@ -195,8 +313,8 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={createExerciseMutation.isPending}>
-              {createExerciseMutation.isPending ? "Creating..." : "Create Exercise"}
+            <Button type="submit" disabled={createExerciseMutation.isPending || isUploading}>
+              {isUploading ? "Uploading image..." : createExerciseMutation.isPending ? "Creating..." : "Create Exercise"}
             </Button>
           </div>
         </form>
