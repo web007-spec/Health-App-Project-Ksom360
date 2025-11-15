@@ -64,13 +64,29 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
 
       if (relationError) throw relationError;
 
+      // Send welcome email
+      const loginUrl = `${window.location.origin}/auth`;
+      const { error: emailError } = await supabase.functions.invoke("send-client-welcome-email", {
+        body: {
+          email: email.trim(),
+          fullName: fullName.trim(),
+          password: password.trim(),
+          loginUrl,
+        },
+      });
+
+      if (emailError) {
+        console.error("Failed to send welcome email:", emailError);
+        // Don't throw error - client was created successfully
+      }
+
       return authData.user;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       toast({
         title: "Success",
-        description: `Client ${fullName} has been added successfully`,
+        description: `Client ${fullName} has been added and will receive their login credentials via email`,
       });
       handleClose();
     },
