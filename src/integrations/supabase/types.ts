@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_tasks: {
+        Row: {
+          assigned_at: string
+          attachments: Json | null
+          client_id: string
+          completed_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          name: string
+          notes: string | null
+          reminder_enabled: boolean | null
+          reminder_hours_before: number | null
+          task_type: Database["public"]["Enums"]["task_type"]
+          template_id: string | null
+          trainer_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          attachments?: Json | null
+          client_id: string
+          completed_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          reminder_enabled?: boolean | null
+          reminder_hours_before?: number | null
+          task_type?: Database["public"]["Enums"]["task_type"]
+          template_id?: string | null
+          trainer_id: string
+        }
+        Update: {
+          assigned_at?: string
+          attachments?: Json | null
+          client_id?: string
+          completed_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          reminder_enabled?: boolean | null
+          reminder_hours_before?: number | null
+          task_type?: Database["public"]["Enums"]["task_type"]
+          template_id?: string | null
+          trainer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_tasks_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "task_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_workouts: {
         Row: {
           assigned_at: string
@@ -401,6 +460,48 @@ export type Database = {
           },
         ]
       }
+      task_templates: {
+        Row: {
+          attachments: Json | null
+          created_at: string
+          description: string | null
+          id: string
+          is_shared: boolean | null
+          name: string
+          reminder_enabled: boolean | null
+          reminder_hours_before: number | null
+          task_type: Database["public"]["Enums"]["task_type"]
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          attachments?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_shared?: boolean | null
+          name: string
+          reminder_enabled?: boolean | null
+          reminder_hours_before?: number | null
+          task_type?: Database["public"]["Enums"]["task_type"]
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          attachments?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_shared?: boolean | null
+          name?: string
+          reminder_enabled?: boolean | null
+          reminder_hours_before?: number | null
+          task_type?: Database["public"]["Enums"]["task_type"]
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       trainer_clients: {
         Row: {
           assigned_at: string
@@ -550,6 +651,12 @@ export type Database = {
     }
     Enums: {
       client_status: "active" | "paused" | "pending"
+      task_type:
+        | "general"
+        | "progress_photo"
+        | "body_metrics"
+        | "form"
+        | "habit"
       user_role: "trainer" | "client"
       workout_difficulty: "beginner" | "intermediate" | "advanced"
     }
@@ -680,6 +787,7 @@ export const Constants = {
   public: {
     Enums: {
       client_status: ["active", "paused", "pending"],
+      task_type: ["general", "progress_photo", "body_metrics", "form", "habit"],
       user_role: ["trainer", "client"],
       workout_difficulty: ["beginner", "intermediate", "advanced"],
     },
