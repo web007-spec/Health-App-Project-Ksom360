@@ -120,7 +120,7 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
       else if (imageFile && user?.id) {
         setIsUploading(true);
         try {
-          const compressedBlob = await compressImage(imageFile, 400, 400, 0.85);
+          const compressedBlob = await compressImage(imageFile, 300, 300, 0.85);
           
           const fileExt = imageFile.name.split('.').pop();
           const fileName = `${user.id}/${Date.now()}.${fileExt}`;
