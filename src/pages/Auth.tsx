@@ -46,7 +46,13 @@ export default function Auth() {
 
       if (data.user) {
         toast.success("Account created successfully!");
-        navigate("/");
+        
+        // Redirect based on role
+        if (signUpData.role === 'client') {
+          navigate("/client/dashboard");
+        } else {
+          navigate("/");
+        }
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to create account");
@@ -68,8 +74,21 @@ export default function Auth() {
       if (error) throw error;
 
       if (data.user) {
+        // Fetch user profile to get role
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+
         toast.success("Signed in successfully!");
-        navigate("/");
+        
+        // Redirect based on role
+        if (profile?.role === 'client') {
+          navigate("/client/dashboard");
+        } else {
+          navigate("/");
+        }
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
