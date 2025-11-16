@@ -10,10 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Search } from "lucide-react";
+import { ArrowLeft, Plus, Search, BookTemplate } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ExercisePickerDialog } from "@/components/ExercisePickerDialog";
 import { WorkoutSection } from "@/components/WorkoutSection";
+import { CreateFromTemplateDialog } from "@/components/CreateFromTemplateDialog";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -64,6 +65,7 @@ export default function CreateWorkout() {
   const [currentSectionId, setCurrentSectionId] = useState<string | null>(null);
   const [currentExerciseId, setCurrentExerciseId] = useState<string | null>(null);
   const [exerciseSearch, setExerciseSearch] = useState("");
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -371,6 +373,14 @@ export default function CreateWorkout() {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <h1 className="text-3xl font-bold">Create Workout</h1>
+              <Button
+                variant="outline"
+                onClick={() => setTemplateDialogOpen(true)}
+                className="ml-auto gap-2"
+              >
+                <BookTemplate className="h-4 w-4" />
+                Start from Template
+              </Button>
             </div>
 
             {/* Workout Info */}
@@ -522,6 +532,11 @@ export default function CreateWorkout() {
             ? handleEditExerciseSelect
             : handleExerciseSelect
         }
+      />
+
+      <CreateFromTemplateDialog
+        open={templateDialogOpen}
+        onOpenChange={setTemplateDialogOpen}
       />
     </DashboardLayout>
   );

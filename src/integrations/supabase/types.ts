@@ -1156,9 +1156,12 @@ export type Database = {
           duration_minutes: number
           id: string
           image_url: string | null
+          is_template: boolean | null
           name: string
+          template_category: string | null
           trainer_id: string
           updated_at: string
+          use_count: number | null
           video_url: string | null
         }
         Insert: {
@@ -1169,9 +1172,12 @@ export type Database = {
           duration_minutes: number
           id?: string
           image_url?: string | null
+          is_template?: boolean | null
           name: string
+          template_category?: string | null
           trainer_id: string
           updated_at?: string
+          use_count?: number | null
           video_url?: string | null
         }
         Update: {
@@ -1182,9 +1188,12 @@ export type Database = {
           duration_minutes?: number
           id?: string
           image_url?: string | null
+          is_template?: boolean | null
           name?: string
+          template_category?: string | null
           trainer_id?: string
           updated_at?: string
+          use_count?: number | null
           video_url?: string | null
         }
         Relationships: [
