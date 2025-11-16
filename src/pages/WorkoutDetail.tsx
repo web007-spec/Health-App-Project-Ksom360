@@ -1,33 +1,23 @@
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { ClientLayout } from "@/components/ClientLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, Dumbbell, Target, Edit, Copy, Trash2, Play, UserPlus } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { AssignWorkoutDialog } from "@/components/AssignWorkoutDialog";
+import { Separator } from "@/components/ui/separator";
+import { ArrowLeft, Play, Clock, Dumbbell } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { WorkoutPlayer } from "@/components/WorkoutPlayer";
 
 export default function WorkoutDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const { user, userRole } = useAuth();
+  const [isPlaying, setIsPlaying] = useState(false);
+  const isClient = userRole === "client";
 
   const { data: workout, isLoading } = useQuery({
     queryKey: ["workout-detail", id],
@@ -36,9 +26,12 @@ export default function WorkoutDetail() {
         .from("workout_plans")
         .select(`
           *,
-          workout_plan_exercises(
+          workout_sections(
             *,
-            exercise:exercises(*)
+            workout_plan_exercises(
+              *,
+              exercise:exercises(*)
+            )
           )
         `)
         .eq("id", id)
@@ -50,100 +43,58 @@ export default function WorkoutDetail() {
     enabled: !!id,
   });
 
-  const deleteWorkoutMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from("workout_plans")
-        .delete()
-        .eq("id", id);
+  // Transform data for WorkoutPlayer
+  const transformedSections = workout?.workout_sections
+    ?.sort((a, b) => a.order_index - b.order_index)
+    .map((section) => ({
+      id: section.id,
+      name: section.name,
+      section_type: section.section_type,
+      rounds: section.rounds,
+      work_seconds: section.work_seconds,
+      rest_seconds: section.rest_seconds,
+      rest_between_rounds_seconds: section.rest_between_rounds_seconds,
+      notes: section.notes || "",
+      exercises: section.workout_plan_exercises
+        ?.sort((a, b) => a.order_index - b.order_index)
+        .map((wpe) => ({
+          id: wpe.id,
+          exercise_id: wpe.exercise_id,
+          exercise_name: wpe.exercise?.name,
+          exercise_image: wpe.exercise?.image_url,
+          exercise_video: wpe.exercise?.video_url,
+          exercise_description: wpe.exercise?.description,
+          sets: wpe.sets,
+          reps: wpe.reps,
+          duration_seconds: wpe.duration_seconds,
+          rest_seconds: wpe.rest_seconds,
+          tempo: wpe.tempo || "",
+          notes: wpe.notes || "",
+        })) || [],
+    })) || [];
 
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
-      toast({
-        title: "Success",
-        description: "Workout deleted successfully",
-      });
-      navigate("/workouts");
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  const totalExercises = transformedSections.reduce(
+    (sum, section) => sum + section.exercises.length * section.rounds,
+    0
+  );
 
-  const duplicateWorkoutMutation = useMutation({
-    mutationFn: async () => {
-      if (!workout) return;
+  const handleComplete = () => {
+    setIsPlaying(false);
+    navigate(isClient ? "/client/workouts" : "/workouts");
+  };
 
-      // Create duplicate workout
-      const { data: newWorkout, error: workoutError } = await supabase
-        .from("workout_plans")
-        .insert({
-          name: `${workout.name} (Copy)`,
-          description: workout.description,
-          category: workout.category,
-          difficulty: workout.difficulty,
-          duration_minutes: workout.duration_minutes,
-          video_url: workout.video_url,
-          image_url: workout.image_url,
-          trainer_id: workout.trainer_id,
-        })
-        .select()
-        .single();
-
-      if (workoutError) throw workoutError;
-
-      // Copy exercises
-      if (workout.workout_plan_exercises && workout.workout_plan_exercises.length > 0) {
-        const exercisesToInsert = workout.workout_plan_exercises.map((ex) => ({
-          workout_plan_id: newWorkout.id,
-          exercise_id: ex.exercise_id,
-          order_index: ex.order_index,
-          sets: ex.sets,
-          reps: ex.reps,
-          duration_seconds: ex.duration_seconds,
-          rest_seconds: ex.rest_seconds,
-          notes: ex.notes,
-        }));
-
-        const { error: exercisesError } = await supabase
-          .from("workout_plan_exercises")
-          .insert(exercisesToInsert);
-
-        if (exercisesError) throw exercisesError;
-      }
-
-      return newWorkout;
-    },
-    onSuccess: (newWorkout) => {
-      queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
-      toast({
-        title: "Success",
-        description: "Workout duplicated successfully",
-      });
-      navigate(`/workouts/${newWorkout.id}`);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  const handleExit = () => {
+    setIsPlaying(false);
+  };
 
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="p-6 space-y-6">
-          <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-96 w-full" />
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading workout...</p>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -152,245 +103,150 @@ export default function WorkoutDetail() {
   if (!workout) {
     return (
       <DashboardLayout>
-        <div className="p-6 text-center">
-          <h2 className="text-2xl font-bold mb-4">Workout not found</h2>
-          <Button onClick={() => navigate("/workouts")}>Back to Workouts</Button>
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Workout not found</p>
+          <Button onClick={() => navigate(-1)} className="mt-4">
+            Go Back
+          </Button>
         </div>
       </DashboardLayout>
     );
   }
 
-  const difficultyColors = {
-    beginner: "bg-green-500/10 text-green-700 dark:text-green-400",
-    intermediate: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
-    advanced: "bg-red-500/10 text-red-700 dark:text-red-400",
-  };
+  // Show workout player when playing
+  if (isPlaying) {
+    return (
+      <WorkoutPlayer
+        sections={transformedSections}
+        onComplete={handleComplete}
+        onExit={handleExit}
+      />
+    );
+  }
+
+  // Show workout preview
+  const Layout = isClient ? ClientLayout : DashboardLayout;
 
   return (
-    <DashboardLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/workouts")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold">{workout.name}</h1>
-              <p className="text-muted-foreground mt-1">{workout.description}</p>
+    <Layout>
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center gap-4 mb-6">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold">{workout.name}</h1>
+            <div className="flex gap-2 mt-2">
+              <Badge variant="outline" className="capitalize">
+                {workout.difficulty}
+              </Badge>
+              <Badge variant="outline">{workout.category}</Badge>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button size="sm" onClick={() => setAssignDialogOpen(true)}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Assign to Clients
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate(`/workouts/edit/${id}`)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => duplicateWorkoutMutation.mutate()}
-              disabled={duplicateWorkoutMutation.isPending}
-            >
-              <Copy className="h-4 w-4 mr-2" />
-              Duplicate
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setDeleteDialogOpen(true)}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </Button>
-          </div>
+          <Button size="lg" onClick={() => setIsPlaying(true)} className="gap-2">
+            <Play className="h-5 w-5" />
+            Start Workout
+          </Button>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Clock className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Duration</p>
-                  <p className="text-xl font-bold">{workout.duration_minutes} min</p>
-                </div>
+        {/* Workout Info */}
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            {workout.description && (
+              <p className="text-muted-foreground mb-4">{workout.description}</p>
+            )}
+            
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                <div className="text-2xl font-bold">{workout.duration_minutes}</div>
+                <div className="text-sm text-muted-foreground">Minutes</div>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Target className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Difficulty</p>
-                  <Badge className={difficultyColors[workout.difficulty as keyof typeof difficultyColors]}>
-                    {workout.difficulty}
-                  </Badge>
-                </div>
+              <div>
+                <Dumbbell className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                <div className="text-2xl font-bold">{transformedSections.length}</div>
+                <div className="text-sm text-muted-foreground">Sections</div>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Dumbbell className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Category</p>
-                  <p className="text-xl font-bold">{workout.category}</p>
-                </div>
+              <div>
+                <div className="text-3xl font-bold mx-auto mb-2">💪</div>
+                <div className="text-2xl font-bold">{totalExercises}</div>
+                <div className="text-sm text-muted-foreground">Exercises</div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Dumbbell className="h-5 w-5 text-primary" />
+        {/* Workout Preview */}
+        <div className="space-y-6">
+          {transformedSections.map((section, sectionIdx) => (
+            <Card key={section.id}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl">{section.name}</CardTitle>
+                  <div className="flex gap-2">
+                    <Badge variant="secondary" className="capitalize">
+                      {section.section_type.replace(/_/g, " ")}
+                    </Badge>
+                    {section.rounds > 1 && (
+                      <Badge variant="outline">{section.rounds} Rounds</Badge>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Exercises</p>
-                  <p className="text-xl font-bold">{workout.workout_plan_exercises?.length || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Exercises</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {workout.workout_plan_exercises
-                ?.sort((a, b) => a.order_index - b.order_index)
-                .map((wpe, index) => (
-                  <div key={wpe.id} className="border rounded-lg p-4 hover:border-primary/50 transition-colors">
-                    <div className="flex items-start gap-4">
-                      {wpe.exercise?.image_url ? (
+                {section.notes && (
+                  <p className="text-sm text-muted-foreground mt-2">{section.notes}</p>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {section.exercises.map((exercise, exIdx) => (
+                  <div key={exercise.id}>
+                    {exIdx > 0 && <Separator />}
+                    <div className="flex gap-4 pt-4">
+                      {exercise.exercise_image && (
                         <img
-                          src={wpe.exercise.image_url}
-                          alt={wpe.exercise.name}
-                          className="w-24 h-24 object-cover rounded-lg shrink-0"
+                          src={exercise.exercise_image}
+                          alt={exercise.exercise_name}
+                          className="w-20 h-20 rounded object-cover"
                         />
-                      ) : (
-                        <div className="w-24 h-24 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg flex items-center justify-center shrink-0">
-                          <span className="text-2xl font-bold text-primary/30">
-                            {index + 1}
-                          </span>
-                        </div>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <h3 className="text-lg font-semibold">{wpe.exercise?.name}</h3>
-                            {wpe.exercise?.description && (
-                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                {wpe.exercise.description}
-                              </p>
-                            )}
-                          </div>
-                          {wpe.exercise?.video_url && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => window.open(wpe.exercise?.video_url || '', '_blank')}
-                            >
-                              <Play className="h-4 w-4" />
-                            </Button>
-                          )}
+                      <div className="flex-1">
+                        <h4 className="font-semibold">{exercise.exercise_name}</h4>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {exercise.sets && `${exercise.sets} sets`}
+                          {exercise.reps && ` × ${exercise.reps} reps`}
+                          {exercise.duration_seconds && ` • ${exercise.duration_seconds}s`}
+                          {exercise.rest_seconds && ` • ${exercise.rest_seconds}s rest`}
+                          {exercise.tempo && ` • Tempo: ${exercise.tempo}`}
                         </div>
-                        
-                        <div className="flex flex-wrap gap-4 mt-3">
-                          {wpe.sets && (
-                            <div className="text-sm">
-                              <span className="font-medium">Sets:</span> {wpe.sets}
-                            </div>
-                          )}
-                          {wpe.reps && (
-                            <div className="text-sm">
-                              <span className="font-medium">Reps:</span> {wpe.reps}
-                            </div>
-                          )}
-                          {wpe.duration_seconds && (
-                            <div className="text-sm">
-                              <span className="font-medium">Duration:</span> {wpe.duration_seconds}s
-                            </div>
-                          )}
-                          {wpe.rest_seconds && (
-                            <div className="text-sm">
-                              <span className="font-medium">Rest:</span> {wpe.rest_seconds}s
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {wpe.exercise?.muscle_group && (
-                            <Badge variant="outline" className="capitalize">
-                              {wpe.exercise.muscle_group}
-                            </Badge>
-                          )}
-                          {wpe.exercise?.equipment && (
-                            <Badge variant="secondary" className="capitalize">
-                              {wpe.exercise.equipment}
-                            </Badge>
-                          )}
-                        </div>
-
-                        {wpe.notes && (
-                          <p className="text-sm text-muted-foreground mt-2 italic">{wpe.notes}</p>
+                        {exercise.notes && (
+                          <p className="text-sm text-muted-foreground mt-1">{exercise.notes}</p>
                         )}
                       </div>
                     </div>
                   </div>
                 ))}
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Video Preview */}
+        {workout.video_url && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Workout Demo</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="aspect-video rounded-lg overflow-hidden">
+                <video
+                  src={workout.video_url}
+                  controls
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete "{workout.name}" and all its exercises.
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteWorkoutMutation.mutate()}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Assign Workout Dialog */}
-      {workout && (
-        <AssignWorkoutDialog
-          open={assignDialogOpen}
-          onOpenChange={setAssignDialogOpen}
-          workoutId={workout.id}
-          workoutName={workout.name}
-        />
-      )}
-    </DashboardLayout>
+    </Layout>
   );
 }
