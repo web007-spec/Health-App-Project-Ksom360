@@ -2,7 +2,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, Clock, Users, Copy, Edit, Trash2, UserPlus } from "lucide-react";
+import { Plus, Search, Filter, Clock, Users, Copy, Edit, Trash2, UserPlus, BookTemplate } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ import { useState } from "react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { AssignWorkoutDialog } from "@/components/AssignWorkoutDialog";
+import { SaveAsTemplateDialog } from "@/components/SaveAsTemplateDialog";
 
 const workoutTemplates = [
   {
@@ -85,6 +86,8 @@ export default function Workouts() {
   const [workoutToDelete, setWorkoutToDelete] = useState<string | null>(null);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [workoutToAssign, setWorkoutToAssign] = useState<{ id: string; name: string } | null>(null);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [workoutToTemplate, setWorkoutToTemplate] = useState<{ id: string; name: string } | null>(null);
 
   // Fetch workout plans from database
   const { data: workoutPlans, isLoading } = useQuery({
@@ -97,6 +100,7 @@ export default function Workouts() {
           workout_plan_exercises(count)
         `)
         .eq("trainer_id", user?.id)
+        .eq("is_template", false)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -242,10 +246,16 @@ export default function Workouts() {
             <h1 className="text-3xl font-bold text-foreground">Workout Library</h1>
             <p className="text-muted-foreground mt-1">Create and manage workout plans for your clients</p>
           </div>
-          <Button size="lg" className="gap-2 w-full md:w-auto" onClick={() => navigate("/workouts/create")}>
-            <Plus className="h-4 w-4" />
-            Create New Workout
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate("/workout-templates")}>
+              <BookTemplate className="h-4 w-4 mr-2" />
+              Templates
+            </Button>
+            <Button size="lg" className="gap-2" onClick={() => navigate("/workouts/create")}>
+              <Plus className="h-4 w-4" />
+              Create New Workout
+            </Button>
+          </div>
         </div>
 
         {/* Search and Filters */}
@@ -329,6 +339,18 @@ export default function Workouts() {
                         size="sm" 
                         onClick={(e) => {
                           e.stopPropagation();
+                          setWorkoutToTemplate({ id: workout.id, name: workout.name });
+                          setTemplateDialogOpen(true);
+                        }}
+                        title="Save as Template"
+                      >
+                        <BookTemplate className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
                           duplicateMutation.mutate(workout.id);
                         }}
                         disabled={duplicateMutation.isPending}
@@ -403,6 +425,16 @@ export default function Workouts() {
           onOpenChange={setAssignDialogOpen}
           workoutId={workoutToAssign.id}
           workoutName={workoutToAssign.name}
+        />
+      )}
+
+      {/* Save as Template Dialog */}
+      {workoutToTemplate && (
+        <SaveAsTemplateDialog
+          open={templateDialogOpen}
+          onOpenChange={setTemplateDialogOpen}
+          workoutId={workoutToTemplate.id}
+          workoutName={workoutToTemplate.name}
         />
       )}
     </DashboardLayout>
