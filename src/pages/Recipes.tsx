@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Download, Upload } from "lucide-react";
 import { CreateRecipeDialog } from "@/components/nutrition/CreateRecipeDialog";
 import { EditRecipeDialog } from "@/components/nutrition/EditRecipeDialog";
 import { DeleteRecipeDialog } from "@/components/nutrition/DeleteRecipeDialog";
+import { ExportRecipesDialog } from "@/components/nutrition/ExportRecipesDialog";
+import { ImportRecipesDialog } from "@/components/nutrition/ImportRecipesDialog";
 
 export default function Recipes() {
   const { user } = useAuth();
@@ -18,6 +20,8 @@ export default function Recipes() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<any>(null);
   const [deletingRecipe, setDeletingRecipe] = useState<any>(null);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const { data: recipes, isLoading } = useQuery({
     queryKey: ["recipes", user?.id],
@@ -49,10 +53,20 @@ export default function Recipes() {
               Create and manage your recipe library
             </p>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Recipe
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Import
+            </Button>
+            <Button variant="outline" onClick={() => setExportDialogOpen(true)}>
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button onClick={() => setCreateDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Recipe
+            </Button>
+          </div>
         </div>
 
         <Card>
@@ -167,6 +181,16 @@ export default function Recipes() {
           onOpenChange={(open) => !open && setDeletingRecipe(null)}
         />
       )}
+
+      <ExportRecipesDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+      />
+
+      <ImportRecipesDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+      />
     </DashboardLayout>
   );
 }
