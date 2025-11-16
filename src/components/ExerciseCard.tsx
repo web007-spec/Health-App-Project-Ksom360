@@ -1,11 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Play, Edit } from "lucide-react";
+import { Play, Edit, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ManageExerciseAlternativesDialog } from "@/components/ManageExerciseAlternativesDialog";
 
 interface Exercise {
   id: string;
@@ -24,6 +25,7 @@ interface ExerciseCardProps {
 
 export function ExerciseCard({ exercise, onEdit }: ExerciseCardProps) {
   const [showVideoDialog, setShowVideoDialog] = useState(false);
+  const [showAlternativesDialog, setShowAlternativesDialog] = useState(false);
 
   // Fetch tags for this exercise
   const { data: exerciseTags } = useQuery({
@@ -100,14 +102,25 @@ export function ExerciseCard({ exercise, onEdit }: ExerciseCardProps) {
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-semibold text-lg text-foreground line-clamp-1 flex-1">{exercise.name}</h3>
             {onEdit && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onEdit(exercise)}
-                className="h-8 w-8 shrink-0"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
+              <div className="flex gap-1 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowAlternativesDialog(true)}
+                  className="h-8 w-8"
+                  title="Manage Alternatives"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onEdit(exercise)}
+                  className="h-8 w-8"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </div>
             )}
           </div>
           
@@ -155,6 +168,17 @@ export function ExerciseCard({ exercise, onEdit }: ExerciseCardProps) {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Manage Alternatives Dialog */}
+      <ManageExerciseAlternativesDialog
+        open={showAlternativesDialog}
+        onOpenChange={setShowAlternativesDialog}
+        exercise={{
+          id: exercise.id,
+          name: exercise.name,
+          muscle_group: exercise.muscle_group || undefined,
+        }}
+      />
     </>
   );
 }
