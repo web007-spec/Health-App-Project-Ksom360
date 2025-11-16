@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { compressImage } from "@/lib/imageCompression";
+import { Upload, X } from "lucide-react";
 
 interface EditRecipeDialogProps {
   recipe: any;
@@ -16,6 +18,9 @@ interface EditRecipeDialogProps {
 
 export function EditRecipeDialog({ recipe, open, onOpenChange }: EditRecipeDialogProps) {
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -29,6 +34,33 @@ export function EditRecipeDialog({ recipe, open, onOpenChange }: EditRecipeDialo
     servings: "",
     tags: "",
   });
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    try {
+      const compressed = await compressImage(file);
+      const compressedFile = new File([compressed], file.name, { type: "image/jpeg" });
+      setImageFile(compressedFile);
+      setImagePreview(URL.createObjectURL(compressed));
+    } catch (error) {
+      toast.error("Failed to process image");
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(recipe?.image_url || null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   useEffect(() => {
     if (recipe) {
@@ -45,6 +77,8 @@ export function EditRecipeDialog({ recipe, open, onOpenChange }: EditRecipeDialo
         servings: recipe.servings?.toString() || "",
         tags: recipe.tags?.join(", ") || "",
       });
+      setImagePreview(recipe.image_url || null);
+      setImageFile(null);
     }
   }, [recipe]);
 
@@ -54,6 +88,34 @@ export function EditRecipeDialog({ recipe, open, onOpenChange }: EditRecipeDialo
         .split(",")
         .map(t => t.trim())
         .filter(t => t.length > 0);
+
+      let imageUrl = recipe.image_url;
+
+      // Upload new image if selected
+      if (imageFile) {
+        // Delete old image if it exists
+        if (recipe.image_url) {
+          const oldPath = recipe.image_url.split("/recipe-images/")[1];
+          if (oldPath) {
+            await supabase.storage.from("recipe-images").remove([oldPath]);
+          }
+        }
+
+        const fileExt = imageFile.name.split(".").pop();
+        const fileName = `${recipe.trainer_id}/${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("recipe-images")
+          .upload(fileName, imageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("recipe-images")
+          .getPublicUrl(fileName);
+
+        imageUrl = publicUrl;
+      }
 
       const { error } = await supabase
         .from("recipes")
@@ -69,6 +131,7 @@ export function EditRecipeDialog({ recipe, open, onOpenChange }: EditRecipeDialo
           cook_time_minutes: formData.cook_time_minutes ? Number(formData.cook_time_minutes) : null,
           servings: formData.servings ? Number(formData.servings) : null,
           tags: tags.length > 0 ? tags : null,
+          image_url: imageUrl,
         })
         .eq("id", recipe.id);
 
@@ -92,6 +155,49 @@ export function EditRecipeDialog({ recipe, open, onOpenChange }: EditRecipeDialo
         </DialogHeader>
 
         <div className="space-y-4">
+          <div>
+            <Label>Recipe Image</Label>
+            <div className="mt-2">
+              {imagePreview ? (
+                <div className="relative inline-block">
+                  <img
+                    src={imagePreview}
+                    alt="Recipe preview"
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="destructive"
+                    className="absolute top-2 right-2"
+                    onClick={handleRemoveImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Image
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div>
             <Label htmlFor="name">Recipe Name</Label>
             <Input
