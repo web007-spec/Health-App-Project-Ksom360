@@ -16,9 +16,6 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
       navigate("/auth");
       return;
     }
-
-    // Allow free navigation between views - remove role restrictions for switching
-    // This enables testing and viewing both portals
   }, [user, loading, navigate]);
 
   if (loading) {
@@ -33,11 +30,6 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   if (!user) {
-    return null;
-  }
-
-  // If role check is required but user doesn't have the right role, show nothing while redirecting
-  if (allowedRoles && allowedRoles.length > 0 && userRole && !allowedRoles.includes(userRole)) {
     return null;
   }
 
