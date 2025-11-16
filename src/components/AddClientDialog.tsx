@@ -38,35 +38,9 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
         throw new Error("Password must be at least 6 characters");
       }
 
-      // Create the user account
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password: password.trim(),
-        options: {
-          data: {
-            full_name: fullName.trim(),
-            role: "client",
-          },
-        },
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Failed to create user account");
-
-      // Create trainer-client relationship
-      const { error: relationError } = await supabase
-        .from("trainer_clients")
-        .insert({
-          trainer_id: user?.id,
-          client_id: authData.user.id,
-          status: "active",
-        });
-
-      if (relationError) throw relationError;
-
-      // Send welcome email
+      // Call the edge function to create the client
       const loginUrl = `${window.location.origin}/auth`;
-      const { error: emailError } = await supabase.functions.invoke("send-client-welcome-email", {
+      const { data, error } = await supabase.functions.invoke("create-client", {
         body: {
           email: email.trim(),
           fullName: fullName.trim(),
@@ -75,12 +49,10 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
         },
       });
 
-      if (emailError) {
-        console.error("Failed to send welcome email:", emailError);
-        // Don't throw error - client was created successfully
-      }
+      if (error) throw error;
+      if (!data?.success) throw new Error("Failed to create client");
 
-      return authData.user;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
