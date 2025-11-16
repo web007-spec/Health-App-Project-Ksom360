@@ -86,6 +86,130 @@ export type Database = {
           },
         ]
       }
+      client_meal_plan_assignments: {
+        Row: {
+          assigned_at: string
+          client_id: string
+          end_date: string | null
+          id: string
+          meal_plan_id: string | null
+          notes: string | null
+          plan_type: Database["public"]["Enums"]["meal_plan_type"]
+          start_date: string
+          trainer_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          client_id: string
+          end_date?: string | null
+          id?: string
+          meal_plan_id?: string | null
+          notes?: string | null
+          plan_type: Database["public"]["Enums"]["meal_plan_type"]
+          start_date: string
+          trainer_id: string
+        }
+        Update: {
+          assigned_at?: string
+          client_id?: string
+          end_date?: string | null
+          id?: string
+          meal_plan_id?: string | null
+          notes?: string | null
+          plan_type?: Database["public"]["Enums"]["meal_plan_type"]
+          start_date?: string
+          trainer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_meal_plan_assignments_meal_plan_id_fkey"
+            columns: ["meal_plan_id"]
+            isOneToOne: false
+            referencedRelation: "meal_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_meal_selections: {
+        Row: {
+          assignment_id: string | null
+          client_id: string
+          created_at: string
+          id: string
+          meal_date: string
+          meal_type: Database["public"]["Enums"]["meal_type"]
+          recipe_id: string
+          servings: number | null
+        }
+        Insert: {
+          assignment_id?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          meal_date: string
+          meal_type: Database["public"]["Enums"]["meal_type"]
+          recipe_id: string
+          servings?: number | null
+        }
+        Update: {
+          assignment_id?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          meal_date?: string
+          meal_type?: Database["public"]["Enums"]["meal_type"]
+          recipe_id?: string
+          servings?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_meal_selections_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "client_meal_plan_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_meal_selections_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_recipe_book_assignments: {
+        Row: {
+          assigned_at: string
+          client_id: string
+          id: string
+          recipe_book_id: string
+          trainer_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          client_id: string
+          id?: string
+          recipe_book_id: string
+          trainer_id: string
+        }
+        Update: {
+          assigned_at?: string
+          client_id?: string
+          id?: string
+          recipe_book_id?: string
+          trainer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_recipe_book_assignments_recipe_book_id_fkey"
+            columns: ["recipe_book_id"]
+            isOneToOne: false
+            referencedRelation: "recipe_books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_tasks: {
         Row: {
           assigned_at: string
@@ -511,6 +635,135 @@ export type Database = {
           },
         ]
       }
+      meal_plan_days: {
+        Row: {
+          id: string
+          meal_plan_id: string
+          meal_type: Database["public"]["Enums"]["meal_type"]
+          notes: string | null
+          order_index: number | null
+          plan_date: string
+          recipe_id: string
+          servings: number | null
+        }
+        Insert: {
+          id?: string
+          meal_plan_id: string
+          meal_type: Database["public"]["Enums"]["meal_type"]
+          notes?: string | null
+          order_index?: number | null
+          plan_date: string
+          recipe_id: string
+          servings?: number | null
+        }
+        Update: {
+          id?: string
+          meal_plan_id?: string
+          meal_type?: Database["public"]["Enums"]["meal_type"]
+          notes?: string | null
+          order_index?: number | null
+          plan_date?: string
+          recipe_id?: string
+          servings?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_plan_days_meal_plan_id_fkey"
+            columns: ["meal_plan_id"]
+            isOneToOne: false
+            referencedRelation: "meal_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_plan_days_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meal_plan_flexible_options: {
+        Row: {
+          id: string
+          meal_plan_id: string
+          meal_type: Database["public"]["Enums"]["meal_type"]
+          order_index: number | null
+          recipe_id: string
+        }
+        Insert: {
+          id?: string
+          meal_plan_id: string
+          meal_type: Database["public"]["Enums"]["meal_type"]
+          order_index?: number | null
+          recipe_id: string
+        }
+        Update: {
+          id?: string
+          meal_plan_id?: string
+          meal_type?: Database["public"]["Enums"]["meal_type"]
+          order_index?: number | null
+          recipe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_plan_flexible_options_meal_plan_id_fkey"
+            columns: ["meal_plan_id"]
+            isOneToOne: false
+            referencedRelation: "meal_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_plan_flexible_options_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meal_plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          plan_type: Database["public"]["Enums"]["meal_plan_type"]
+          target_calories: number | null
+          target_carbs: number | null
+          target_fats: number | null
+          target_protein: number | null
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          plan_type: Database["public"]["Enums"]["meal_plan_type"]
+          target_calories?: number | null
+          target_carbs?: number | null
+          target_fats?: number | null
+          target_protein?: number | null
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          plan_type?: Database["public"]["Enums"]["meal_plan_type"]
+          target_calories?: number | null
+          target_carbs?: number | null
+          target_fats?: number | null
+          target_protein?: number | null
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -763,6 +1016,132 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      recipe_book_recipes: {
+        Row: {
+          id: string
+          order_index: number
+          recipe_book_id: string
+          recipe_id: string
+        }
+        Insert: {
+          id?: string
+          order_index?: number
+          recipe_book_id: string
+          recipe_id: string
+        }
+        Update: {
+          id?: string
+          order_index?: number
+          recipe_book_id?: string
+          recipe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_book_recipes_recipe_book_id_fkey"
+            columns: ["recipe_book_id"]
+            isOneToOne: false
+            referencedRelation: "recipe_books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_book_recipes_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_books: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_featured: boolean | null
+          name: string
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_featured?: boolean | null
+          name: string
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_featured?: boolean | null
+          name?: string
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      recipes: {
+        Row: {
+          calories: number | null
+          carbs: number | null
+          cook_time_minutes: number | null
+          created_at: string
+          description: string | null
+          fats: number | null
+          id: string
+          image_url: string | null
+          instructions: string | null
+          name: string
+          prep_time_minutes: number | null
+          protein: number | null
+          servings: number | null
+          tags: string[] | null
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          calories?: number | null
+          carbs?: number | null
+          cook_time_minutes?: number | null
+          created_at?: string
+          description?: string | null
+          fats?: number | null
+          id?: string
+          image_url?: string | null
+          instructions?: string | null
+          name: string
+          prep_time_minutes?: number | null
+          protein?: number | null
+          servings?: number | null
+          tags?: string[] | null
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          calories?: number | null
+          carbs?: number | null
+          cook_time_minutes?: number | null
+          created_at?: string
+          description?: string | null
+          fats?: number | null
+          id?: string
+          image_url?: string | null
+          instructions?: string | null
+          name?: string
+          prep_time_minutes?: number | null
+          protein?: number | null
+          servings?: number | null
+          tags?: string[] | null
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       resource_collections: {
         Row: {
@@ -1303,6 +1682,8 @@ export type Database = {
         | "body_part"
         | "location"
       layout_type: "large_cards" | "narrow_cards" | "small_cards" | "list"
+      meal_plan_type: "flexible" | "structured" | "recipe_books_only"
+      meal_type: "breakfast" | "lunch" | "dinner" | "snack"
       ondemand_workout_type: "regular" | "video"
       resource_type: "link" | "document" | "form"
       task_type:
@@ -1450,6 +1831,8 @@ export const Constants = {
         "location",
       ],
       layout_type: ["large_cards", "narrow_cards", "small_cards", "list"],
+      meal_plan_type: ["flexible", "structured", "recipe_books_only"],
+      meal_type: ["breakfast", "lunch", "dinner", "snack"],
       ondemand_workout_type: ["regular", "video"],
       resource_type: ["link", "document", "form"],
       task_type: ["general", "progress_photo", "body_metrics", "form", "habit"],
