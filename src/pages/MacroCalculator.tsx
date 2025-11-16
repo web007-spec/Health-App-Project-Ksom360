@@ -5,8 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, TrendingUp, Activity, Target } from "lucide-react";
+import { Calculator, TrendingUp, Activity, Target, Save } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { SaveMacrosToMealPlanDialog } from "@/components/nutrition/SaveMacrosToMealPlanDialog";
 
 type ActivityLevel = "sedentary" | "light" | "moderate" | "active" | "very_active";
 type Goal = "weight_loss" | "maintenance" | "muscle_gain" | "aggressive_cut";
@@ -21,6 +25,7 @@ interface MacroResults {
 }
 
 export default function MacroCalculator() {
+  const { user } = useAuth();
   const [gender, setGender] = useState<"male" | "female">("male");
   const [age, setAge] = useState("");
   const [weight, setWeight] = useState("");
@@ -29,6 +34,31 @@ export default function MacroCalculator() {
   const [goal, setGoal] = useState<Goal>("maintenance");
   const [bodyFat, setBodyFat] = useState("");
   const [results, setResults] = useState<MacroResults | null>(null);
+  const [selectedClientId, setSelectedClientId] = useState("");
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+
+  // Fetch trainer's clients
+  const { data: clients } = useQuery({
+    queryKey: ["trainer-clients", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trainer_clients")
+        .select(`
+          client_id,
+          profiles!trainer_clients_client_id_fkey (
+            id,
+            full_name,
+            email
+          )
+        `)
+        .eq("trainer_id", user?.id)
+        .eq("status", "active");
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
   const activityMultipliers = {
     sedentary: 1.2,
@@ -223,6 +253,29 @@ export default function MacroCalculator() {
                 </Select>
               </div>
 
+              <Separator />
+
+              <div className="space-y-2">
+                <Label>Assign to Client (optional)</Label>
+                <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select client to save for" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients?.map((client) => (
+                      <SelectItem key={client.client_id} value={client.client_id}>
+                        {client.profiles?.full_name || client.profiles?.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedClientId && (
+                  <p className="text-xs text-muted-foreground">
+                    You'll be able to save these macros to a meal plan after calculating
+                  </p>
+                )}
+              </div>
+
               <Button onClick={calculateMacros} className="w-full" size="lg">
                 <Calculator className="h-4 w-4 mr-2" />
                 Calculate Macros
@@ -335,6 +388,21 @@ export default function MacroCalculator() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Save Button */}
+                  {selectedClientId && (
+                    <>
+                      <Separator />
+                      <Button 
+                        onClick={() => setSaveDialogOpen(true)} 
+                        className="w-full" 
+                        size="lg"
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        Save to Meal Plan
+                      </Button>
+                    </>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -347,6 +415,21 @@ export default function MacroCalculator() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Save Macros Dialog */}
+        {results && selectedClientId && (
+          <SaveMacrosToMealPlanDialog
+            open={saveDialogOpen}
+            onOpenChange={setSaveDialogOpen}
+            clientId={selectedClientId}
+            macros={{
+              targetCalories: results.targetCalories,
+              protein: results.protein,
+              carbs: results.carbs,
+              fats: results.fats,
+            }}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
