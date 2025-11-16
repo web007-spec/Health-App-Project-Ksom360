@@ -1,9 +1,10 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ClientSidebar } from "./ClientSidebar";
-import { Bell, LogOut } from "lucide-react";
+import { Bell, LogOut, RefreshCw } from "lucide-react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,7 @@ interface ClientLayoutProps {
 
 export function ClientLayout({ children }: ClientLayoutProps) {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -54,6 +56,11 @@ export function ClientLayout({ children }: ClientLayoutProps) {
                       <p className="text-xs text-muted-foreground">Client Account</p>
                     </div>
                   </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/")} className="cursor-pointer">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Switch to Trainer View
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={signOut} className="text-destructive cursor-pointer">
                     <LogOut className="h-4 w-4 mr-2" />
