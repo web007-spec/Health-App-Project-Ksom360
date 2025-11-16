@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { z } from "zod";
+import { compressImage } from "@/lib/imageCompression";
+import { Upload, X } from "lucide-react";
 
 const recipeSchema = z.object({
   name: z.string().trim().min(1, "Recipe name is required").max(200),
@@ -32,6 +34,9 @@ interface CreateRecipeDialogProps {
 export function CreateRecipeDialog({ open, onOpenChange }: CreateRecipeDialogProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -45,6 +50,33 @@ export function CreateRecipeDialog({ open, onOpenChange }: CreateRecipeDialogPro
     servings: "1",
     tags: "",
   });
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    try {
+      const compressed = await compressImage(file);
+      const compressedFile = new File([compressed], file.name, { type: "image/jpeg" });
+      setImageFile(compressedFile);
+      setImagePreview(URL.createObjectURL(compressed));
+    } catch (error) {
+      toast.error("Failed to process image");
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: async () => {
@@ -64,6 +96,26 @@ export function CreateRecipeDialog({ open, onOpenChange }: CreateRecipeDialogPro
         .map(t => t.trim())
         .filter(t => t.length > 0);
 
+      let imageUrl = null;
+
+      // Upload image if selected
+      if (imageFile) {
+        const fileExt = imageFile.name.split(".").pop();
+        const fileName = `${user?.id}/${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("recipe-images")
+          .upload(fileName, imageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("recipe-images")
+          .getPublicUrl(fileName);
+
+        imageUrl = publicUrl;
+      }
+
       const { error } = await supabase.from("recipes").insert([{
         trainer_id: user?.id!,
         name: parsed.name,
@@ -77,6 +129,7 @@ export function CreateRecipeDialog({ open, onOpenChange }: CreateRecipeDialogPro
         cook_time_minutes: parsed.cook_time_minutes || null,
         servings: parsed.servings || 1,
         tags: tags.length > 0 ? tags : null,
+        image_url: imageUrl,
       }]);
 
       if (error) throw error;
@@ -98,6 +151,7 @@ export function CreateRecipeDialog({ open, onOpenChange }: CreateRecipeDialogPro
         servings: "1",
         tags: "",
       });
+      handleRemoveImage();
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to create recipe");
@@ -112,6 +166,49 @@ export function CreateRecipeDialog({ open, onOpenChange }: CreateRecipeDialogPro
         </DialogHeader>
 
         <div className="space-y-4">
+          <div>
+            <Label>Recipe Image</Label>
+            <div className="mt-2">
+              {imagePreview ? (
+                <div className="relative inline-block">
+                  <img
+                    src={imagePreview}
+                    alt="Recipe preview"
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="destructive"
+                    className="absolute top-2 right-2"
+                    onClick={handleRemoveImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Image
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div>
             <Label htmlFor="name">Recipe Name *</Label>
             <Input
