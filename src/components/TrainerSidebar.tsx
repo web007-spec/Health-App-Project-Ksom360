@@ -23,6 +23,12 @@ const mainItems = [
   { title: "Analytics", url: "/analytics", icon: TrendingUp },
 ];
 
+const nutritionItems = [
+  { title: "Recipes", url: "/recipes", icon: FileText },
+  { title: "Recipe Books", url: "/recipe-books", icon: FileText },
+  { title: "Meal Plans", url: "/meal-plans", icon: Calendar },
+];
+
 const studioItems = [
   { title: "Resources", url: "/resources", icon: FileText },
   { title: "Resource Collections", url: "/resource-collections", icon: FileText },
@@ -65,6 +71,28 @@ export function TrainerSidebar() {
                     <NavLink
                       to={item.url}
                       end
+                      className="hover:bg-sidebar-accent"
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Nutrition</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {nutritionItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
                       className="hover:bg-sidebar-accent"
                       activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                     >
