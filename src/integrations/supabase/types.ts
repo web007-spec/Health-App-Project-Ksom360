@@ -271,6 +271,48 @@ export type Database = {
           },
         ]
       }
+      exercise_alternatives: {
+        Row: {
+          alternative_exercise_id: string
+          created_at: string | null
+          exercise_id: string
+          id: string
+          reason: string | null
+          trainer_id: string
+        }
+        Insert: {
+          alternative_exercise_id: string
+          created_at?: string | null
+          exercise_id: string
+          id?: string
+          reason?: string | null
+          trainer_id: string
+        }
+        Update: {
+          alternative_exercise_id?: string
+          created_at?: string | null
+          exercise_id?: string
+          id?: string
+          reason?: string | null
+          trainer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercise_alternatives_alternative_exercise_id_fkey"
+            columns: ["alternative_exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exercise_alternatives_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exercise_exercise_tags: {
         Row: {
           exercise_id: string

@@ -3,8 +3,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Play, Pause, SkipForward, SkipBack, Check, X } from "lucide-react";
+import { Play, Pause, SkipForward, SkipBack, Check, X, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ExerciseSwapDialog } from "@/components/ExerciseSwapDialog";
 
 interface Exercise {
   id: string;
@@ -48,18 +49,47 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [phase, setPhase] = useState<"work" | "rest" | "round_rest">("work");
   const [currentSet, setCurrentSet] = useState(1);
+  const [swapDialogOpen, setSwapDialogOpen] = useState(false);
+  const [modifiedSections, setModifiedSections] = useState<Section[]>(sections);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  const currentSection = sections[currentSectionIndex];
+  // Update modified sections when sections prop changes
+  useEffect(() => {
+    setModifiedSections(sections);
+  }, [sections]);
+
+  const currentSection = modifiedSections[currentSectionIndex];
   const currentExercise = currentSection?.exercises[currentExerciseIndex];
   const isTimedWorkout = ["emom", "amrap", "tabata"].includes(currentSection?.section_type);
+
+  const handleSwapExercise = (newExercise: any) => {
+    const updatedSections = [...modifiedSections];
+    const currentExerciseData = updatedSections[currentSectionIndex].exercises[currentExerciseIndex];
+    
+    // Preserve the workout parameters but update the exercise details
+    updatedSections[currentSectionIndex].exercises[currentExerciseIndex] = {
+      ...currentExerciseData,
+      exercise_id: newExercise.id,
+      exercise_name: newExercise.name,
+      exercise_image: newExercise.image_url,
+      exercise_video: newExercise.video_url,
+      exercise_description: newExercise.description,
+    };
+
+    setModifiedSections(updatedSections);
+    
+    toast({
+      title: "Exercise Swapped",
+      description: `Switched to ${newExercise.name}`,
+    });
+  };
 
   // Calculate total progress
   const getTotalProgress = () => {
     let completedExercises = 0;
     let totalExercises = 0;
 
-    sections.forEach((section, sIdx) => {
+    modifiedSections.forEach((section, sIdx) => {
       const exercisesInSection = section.exercises.length * section.rounds;
       totalExercises += exercisesInSection;
 
@@ -141,7 +171,7 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
       setCurrentSet(1);
       startWorkPhase();
     } else if (currentSectionIndex > 0) {
-      const prevSection = sections[currentSectionIndex - 1];
+      const prevSection = modifiedSections[currentSectionIndex - 1];
       setCurrentSectionIndex(currentSectionIndex - 1);
       setCurrentExerciseIndex(prevSection.exercises.length - 1);
       setCurrentRound(prevSection.rounds);
@@ -162,7 +192,7 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
   const moveToNextSection = () => {
     const nextSectionIndex = currentSectionIndex + 1;
 
-    if (nextSectionIndex < sections.length) {
+    if (nextSectionIndex < modifiedSections.length) {
       setCurrentSectionIndex(nextSectionIndex);
       setCurrentExerciseIndex(0);
       setCurrentRound(1);
@@ -173,7 +203,7 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
       
       toast({
         title: "Section Complete!",
-        description: `Starting: ${sections[nextSectionIndex].name}`,
+        description: `Starting: ${modifiedSections[nextSectionIndex].name}`,
       });
     } else {
       // Workout complete
@@ -333,6 +363,16 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
               {currentExercise.exercise_description && (
                 <p className="text-sm text-muted-foreground">{currentExercise.exercise_description}</p>
               )}
+
+              {/* Swap Exercise Button */}
+              <Button
+                variant="outline"
+                onClick={() => setSwapDialogOpen(true)}
+                className="gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Swap Exercise
+              </Button>
             </div>
           </Card>
 
@@ -393,6 +433,19 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
 
       {/* Audio for completion sound */}
       <audio ref={audioRef} src="/notification.mp3" preload="auto" />
+
+      {/* Exercise Swap Dialog */}
+      <ExerciseSwapDialog
+        open={swapDialogOpen}
+        onOpenChange={setSwapDialogOpen}
+        currentExercise={{
+          id: currentExercise.exercise_id,
+          name: currentExercise.exercise_name || "",
+          muscle_group: currentExercise.exercise_description,
+          equipment: "",
+        }}
+        onSwap={handleSwapExercise}
+      />
     </div>
   );
 }
