@@ -49,7 +49,8 @@ export default function Auth() {
         
         // Redirect based on role
         if (signUpData.role === 'client') {
-          navigate("/client/dashboard");
+          // New clients go to onboarding
+          navigate("/client/onboarding");
         } else {
           navigate("/");
         }
@@ -77,7 +78,7 @@ export default function Auth() {
         // Fetch user profile to get role
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, full_name')
           .eq('id', data.user.id)
           .single();
 
@@ -85,7 +86,12 @@ export default function Auth() {
         
         // Redirect based on role
         if (profile?.role === 'client') {
-          navigate("/client/dashboard");
+          // Check if client needs onboarding (no full_name set)
+          if (!profile.full_name || profile.full_name.trim() === '') {
+            navigate("/client/onboarding");
+          } else {
+            navigate("/client/dashboard");
+          }
         } else {
           navigate("/");
         }
