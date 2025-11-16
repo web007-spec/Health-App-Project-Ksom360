@@ -35,6 +35,11 @@ import OndemandWorkouts from "./pages/OndemandWorkouts";
 import WorkoutCollections from "./pages/WorkoutCollections";
 import WorkoutCollectionDetail from "./pages/WorkoutCollectionDetail";
 import WorkoutLabels from "./pages/WorkoutLabels";
+import Recipes from "./pages/Recipes";
+import RecipeBooks from "./pages/RecipeBooks";
+import RecipeBookDetail from "./pages/RecipeBookDetail";
+import MealPlans from "./pages/MealPlans";
+import MealPlanDetail from "./pages/MealPlanDetail";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -70,6 +75,11 @@ const App = () => (
           <Route path="/workout-collections" element={<ProtectedRoute allowedRoles={["trainer"]}><WorkoutCollections /></ProtectedRoute>} />
           <Route path="/workout-collections/:id" element={<ProtectedRoute allowedRoles={["trainer"]}><WorkoutCollectionDetail /></ProtectedRoute>} />
           <Route path="/workout-labels" element={<ProtectedRoute allowedRoles={["trainer"]}><WorkoutLabels /></ProtectedRoute>} />
+          <Route path="/recipes" element={<ProtectedRoute allowedRoles={["trainer"]}><Recipes /></ProtectedRoute>} />
+          <Route path="/recipe-books" element={<ProtectedRoute allowedRoles={["trainer"]}><RecipeBooks /></ProtectedRoute>} />
+          <Route path="/recipe-books/:id" element={<ProtectedRoute allowedRoles={["trainer"]}><RecipeBookDetail /></ProtectedRoute>} />
+          <Route path="/meal-plans" element={<ProtectedRoute allowedRoles={["trainer"]}><MealPlans /></ProtectedRoute>} />
+          <Route path="/meal-plans/:id" element={<ProtectedRoute allowedRoles={["trainer"]}><MealPlanDetail /></ProtectedRoute>} />
           
           {/* Client Routes */}
           <Route path="/client/dashboard" element={<ProtectedRoute allowedRoles={["client"]}><ClientDashboard /></ProtectedRoute>} />
