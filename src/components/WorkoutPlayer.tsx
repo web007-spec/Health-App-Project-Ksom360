@@ -51,7 +51,8 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
   const [currentSet, setCurrentSet] = useState(1);
   const [swapDialogOpen, setSwapDialogOpen] = useState(false);
   const [modifiedSections, setModifiedSections] = useState<Section[]>(sections);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const completionAudioRef = useRef<HTMLAudioElement>(null);
+  const beepAudioRef = useRef<HTMLAudioElement>(null);
 
   // Update modified sections when sections prop changes
   useEffect(() => {
@@ -113,17 +114,23 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
           handleTimerComplete();
           return 0;
         }
+        
+        // Play countdown beeps during rest periods
+        if ((phase === "rest" || phase === "round_rest") && prev <= 5 && prev > 1) {
+          beepAudioRef.current?.play().catch(console.error);
+        }
+        
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isPlaying, timeRemaining]);
+  }, [isPlaying, timeRemaining, phase]);
 
   // Play completion sound
   const playSound = () => {
-    if (audioRef.current) {
-      audioRef.current.play().catch(console.error);
+    if (completionAudioRef.current) {
+      completionAudioRef.current.play().catch(console.error);
     }
   };
 
@@ -431,8 +438,9 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
         </div>
       </div>
 
-      {/* Audio for completion sound */}
-      <audio ref={audioRef} src="/notification.mp3" preload="auto" />
+      {/* Audio for sounds */}
+      <audio ref={completionAudioRef} src="/notification.mp3" preload="auto" />
+      <audio ref={beepAudioRef} src="data:audio/wav;base64,UklGRhQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" preload="auto" />
 
       {/* Exercise Swap Dialog */}
       <ExerciseSwapDialog
