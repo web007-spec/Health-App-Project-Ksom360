@@ -74,6 +74,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (createError) {
       console.error("Error creating user:", createError);
+      // Check for duplicate email error
+      if (createError.message?.includes("already been registered") || createError.message?.includes("email_exists")) {
+        throw new Error("A client with this email address already exists. Please use a different email address.");
+      }
       throw createError;
     }
 
