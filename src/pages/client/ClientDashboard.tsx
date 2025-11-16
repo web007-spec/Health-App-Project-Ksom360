@@ -19,6 +19,25 @@ export default function ClientDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Check if profile is complete, redirect to onboarding if not
+  useQuery({
+    queryKey: ["profile-check", user?.id],
+    queryFn: async () => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user?.id)
+        .single();
+
+      if (!profile?.full_name || profile.full_name.trim() === '') {
+        navigate("/client/onboarding");
+      }
+      
+      return profile;
+    },
+    enabled: !!user?.id,
+  });
+
   // Fetch client workouts
   const { data: clientWorkouts } = useQuery({
     queryKey: ["client-workouts-dashboard", user?.id],
