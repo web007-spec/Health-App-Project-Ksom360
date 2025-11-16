@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Play, Edit } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Exercise {
   id: string;
@@ -22,6 +24,26 @@ interface ExerciseCardProps {
 
 export function ExerciseCard({ exercise, onEdit }: ExerciseCardProps) {
   const [showVideoDialog, setShowVideoDialog] = useState(false);
+
+  // Fetch tags for this exercise
+  const { data: exerciseTags } = useQuery({
+    queryKey: ["exercise-tags", exercise.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exercise_exercise_tags")
+        .select(`
+          tag_id,
+          exercise_tags:tag_id (
+            id,
+            name
+          )
+        `)
+        .eq("exercise_id", exercise.id);
+      
+      if (error) throw error;
+      return data.map((t: any) => t.exercise_tags);
+    },
+  });
 
   const getVideoEmbedUrl = (url: string | null) => {
     if (!url) return null;
@@ -100,6 +122,11 @@ export function ExerciseCard({ exercise, onEdit }: ExerciseCardProps) {
                 {exercise.muscle_group}
               </Badge>
             )}
+            {exerciseTags && exerciseTags.map((tag: any) => (
+              <Badge key={tag.id} variant="default" className="capitalize bg-primary/20 text-primary hover:bg-primary/30">
+                {tag.name}
+              </Badge>
+            ))}
           </div>
 
           {exercise.description && (

@@ -4,13 +4,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Upload, X, Plus } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { compressImage } from "@/lib/imageCompression";
+import { CreateExerciseTagDialog } from "./CreateExerciseTagDialog";
 
 interface Exercise {
   id: string;
@@ -51,7 +53,42 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [removeImage, setRemoveImage] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isCreateTagDialogOpen, setIsCreateTagDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch available tags
+  const { data: availableTags } = useQuery({
+    queryKey: ["exercise-tags", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exercise_tags")
+        .select("*")
+        .or(`trainer_id.eq.${user?.id},is_default.eq.true`)
+        .order("name");
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch exercise tags
+  const { data: exerciseTags } = useQuery({
+    queryKey: ["exercise-tags", exercise?.id],
+    queryFn: async () => {
+      if (!exercise?.id) return [];
+      
+      const { data, error } = await supabase
+        .from("exercise_exercise_tags")
+        .select("tag_id")
+        .eq("exercise_id", exercise.id);
+      
+      if (error) throw error;
+      return data.map(t => t.tag_id);
+    },
+    enabled: !!exercise?.id && open,
+  });
 
   // Update form when exercise changes
   useEffect(() => {
@@ -69,6 +106,13 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
       setRemoveImage(false);
     }
   }, [exercise]);
+
+  // Update selected tags when exercise tags are loaded
+  useEffect(() => {
+    if (exerciseTags) {
+      setSelectedTags(exerciseTags);
+    }
+  }, [exerciseTags]);
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -155,6 +199,7 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
           description: formData.description || null,
           muscle_group: formData.muscle_group || null,
           equipment: formData.equipment || null,
+          category: formData.category || null,
           video_url: formData.video_url || null,
           image_url: imageUrl,
         })
@@ -163,6 +208,30 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
         .single();
 
       if (error) throw error;
+
+      // Update tag relationships
+      // First, delete existing tags
+      const { error: deleteError } = await supabase
+        .from("exercise_exercise_tags")
+        .delete()
+        .eq("exercise_id", exercise.id);
+
+      if (deleteError) throw deleteError;
+
+      // Then insert new tags
+      if (selectedTags.length > 0) {
+        const tagRelations = selectedTags.map(tagId => ({
+          exercise_id: exercise.id,
+          tag_id: tagId,
+        }));
+
+        const { error: tagError } = await supabase
+          .from("exercise_exercise_tags")
+          .insert(tagRelations);
+
+        if (tagError) throw tagError;
+      }
+
       return data;
     },
     onSuccess: () => {
@@ -280,6 +349,44 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
             </div>
           </div>
 
+          {/* Tags */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Tags</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsCreateTagDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Create Tag
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2 p-4 border border-border rounded-lg min-h-[60px]">
+              {availableTags && availableTags.length > 0 ? (
+                availableTags.map((tag) => (
+                  <Badge
+                    key={tag.id}
+                    variant={selectedTags.includes(tag.id) ? "default" : "outline"}
+                    className="cursor-pointer capitalize"
+                    onClick={() => {
+                      setSelectedTags(prev =>
+                        prev.includes(tag.id)
+                          ? prev.filter(id => id !== tag.id)
+                          : [...prev, tag.id]
+                      );
+                    }}
+                  >
+                    {tag.name}
+                  </Badge>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No tags available. Create one to get started!</p>
+              )}
+            </div>
+          </div>
+
           <div>
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -362,6 +469,11 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
           </div>
         </form>
       </DialogContent>
+
+      <CreateExerciseTagDialog 
+        open={isCreateTagDialogOpen}
+        onOpenChange={setIsCreateTagDialogOpen}
+      />
     </Dialog>
   );
 }

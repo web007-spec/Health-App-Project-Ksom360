@@ -271,6 +271,68 @@ export type Database = {
           },
         ]
       }
+      exercise_exercise_tags: {
+        Row: {
+          exercise_id: string
+          tag_id: string
+        }
+        Insert: {
+          exercise_id: string
+          tag_id: string
+        }
+        Update: {
+          exercise_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercise_exercise_tags_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exercise_exercise_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "exercise_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exercise_tags: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean | null
+          name: string
+          trainer_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          name: string
+          trainer_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          trainer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercise_tags_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exercises: {
         Row: {
           category: string | null

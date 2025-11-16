@@ -21,6 +21,7 @@ export default function Exercises() {
   const [muscleFilter, setMuscleFilter] = useState("all");
   const [equipmentFilter, setEquipmentFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [tagFilter, setTagFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -41,6 +42,43 @@ export default function Exercises() {
     enabled: !!user?.id,
   });
 
+  // Fetch exercise tags for filtering
+  const { data: exerciseTagsData } = useQuery({
+    queryKey: ["exercise-tags-with-exercises", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exercise_exercise_tags")
+        .select(`
+          exercise_id,
+          tag_id,
+          exercise_tags:tag_id (
+            id,
+            name
+          )
+        `);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Fetch available tags
+  const { data: availableTags } = useQuery({
+    queryKey: ["exercise-tags", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exercise_tags")
+        .select("*")
+        .or(`trainer_id.eq.${user?.id},is_default.eq.true`)
+        .order("name");
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
   // Filter and sort exercises
   const filteredExercises = exercises?.filter((exercise) => {
     const matchesSearch = 
@@ -49,8 +87,14 @@ export default function Exercises() {
     const matchesMuscle = muscleFilter === "all" || exercise.muscle_group === muscleFilter;
     const matchesEquipment = equipmentFilter === "all" || exercise.equipment === equipmentFilter;
     const matchesCategory = categoryFilter === "all" || exercise.category === categoryFilter;
+    
+    // Check if exercise has the selected tag
+    const matchesTag = tagFilter === "all" || 
+      exerciseTagsData?.some((et: any) => 
+        et.exercise_id === exercise.id && et.tag_id === tagFilter
+      );
 
-    return matchesSearch && matchesMuscle && matchesEquipment && matchesCategory;
+    return matchesSearch && matchesMuscle && matchesEquipment && matchesCategory && matchesTag;
   }) || [];
 
   // Sort exercises
@@ -141,6 +185,20 @@ export default function Exercises() {
                 {categories.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category.charAt(0).toUpperCase() + category.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={tagFilter} onValueChange={setTagFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All Tags" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Tags</SelectItem>
+                {availableTags?.map((tag) => (
+                  <SelectItem key={tag.id} value={tag.id}>
+                    {tag.name.charAt(0).toUpperCase() + tag.name.slice(1)}
                   </SelectItem>
                 ))}
               </SelectContent>
