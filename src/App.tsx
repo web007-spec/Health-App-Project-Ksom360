@@ -40,6 +40,7 @@ import RecipeBooks from "./pages/RecipeBooks";
 import RecipeBookDetail from "./pages/RecipeBookDetail";
 import MealPlans from "./pages/MealPlans";
 import MealPlanDetail from "./pages/MealPlanDetail";
+import MacroCalculator from "./pages/MacroCalculator";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -80,6 +81,7 @@ const App = () => (
           <Route path="/recipe-books/:id" element={<ProtectedRoute allowedRoles={["trainer"]}><RecipeBookDetail /></ProtectedRoute>} />
           <Route path="/meal-plans" element={<ProtectedRoute allowedRoles={["trainer"]}><MealPlans /></ProtectedRoute>} />
           <Route path="/meal-plans/:id" element={<ProtectedRoute allowedRoles={["trainer"]}><MealPlanDetail /></ProtectedRoute>} />
+          <Route path="/macro-calculator" element={<ProtectedRoute allowedRoles={["trainer"]}><MacroCalculator /></ProtectedRoute>} />
           
           {/* Client Routes */}
           <Route path="/client/dashboard" element={<ProtectedRoute allowedRoles={["client"]}><ClientDashboard /></ProtectedRoute>} />
