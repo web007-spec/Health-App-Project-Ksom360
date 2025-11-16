@@ -157,7 +157,7 @@ export default function Clients() {
                     <Settings className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="z-[100] bg-background border-border">
                   <DropdownMenuItem
                     onClick={() => {
                       setSelectedClient({
