@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Dumbbell, Calendar, MessageSquare, Settings, TrendingUp, Target, CheckSquare, FileText, Play, Tags, Calculator } from "lucide-react";
+import { LayoutDashboard, Users, Dumbbell, Calendar, MessageSquare, Settings, TrendingUp, Target, CheckSquare, FileText, Play, Tags, Calculator, Activity } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -28,6 +28,7 @@ const nutritionItems = [
   { title: "Recipe Books", url: "/recipe-books", icon: FileText },
   { title: "Meal Plans", url: "/meal-plans", icon: Calendar },
   { title: "Macro Calculator", url: "/macro-calculator", icon: Calculator },
+  { title: "Macro Tracking", url: "/macro-tracking", icon: Activity },
 ];
 
 const studioItems = [
