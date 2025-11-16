@@ -2,6 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ClientSidebar } from "./ClientSidebar";
 import { Bell, LogOut, RefreshCw } from "lucide-react";
 import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -30,9 +31,14 @@ export function ClientLayout({ children }: ClientLayoutProps) {
           <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6">
             <div className="flex items-center gap-4">
               <SidebarTrigger />
-              <div>
-                <h2 className="font-semibold text-foreground">Welcome back!</h2>
-                <p className="text-sm text-muted-foreground">Let's crush today's workout</p>
+              <div className="flex items-center gap-3">
+                <div>
+                  <h2 className="font-semibold text-foreground">Welcome back!</h2>
+                  <p className="text-sm text-muted-foreground">Let's crush today's workout</p>
+                </div>
+                <Badge variant="secondary" className="hidden sm:flex">
+                  Client View
+                </Badge>
               </div>
             </div>
             <div className="flex items-center gap-3">
