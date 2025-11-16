@@ -22,6 +22,7 @@ import ClientOnboarding from "./pages/client/ClientOnboarding";
 import ClientWorkouts from "./pages/client/ClientWorkouts";
 import ClientProgress from "./pages/client/ClientProgress";
 import ClientNutrition from "./pages/client/ClientNutrition";
+import ClientNutritionDashboard from "./pages/client/ClientNutritionDashboard";
 import ClientCalendar from "./pages/client/ClientCalendar";
 import ClientSettings from "./pages/client/ClientSettings";
 import ClientGoals from "./pages/client/ClientGoals";
@@ -91,6 +92,7 @@ const App = () => (
           <Route path="/client/workouts" element={<ProtectedRoute allowedRoles={["client"]}><ClientWorkouts /></ProtectedRoute>} />
           <Route path="/client/progress" element={<ProtectedRoute allowedRoles={["client"]}><ClientProgress /></ProtectedRoute>} />
           <Route path="/client/nutrition" element={<ProtectedRoute allowedRoles={["client"]}><ClientNutrition /></ProtectedRoute>} />
+          <Route path="/client/nutrition-dashboard" element={<ProtectedRoute allowedRoles={["client"]}><ClientNutritionDashboard /></ProtectedRoute>} />
           <Route path="/client/calendar" element={<ProtectedRoute allowedRoles={["client"]}><ClientCalendar /></ProtectedRoute>} />
           <Route path="/client/settings" element={<ProtectedRoute allowedRoles={["client"]}><ClientSettings /></ProtectedRoute>} />
           <Route path="/client/goals" element={<ProtectedRoute allowedRoles={["client"]}><ClientGoals /></ProtectedRoute>} />
