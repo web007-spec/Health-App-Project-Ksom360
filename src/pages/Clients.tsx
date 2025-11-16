@@ -1,6 +1,6 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,14 +8,23 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, MessageSquare, TrendingUp, Plus, Settings, CheckSquare } from "lucide-react";
+import { Search, MessageSquare, TrendingUp, Plus, Settings, CheckSquare, Mail } from "lucide-react";
 import { useState } from "react";
 import { AddClientDialog } from "@/components/AddClientDialog";
 import { ClientStatusDialog } from "@/components/ClientStatusDialog";
 import { AssignTaskDialog } from "@/components/AssignTaskDialog";
+import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Clients() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [addClientDialogOpen, setAddClientDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
@@ -26,6 +35,37 @@ export default function Clients() {
     status: "active" | "paused" | "pending";
     name: string;
   } | null>(null);
+
+  const resendEmailMutation = useMutation({
+    mutationFn: async (clientId: string) => {
+      const loginUrl = `${window.location.origin}/auth`;
+      const { data, error } = await supabase.functions.invoke("resend-client-welcome-email", {
+        body: {
+          clientId,
+          loginUrl,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error("Failed to send email");
+
+      return data;
+    },
+    onSuccess: (_, clientId) => {
+      const client = clients?.find(c => c.client_id === clientId);
+      toast({
+        title: "Email sent",
+        description: `Welcome email has been resent to ${client?.client?.full_name || "client"}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send welcome email",
+        variant: "destructive",
+      });
+    },
+  });
 
   const { data: clients, isLoading } = useQuery({
     queryKey: ["clients", user?.id],
@@ -107,21 +147,39 @@ export default function Clients() {
                 <TrendingUp className="h-4 w-4" />
                 Progress
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-2"
-                onClick={() => {
-                  setSelectedClient({
-                    id: client.id,
-                    status: client.status,
-                    name: client.client?.full_name || "Client",
-                  });
-                  setStatusDialogOpen(true);
-                }}
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSelectedClient({
+                        id: client.id,
+                        status: client.status,
+                        name: client.client?.full_name || "Client",
+                      });
+                      setStatusDialogOpen(true);
+                    }}
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Change Status
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => resendEmailMutation.mutate(client.client_id)}
+                    disabled={resendEmailMutation.isPending}
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Resend Welcome Email
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             <div className="mt-3 text-xs text-muted-foreground">
