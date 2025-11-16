@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const mainItems = [
-  { title: "Home", url: "/client", icon: Home },
+  { title: "Home", url: "/client/dashboard", icon: Home },
   { title: "My Workouts", url: "/client/workouts", icon: Dumbbell },
   { title: "Calendar", url: "/client/calendar", icon: CalendarDays },
   { title: "Goals", url: "/client/goals", icon: Target },
@@ -24,8 +24,8 @@ const mainItems = [
 ];
 
 const ondemandItems = [
-  { title: "Resource Hub", url: "/client/resources", icon: FileText },
-  { title: "Workout Hub", url: "/client/workouts-hub", icon: Play },
+  { title: "Resource Hub", url: "/client/resource-hub", icon: FileText },
+  { title: "Workout Hub", url: "/client/workout-hub", icon: Play },
 ];
 
 const bottomItems = [
