@@ -48,37 +48,37 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           
           {/* Trainer Routes */}
-          <Route path="/" element={<ProtectedRoute><TrainerDashboard /></ProtectedRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/workouts" element={<ProtectedRoute><Workouts /></ProtectedRoute>} />
-          <Route path="/workouts/create" element={<ProtectedRoute><CreateWorkout /></ProtectedRoute>} />
-          <Route path="/workouts/edit/:id" element={<ProtectedRoute><EditWorkout /></ProtectedRoute>} />
-          <Route path="/workouts/:id" element={<ProtectedRoute><WorkoutDetail /></ProtectedRoute>} />
-          <Route path="/exercises" element={<ProtectedRoute><Exercises /></ProtectedRoute>} />
-          <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
-          <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
-          <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-          <Route path="/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
-          <Route path="/tasks" element={<ProtectedRoute><TaskLibrary /></ProtectedRoute>} />
-          <Route path="/resources" element={<ProtectedRoute><ResourceLibrary /></ProtectedRoute>} />
-          <Route path="/resource-collections" element={<ProtectedRoute><ResourceCollections /></ProtectedRoute>} />
-          <Route path="/resource-collections/:id" element={<ProtectedRoute><ResourceCollectionDetail /></ProtectedRoute>} />
-          <Route path="/ondemand-workouts" element={<ProtectedRoute><OndemandWorkouts /></ProtectedRoute>} />
-          <Route path="/workout-collections" element={<ProtectedRoute><WorkoutCollections /></ProtectedRoute>} />
-          <Route path="/workout-collections/:id" element={<ProtectedRoute><WorkoutCollectionDetail /></ProtectedRoute>} />
-          <Route path="/workout-labels" element={<ProtectedRoute><WorkoutLabels /></ProtectedRoute>} />
+          <Route path="/" element={<ProtectedRoute allowedRoles={["trainer"]}><TrainerDashboard /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute allowedRoles={["trainer"]}><Dashboard /></ProtectedRoute>} />
+          <Route path="/workouts" element={<ProtectedRoute allowedRoles={["trainer"]}><Workouts /></ProtectedRoute>} />
+          <Route path="/workouts/create" element={<ProtectedRoute allowedRoles={["trainer"]}><CreateWorkout /></ProtectedRoute>} />
+          <Route path="/workouts/edit/:id" element={<ProtectedRoute allowedRoles={["trainer"]}><EditWorkout /></ProtectedRoute>} />
+          <Route path="/workouts/:id" element={<ProtectedRoute allowedRoles={["trainer"]}><WorkoutDetail /></ProtectedRoute>} />
+          <Route path="/exercises" element={<ProtectedRoute allowedRoles={["trainer"]}><Exercises /></ProtectedRoute>} />
+          <Route path="/clients" element={<ProtectedRoute allowedRoles={["trainer"]}><Clients /></ProtectedRoute>} />
+          <Route path="/messages" element={<ProtectedRoute allowedRoles={["trainer"]}><Messages /></ProtectedRoute>} />
+          <Route path="/analytics" element={<ProtectedRoute allowedRoles={["trainer"]}><Analytics /></ProtectedRoute>} />
+          <Route path="/goals" element={<ProtectedRoute allowedRoles={["trainer"]}><Goals /></ProtectedRoute>} />
+          <Route path="/tasks" element={<ProtectedRoute allowedRoles={["trainer"]}><TaskLibrary /></ProtectedRoute>} />
+          <Route path="/resources" element={<ProtectedRoute allowedRoles={["trainer"]}><ResourceLibrary /></ProtectedRoute>} />
+          <Route path="/resource-collections" element={<ProtectedRoute allowedRoles={["trainer"]}><ResourceCollections /></ProtectedRoute>} />
+          <Route path="/resource-collections/:id" element={<ProtectedRoute allowedRoles={["trainer"]}><ResourceCollectionDetail /></ProtectedRoute>} />
+          <Route path="/ondemand-workouts" element={<ProtectedRoute allowedRoles={["trainer"]}><OndemandWorkouts /></ProtectedRoute>} />
+          <Route path="/workout-collections" element={<ProtectedRoute allowedRoles={["trainer"]}><WorkoutCollections /></ProtectedRoute>} />
+          <Route path="/workout-collections/:id" element={<ProtectedRoute allowedRoles={["trainer"]}><WorkoutCollectionDetail /></ProtectedRoute>} />
+          <Route path="/workout-labels" element={<ProtectedRoute allowedRoles={["trainer"]}><WorkoutLabels /></ProtectedRoute>} />
           
           {/* Client Routes */}
-          <Route path="/client" element={<ProtectedRoute><ClientDashboard /></ProtectedRoute>} />
-          <Route path="/client/workouts" element={<ProtectedRoute><ClientWorkouts /></ProtectedRoute>} />
-          <Route path="/client/progress" element={<ProtectedRoute><ClientProgress /></ProtectedRoute>} />
-          <Route path="/client/nutrition" element={<ProtectedRoute><ClientNutrition /></ProtectedRoute>} />
-          <Route path="/client/calendar" element={<ProtectedRoute><ClientCalendar /></ProtectedRoute>} />
-          <Route path="/client/settings" element={<ProtectedRoute><ClientSettings /></ProtectedRoute>} />
-          <Route path="/client/goals" element={<ProtectedRoute><ClientGoals /></ProtectedRoute>} />
-          <Route path="/client/tasks" element={<ProtectedRoute><ClientTasks /></ProtectedRoute>} />
-          <Route path="/client/resources" element={<ProtectedRoute><ClientResourceHub /></ProtectedRoute>} />
-          <Route path="/client/workouts-hub" element={<ProtectedRoute><ClientWorkoutHub /></ProtectedRoute>} />
+          <Route path="/client/dashboard" element={<ProtectedRoute allowedRoles={["client"]}><ClientDashboard /></ProtectedRoute>} />
+          <Route path="/client/workouts" element={<ProtectedRoute allowedRoles={["client"]}><ClientWorkouts /></ProtectedRoute>} />
+          <Route path="/client/progress" element={<ProtectedRoute allowedRoles={["client"]}><ClientProgress /></ProtectedRoute>} />
+          <Route path="/client/nutrition" element={<ProtectedRoute allowedRoles={["client"]}><ClientNutrition /></ProtectedRoute>} />
+          <Route path="/client/calendar" element={<ProtectedRoute allowedRoles={["client"]}><ClientCalendar /></ProtectedRoute>} />
+          <Route path="/client/settings" element={<ProtectedRoute allowedRoles={["client"]}><ClientSettings /></ProtectedRoute>} />
+          <Route path="/client/goals" element={<ProtectedRoute allowedRoles={["client"]}><ClientGoals /></ProtectedRoute>} />
+          <Route path="/client/tasks" element={<ProtectedRoute allowedRoles={["client"]}><ClientTasks /></ProtectedRoute>} />
+          <Route path="/client/resource-hub" element={<ProtectedRoute allowedRoles={["client"]}><ClientResourceHub /></ProtectedRoute>} />
+          <Route path="/client/workout-hub" element={<ProtectedRoute allowedRoles={["client"]}><ClientWorkoutHub /></ProtectedRoute>} />
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
