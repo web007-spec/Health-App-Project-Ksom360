@@ -51,13 +51,55 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
   const [currentSet, setCurrentSet] = useState(1);
   const [swapDialogOpen, setSwapDialogOpen] = useState(false);
   const [modifiedSections, setModifiedSections] = useState<Section[]>(sections);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const completionAudioRef = useRef<HTMLAudioElement>(null);
   const beepAudioRef = useRef<HTMLAudioElement>(null);
+  const lastAnnouncedSecond = useRef<number>(-1);
 
   // Update modified sections when sections prop changes
   useEffect(() => {
     setModifiedSections(sections);
   }, [sections]);
+
+  // Cleanup speech on unmount
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
+  // Voice announcement function
+  const speak = (text: string) => {
+    if (!voiceEnabled) return;
+    
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Announce exercise changes
+  useEffect(() => {
+    if (currentExercise && isPlaying && phase === "work") {
+      const exerciseName = currentExercise.exercise_name || "Exercise";
+      speak(`Starting ${exerciseName}`);
+      
+      // Announce the next exercise if not the last one
+      const nextExerciseIndex = currentExerciseIndex + 1;
+      if (nextExerciseIndex < currentSection.exercises.length) {
+        const nextExercise = currentSection.exercises[nextExerciseIndex];
+        setTimeout(() => {
+          if (voiceEnabled) {
+            speak(`Next up: ${nextExercise.exercise_name}`);
+          }
+        }, 2000);
+      }
+    }
+  }, [currentExerciseIndex, currentSectionIndex, currentRound, phase]);
 
   const currentSection = modifiedSections[currentSectionIndex];
   const currentExercise = currentSection?.exercises[currentExerciseIndex];
@@ -120,12 +162,18 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
           beepAudioRef.current?.play().catch(console.error);
         }
         
+        // Voice countdown for rest periods
+        if ((phase === "rest" || phase === "round_rest") && prev <= 5 && prev !== lastAnnouncedSecond.current && voiceEnabled) {
+          lastAnnouncedSecond.current = prev;
+          speak(`${prev}`);
+        }
+        
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isPlaying, timeRemaining, phase]);
+  }, [isPlaying, timeRemaining, phase, voiceEnabled]);
 
   // Play completion sound
   const playSound = () => {
@@ -141,7 +189,10 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
       // Move to rest phase
       if (currentSection.rest_seconds || currentExercise.rest_seconds) {
         setPhase("rest");
-        setTimeRemaining(currentExercise.rest_seconds || currentSection.rest_seconds || 0);
+        const restTime = currentExercise.rest_seconds || currentSection.rest_seconds || 0;
+        setTimeRemaining(restTime);
+        lastAnnouncedSecond.current = -1; // Reset for new rest period
+        speak(`Rest for ${restTime} seconds`);
       } else {
         moveToNextExercise();
       }
@@ -164,7 +215,10 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
     } else if (currentRound < currentSection.rounds) {
       // Next round in current section
       setPhase("round_rest");
-      setTimeRemaining(currentSection.rest_between_rounds_seconds || 60);
+      const roundRestTime = currentSection.rest_between_rounds_seconds || 60;
+      setTimeRemaining(roundRestTime);
+      lastAnnouncedSecond.current = -1; // Reset for new rest period
+      speak(`Round complete. Rest for ${roundRestTime} seconds before round ${currentRound + 1}`);
     } else {
       // Move to next section
       moveToNextSection();
@@ -193,6 +247,7 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
     setCurrentExerciseIndex(0);
     setPhase("work");
     setCurrentSet(1);
+    speak(`Starting round ${currentRound + 1}`);
     startWorkPhase();
   };
 
@@ -208,13 +263,17 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
       setIsPlaying(false);
       setTimeRemaining(0);
       
+      const nextSectionName = modifiedSections[nextSectionIndex].name;
+      speak(`Section complete. Moving to ${nextSectionName}`);
+      
       toast({
         title: "Section Complete!",
-        description: `Starting: ${modifiedSections[nextSectionIndex].name}`,
+        description: `Starting: ${nextSectionName}`,
       });
     } else {
       // Workout complete
       setIsPlaying(false);
+      speak("Workout complete! Great job!");
       toast({
         title: "Workout Complete!",
         description: "Great job! You finished the workout.",
@@ -288,9 +347,34 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
                 <Badge variant="outline">Round {currentRound}/{currentSection.rounds}</Badge>
               </div>
             </div>
-            <Button variant="ghost" onClick={onExit}>
-              <X className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setVoiceEnabled(!voiceEnabled)}
+                title={voiceEnabled ? "Disable voice guidance" : "Enable voice guidance"}
+              >
+                {voiceEnabled ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" x2="12" y1="19" y2="22"/>
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="2" x2="22" y1="2" y2="22"/>
+                    <path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"/>
+                    <path d="M5 10v2a7 7 0 0 0 12 5"/>
+                    <path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/>
+                    <path d="M9 9v3a3 3 0 0 0 5.12 2.12"/>
+                    <line x1="12" x2="12" y1="19" y2="22"/>
+                  </svg>
+                )}
+              </Button>
+              <Button variant="ghost" onClick={onExit}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
           <Progress value={getTotalProgress()} className="h-2" />
         </div>
