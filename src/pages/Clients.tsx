@@ -112,8 +112,8 @@ export default function Clients() {
           </Avatar>
           
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <div>
+            <div className="flex items-start justify-between gap-2 mb-3">
+              <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-lg truncate">
                   {client.client?.full_name || "New Client"}
                 </h3>
@@ -126,26 +126,26 @@ export default function Clients() {
               </Badge>
             </div>
 
-            <div className="mt-4 flex gap-2">
-              <Button size="sm" variant="outline" className="flex-1 gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" className="gap-2">
                 <MessageSquare className="h-4 w-4" />
-                Message
+                <span className="hidden sm:inline">Message</span>
               </Button>
               <Button 
                 size="sm" 
                 variant="outline" 
-                className="flex-1 gap-2"
+                className="gap-2"
                 onClick={() => {
                   setSelectedClientForTask(client.client_id);
                   setAssignTaskDialogOpen(true);
                 }}
               >
                 <CheckSquare className="h-4 w-4" />
-                Task
+                <span className="hidden sm:inline">Task</span>
               </Button>
-              <Button size="sm" variant="outline" className="flex-1 gap-2">
+              <Button size="sm" variant="outline" className="gap-2">
                 <TrendingUp className="h-4 w-4" />
-                Progress
+                <span className="hidden sm:inline">Progress</span>
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -155,9 +155,10 @@ export default function Clients() {
                     className="gap-2"
                   >
                     <Settings className="h-4 w-4" />
+                    <span className="hidden sm:inline">More</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="z-[100] bg-background border-border">
+                <DropdownMenuContent align="end" className="z-[100] bg-background border-border w-56">
                   <DropdownMenuItem
                     onClick={() => {
                       setSelectedClient({
