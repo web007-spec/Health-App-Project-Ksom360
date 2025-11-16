@@ -13,7 +13,7 @@ import { EditExerciseDialog } from "@/components/EditExerciseDialog";
 
 const muscleGroups = ["chest", "back", "shoulders", "arms", "legs", "glutes", "core", "cardio", "full body"];
 const equipmentTypes = ["bodyweight", "dumbbells", "barbell", "machine", "resistance bands", "kettlebell", "cable"];
-const categories = ["strength", "cardio", "flexibility", "mobility", "plyometric"];
+const categories = ["strength", "cardio", "flexibility", "mobility", "plyometric", "warm-up", "cool-down"];
 
 export default function Exercises() {
   const { user } = useAuth();
@@ -48,8 +48,9 @@ export default function Exercises() {
       exercise.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesMuscle = muscleFilter === "all" || exercise.muscle_group === muscleFilter;
     const matchesEquipment = equipmentFilter === "all" || exercise.equipment === equipmentFilter;
+    const matchesCategory = categoryFilter === "all" || exercise.category === categoryFilter;
 
-    return matchesSearch && matchesMuscle && matchesEquipment;
+    return matchesSearch && matchesMuscle && matchesEquipment && matchesCategory;
   }) || [];
 
   // Sort exercises

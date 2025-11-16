@@ -18,6 +18,7 @@ interface Exercise {
   description: string | null;
   muscle_group: string | null;
   equipment: string | null;
+  category: string | null;
   image_url: string | null;
   video_url: string | null;
 }
@@ -30,6 +31,7 @@ interface EditExerciseDialogProps {
 
 const muscleGroups = ["chest", "back", "shoulders", "arms", "legs", "glutes", "core", "full body", "cardio"];
 const equipmentTypes = ["bodyweight", "dumbbells", "barbell", "machine", "resistance bands", "kettlebell", "cable"];
+const categories = ["strength", "cardio", "flexibility", "mobility", "plyometric", "warm-up", "cool-down"];
 
 export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExerciseDialogProps) {
   const { user } = useAuth();
@@ -41,6 +43,7 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
     description: "",
     muscle_group: "",
     equipment: "",
+    category: "",
     video_url: "",
   });
 
@@ -58,6 +61,7 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
         description: exercise.description || "",
         muscle_group: exercise.muscle_group || "",
         equipment: exercise.equipment || "",
+        category: exercise.category || "",
         video_url: exercise.video_url || "",
       });
       setImagePreview(exercise.image_url);
@@ -185,6 +189,7 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
       description: "",
       muscle_group: "",
       equipment: "",
+      category: "",
       video_url: "",
     });
     setImageFile(null);
@@ -216,7 +221,26 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="category">Category</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData({ ...formData, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category} className="capitalize">
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div>
               <Label htmlFor="muscle_group">Muscle Group</Label>
               <Select
