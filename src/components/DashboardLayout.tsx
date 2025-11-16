@@ -1,10 +1,11 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TrainerSidebar } from "./TrainerSidebar";
-import { Bell, Search, LogOut } from "lucide-react";
+import { Bell, Search, LogOut, RefreshCw } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +21,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -58,6 +60,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       <p className="text-xs text-muted-foreground">Trainer Account</p>
                     </div>
                   </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/client/dashboard")} className="cursor-pointer">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Switch to Client View
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={signOut} className="text-destructive cursor-pointer">
                     <LogOut className="h-4 w-4 mr-2" />

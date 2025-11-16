@@ -17,18 +17,9 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
       return;
     }
 
-    // Check role-based access
-    if (!loading && user && userRole && allowedRoles && allowedRoles.length > 0) {
-      if (!allowedRoles.includes(userRole)) {
-        // Redirect to appropriate dashboard based on role
-        if (userRole === "client") {
-          navigate("/client/dashboard");
-        } else if (userRole === "trainer") {
-          navigate("/");
-        }
-      }
-    }
-  }, [user, userRole, loading, navigate, allowedRoles]);
+    // Allow free navigation between views - remove role restrictions for switching
+    // This enables testing and viewing both portals
+  }, [user, loading, navigate]);
 
   if (loading) {
     return (
