@@ -19,6 +19,7 @@ interface CreateExerciseDialogProps {
 
 const muscleGroups = ["chest", "back", "shoulders", "arms", "legs", "glutes", "core", "full body", "cardio"];
 const equipmentTypes = ["bodyweight", "dumbbells", "barbell", "machine", "resistance bands", "kettlebell", "cable"];
+const categories = ["strength", "cardio", "flexibility", "mobility", "plyometric", "warm-up", "cool-down"];
 
 export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialogProps) {
   const { user } = useAuth();
@@ -30,6 +31,7 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
     description: "",
     muscle_group: "",
     equipment: "",
+    category: "",
     image_url: "",
     video_url: "",
   });
@@ -144,6 +146,7 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
         description: "",
         muscle_group: "",
         equipment: "",
+        category: "",
         image_url: "",
         video_url: "",
       });
@@ -196,8 +199,27 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
             />
           </div>
 
-          {/* Category, Equipment, Difficulty */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Category, Muscle Group, Equipment */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData({ ...formData, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="muscle_group">Target Muscle Groups</Label>
               <Select
