@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { LogMealDialog } from "@/components/LogMealDialog";
 import { BarcodeScannerDialog } from "@/components/BarcodeScannerDialog";
+import { FoodPhotoAnalyzerDialog } from "@/components/FoodPhotoAnalyzerDialog";
 import { format, parseISO, subDays, startOfDay } from "date-fns";
 import { Progress } from "@/components/ui/progress";
 
@@ -15,6 +16,7 @@ export default function ClientNutrition() {
   const { user } = useAuth();
   const [logDialogOpen, setLogDialogOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [photoAnalyzerOpen, setPhotoAnalyzerOpen] = useState(false);
   const [scannedProduct, setScannedProduct] = useState<{
     name: string;
     calories: number;
@@ -32,6 +34,18 @@ export default function ClientNutrition() {
   }) => {
     setScannedProduct(productData);
     setScannerOpen(false);
+    setLogDialogOpen(true);
+  };
+
+  const handlePhotoAnalyzed = (data: {
+    name: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fats: number;
+  }) => {
+    setScannedProduct(data);
+    setPhotoAnalyzerOpen(false);
     setLogDialogOpen(true);
   };
 
@@ -106,6 +120,9 @@ export default function ClientNutrition() {
             <Button variant="outline" className="gap-2" onClick={() => setScannerOpen(true)}>
               <ScanBarcode className="h-4 w-4" />
               Scan Barcode
+            </Button>
+            <Button variant="outline" className="gap-2" onClick={() => setPhotoAnalyzerOpen(true)}>
+              📸 Photo Analysis
             </Button>
             <Button className="gap-2" onClick={() => setLogDialogOpen(true)}>
               <Plus className="h-4 w-4" />
@@ -257,6 +274,11 @@ export default function ClientNutrition() {
         open={scannerOpen}
         onOpenChange={setScannerOpen}
         onProductScanned={handleProductScanned}
+      />
+      <FoodPhotoAnalyzerDialog
+        open={photoAnalyzerOpen}
+        onOpenChange={setPhotoAnalyzerOpen}
+        onAnalysisComplete={handlePhotoAnalyzed}
       />
       <LogMealDialog
         open={logDialogOpen}
