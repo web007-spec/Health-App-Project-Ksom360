@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,12 +14,21 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
+interface PrefilledData {
+  name?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fats?: number;
+}
+
 interface LogMealDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  prefilledData?: PrefilledData;
 }
 
-export function LogMealDialog({ open, onOpenChange }: LogMealDialogProps) {
+export function LogMealDialog({ open, onOpenChange, prefilledData }: LogMealDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -30,6 +39,16 @@ export function LogMealDialog({ open, onOpenChange }: LogMealDialogProps) {
   const [carbs, setCarbs] = useState("");
   const [fats, setFats] = useState("");
   const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    if (prefilledData) {
+      if (prefilledData.name) setMealName(prefilledData.name);
+      if (prefilledData.calories) setCalories(prefilledData.calories.toString());
+      if (prefilledData.protein) setProtein(prefilledData.protein.toString());
+      if (prefilledData.carbs) setCarbs(prefilledData.carbs.toString());
+      if (prefilledData.fats) setFats(prefilledData.fats.toString());
+    }
+  }, [prefilledData]);
 
   const logMealMutation = useMutation({
     mutationFn: async () => {
