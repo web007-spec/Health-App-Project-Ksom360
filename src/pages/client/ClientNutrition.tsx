@@ -1,18 +1,39 @@
 import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Apple, Flame, TrendingUp } from "lucide-react";
+import { Plus, Apple, Flame, TrendingUp, ScanBarcode } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { LogMealDialog } from "@/components/LogMealDialog";
+import { BarcodeScannerDialog } from "@/components/BarcodeScannerDialog";
 import { format, parseISO, subDays, startOfDay } from "date-fns";
 import { Progress } from "@/components/ui/progress";
 
 export default function ClientNutrition() {
   const { user } = useAuth();
   const [logDialogOpen, setLogDialogOpen] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannedProduct, setScannedProduct] = useState<{
+    name: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fats: number;
+  } | null>(null);
+
+  const handleProductScanned = (productData: {
+    name: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fats: number;
+  }) => {
+    setScannedProduct(productData);
+    setScannerOpen(false);
+    setLogDialogOpen(true);
+  };
 
   // Fetch nutrition logs for last 7 days
   const { data: nutritionLogs, isLoading } = useQuery({
@@ -81,10 +102,16 @@ export default function ClientNutrition() {
             <h1 className="text-3xl font-bold">Nutrition Tracking</h1>
             <p className="text-muted-foreground mt-1">Monitor your daily nutrition</p>
           </div>
-          <Button className="gap-2" onClick={() => setLogDialogOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Log Meal
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => setScannerOpen(true)}>
+              <ScanBarcode className="h-4 w-4" />
+              Scan Barcode
+            </Button>
+            <Button className="gap-2" onClick={() => setLogDialogOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Log Meal
+            </Button>
+          </div>
         </div>
 
         {/* Today's Summary */}
@@ -226,7 +253,19 @@ export default function ClientNutrition() {
         )}
       </div>
 
-      <LogMealDialog open={logDialogOpen} onOpenChange={setLogDialogOpen} />
+      <BarcodeScannerDialog
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        onProductScanned={handleProductScanned}
+      />
+      <LogMealDialog
+        open={logDialogOpen}
+        onOpenChange={(open) => {
+          setLogDialogOpen(open);
+          if (!open) setScannedProduct(null);
+        }}
+        prefilledData={scannedProduct || undefined}
+      />
     </ClientLayout>
   );
 }
