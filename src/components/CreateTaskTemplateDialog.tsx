@@ -43,6 +43,7 @@ export function CreateTaskTemplateDialog({ open, onOpenChange }: CreateTaskTempl
   const [iconFile, setIconFile] = useState<File | null>(null);
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
 
   const form = useForm<TaskTemplateForm>({
     resolver: zodResolver(taskTemplateSchema),
@@ -87,6 +88,7 @@ export function CreateTaskTemplateDialog({ open, onOpenChange }: CreateTaskTempl
     setSelectedEmoji(emoji.native);
     setIconFile(null);
     setIconPreview(null);
+    setEmojiPickerOpen(false);
   };
 
   const clearIcon = () => {
@@ -199,14 +201,14 @@ export function CreateTaskTemplateDialog({ open, onOpenChange }: CreateTaskTempl
                       <ImagePlus className="h-4 w-4 mr-2" />
                       Upload Image
                     </Button>
-                    <Popover>
+                    <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
                       <PopoverTrigger asChild>
                         <Button type="button" variant="outline" size="sm">
                           <Smile className="h-4 w-4 mr-2" />
                           Pick Emoji
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
+                      <PopoverContent className="w-auto p-0 z-[100]" align="start" sideOffset={5}>
                         <Picker data={data} onEmojiSelect={handleEmojiSelect} theme="auto" />
                       </PopoverContent>
                     </Popover>
