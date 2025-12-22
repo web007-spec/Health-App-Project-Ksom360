@@ -47,8 +47,19 @@ export function ExerciseCard({ exercise, onEdit }: ExerciseCardProps) {
     },
   });
 
+  // Check if URL is a direct video file (not YouTube/Vimeo embed)
+  const isDirectVideoUrl = (url: string | null) => {
+    if (!url) return false;
+    return !url.includes('youtube.com') && !url.includes('youtu.be') && !url.includes('vimeo.com');
+  };
+
   const getVideoEmbedUrl = (url: string | null) => {
     if (!url) return null;
+    
+    // Direct video URL - return as-is
+    if (isDirectVideoUrl(url)) {
+      return url;
+    }
     
     // Vimeo
     if (url.includes('vimeo.com')) {
@@ -68,6 +79,7 @@ export function ExerciseCard({ exercise, onEdit }: ExerciseCardProps) {
   };
 
   const embedUrl = getVideoEmbedUrl(exercise.video_url);
+  const isDirectVideo = isDirectVideoUrl(exercise.video_url);
 
   return (
     <>
@@ -158,12 +170,21 @@ export function ExerciseCard({ exercise, onEdit }: ExerciseCardProps) {
           </DialogHeader>
           {embedUrl && (
             <div className="aspect-video">
-              <iframe
-                src={embedUrl}
-                className="w-full h-full rounded-lg"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
+              {isDirectVideo ? (
+                <video
+                  src={embedUrl}
+                  controls
+                  autoPlay
+                  className="w-full h-full rounded-lg"
+                />
+              ) : (
+                <iframe
+                  src={embedUrl}
+                  className="w-full h-full rounded-lg"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              )}
             </div>
           )}
         </DialogContent>
