@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,11 +7,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { ImagePlus, X, Smile } from "lucide-react";
+import { compressImage } from "@/lib/imageCompression";
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const taskTemplateSchema = z.object({
   name: z.string().trim().min(1, "Task name is required").max(200),
@@ -31,8 +37,14 @@ interface EditTaskTemplateDialogProps {
 }
 
 export function EditTaskTemplateDialog({ template, open, onOpenChange }: EditTaskTemplateDialogProps) {
+  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [iconPreview, setIconPreview] = useState<string | null>(null);
+  const [iconFile, setIconFile] = useState<File | null>(null);
+  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<TaskTemplateForm>({
     resolver: zodResolver(taskTemplateSchema),
@@ -56,11 +68,100 @@ export function EditTaskTemplateDialog({ template, open, onOpenChange }: EditTas
         reminder_hours_before: template.reminder_hours_before || 24,
         is_shared: template.is_shared,
       });
+      
+      // Set existing icon
+      if (template.icon_url) {
+        if (template.icon_url.startsWith("emoji:")) {
+          setSelectedEmoji(template.icon_url.replace("emoji:", ""));
+          setIconPreview(null);
+        } else {
+          setIconPreview(template.icon_url);
+          setSelectedEmoji(null);
+        }
+      } else {
+        setIconPreview(null);
+        setSelectedEmoji(null);
+      }
+      setIconFile(null);
     }
   }, [template, form]);
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const compressed = await compressImage(file, 256, 256, 0.8);
+      const compressedFile = new File([compressed], file.name, { type: "image/jpeg" });
+      setIconFile(compressedFile);
+      setIconPreview(URL.createObjectURL(compressed));
+      setSelectedEmoji(null);
+    } catch (error) {
+      toast({
+        title: "Error processing image",
+        description: "Failed to process the image",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEmojiSelect = (emoji: any) => {
+    setSelectedEmoji(emoji.native);
+    setIconFile(null);
+    setIconPreview(null);
+  };
+
+  const clearIcon = () => {
+    setIconFile(null);
+    setIconPreview(null);
+    setSelectedEmoji(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const uploadIcon = async (): Promise<string | null> => {
+    if (selectedEmoji) {
+      return `emoji:${selectedEmoji}`;
+    }
+
+    if (iconFile && user) {
+      const fileName = `${user.id}/${Date.now()}-${iconFile.name}`;
+      const { error } = await supabase.storage
+        .from("task-icons")
+        .upload(fileName, iconFile);
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from("task-icons")
+        .getPublicUrl(fileName);
+
+      return urlData.publicUrl;
+    }
+
+    // Keep existing URL if no new file/emoji selected
+    if (iconPreview && !iconFile) {
+      return iconPreview;
+    }
+
+    return null;
+  };
+
   const updateMutation = useMutation({
     mutationFn: async (values: TaskTemplateForm) => {
+      setIsUploading(true);
+      const iconUrl = await uploadIcon();
+
       const { error } = await supabase
         .from("task_templates")
         .update({
@@ -70,6 +171,7 @@ export function EditTaskTemplateDialog({ template, open, onOpenChange }: EditTas
           reminder_enabled: values.reminder_enabled,
           reminder_hours_before: values.reminder_enabled ? values.reminder_hours_before : 24,
           is_shared: values.is_shared,
+          icon_url: iconUrl,
         })
         .eq("id", template.id);
       if (error) throw error;
@@ -89,6 +191,9 @@ export function EditTaskTemplateDialog({ template, open, onOpenChange }: EditTas
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      setIsUploading(false);
+    },
   });
 
   const onSubmit = (values: TaskTemplateForm) => {
@@ -107,6 +212,66 @@ export function EditTaskTemplateDialog({ template, open, onOpenChange }: EditTas
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Icon/Emoji Picker */}
+            <div className="space-y-2">
+              <FormLabel>Task Icon (Optional)</FormLabel>
+              <div className="flex items-center gap-4">
+                <div className="relative w-20 h-20 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted/50 overflow-hidden">
+                  {iconPreview ? (
+                    <img src={iconPreview} alt="Icon preview" className="w-full h-full object-cover" />
+                  ) : selectedEmoji ? (
+                    <span className="text-4xl">{selectedEmoji}</span>
+                  ) : (
+                    <ImagePlus className="h-8 w-8 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <ImagePlus className="h-4 w-4 mr-2" />
+                      Upload Image
+                    </Button>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button type="button" variant="outline" size="sm">
+                          <Smile className="h-4 w-4 mr-2" />
+                          Pick Emoji
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Picker data={data} onEmojiSelect={handleEmojiSelect} theme="auto" />
+                      </PopoverContent>
+                    </Popover>
+                    {(iconPreview || selectedEmoji) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearIcon}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Add an image or emoji to identify this task
+                  </p>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+              </div>
+            </div>
+
             <FormField
               control={form.control}
               name="task_type"
@@ -231,8 +396,8 @@ export function EditTaskTemplateDialog({ template, open, onOpenChange }: EditTas
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateMutation.isPending}>
-                {updateMutation.isPending ? "Saving..." : "Save Changes"}
+              <Button type="submit" disabled={updateMutation.isPending || isUploading}>
+                {updateMutation.isPending || isUploading ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </form>
