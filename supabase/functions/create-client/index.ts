@@ -103,25 +103,38 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Trainer-client relationship created");
 
-    // Send welcome email
-    const { error: emailError } = await supabaseAdmin.functions.invoke("send-client-welcome-email", {
-      body: {
-        email: email.trim(),
-        fullName: fullName.trim(),
-        password: password.trim(),
-        loginUrl,
-      },
-    });
+    // Send welcome email (best-effort, but we report status back to UI)
+    let emailSent = false;
+    let emailErrorMessage: string | null = null;
+
+    const { data: emailData, error: emailError } = await supabaseAdmin.functions.invoke(
+      "send-client-welcome-email",
+      {
+        body: {
+          email: email.trim(),
+          fullName: fullName.trim(),
+          password: password.trim(),
+          loginUrl,
+        },
+      }
+    );
 
     if (emailError) {
       console.error("Failed to send welcome email:", emailError);
-      // Don't throw - client was created successfully
+      emailErrorMessage = "Failed to send welcome email";
+    } else if (emailData?.success) {
+      emailSent = true;
+    } else {
+      emailErrorMessage = emailData?.error || "Failed to send welcome email";
+      console.error("Welcome email not sent:", emailErrorMessage);
     }
 
     return new Response(
       JSON.stringify({
         success: true,
         userId: authData.user.id,
+        emailSent,
+        emailErrorMessage,
       }),
       {
         status: 200,

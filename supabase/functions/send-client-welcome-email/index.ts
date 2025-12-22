@@ -119,9 +119,13 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log("Email provider response:", emailResponse);
 
-    return new Response(JSON.stringify(emailResponse), {
+    if (emailResponse?.error) {
+      throw new Error(emailResponse.error.message || "Failed to send welcome email");
+    }
+
+    return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
@@ -130,13 +134,10 @@ const handler = async (req: Request): Promise<Response> => {
     });
   } catch (error: any) {
     console.error("Error sending welcome email:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    return new Response(JSON.stringify({ success: false, error: error.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 };
 
