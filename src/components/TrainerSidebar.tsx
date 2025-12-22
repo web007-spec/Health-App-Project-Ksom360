@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Dumbbell, Calendar, MessageSquare, Settings, TrendingUp, Target, CheckSquare, FileText, Play, Tags, Calculator, Activity } from "lucide-react";
+import { LayoutDashboard, Users, Dumbbell, Calendar, MessageSquare, Settings, TrendingUp, Target, CheckSquare, FileText, Play, Tags, Calculator, Activity, Heart } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -15,6 +15,7 @@ import {
 const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Clients", url: "/clients", icon: Users },
+  { title: "Health", url: "/clients-health", icon: Heart },
   { title: "Exercises", url: "/exercises", icon: Dumbbell },
   { title: "Workouts", url: "/workouts", icon: Calendar },
   { title: "Goals", url: "/goals", icon: Target },
