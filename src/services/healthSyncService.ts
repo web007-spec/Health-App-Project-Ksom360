@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
+import { triggerHealthNotification } from '@/hooks/useHealthNotifications';
 
 // Type definitions for health data
 export interface HealthDataPoint {
@@ -111,6 +112,43 @@ export const syncHealthData = async (clientId: string): Promise<{ success: boole
         last_sync_at: new Date().toISOString(),
         permissions: ['heart_rate', 'steps', 'calories', 'workouts'],
       }, { onConflict: 'client_id,provider' });
+    
+    // Get today's totals for notification
+    const today = new Date().toISOString().split('T')[0];
+    const { data: todayData } = await supabase
+      .from('health_data')
+      .select('data_type, value')
+      .eq('client_id', clientId)
+      .gte('recorded_at', `${today}T00:00:00`)
+      .lte('recorded_at', `${today}T23:59:59`);
+    
+    const todaySteps = todayData?.find(d => d.data_type === 'steps')?.value || 0;
+    const todayCalories = todayData?.find(d => d.data_type === 'calories_burned')?.value || 0;
+    const todayHeartRate = todayData?.find(d => d.data_type === 'heart_rate')?.value;
+    
+    // Trigger health sync notification
+    await triggerHealthNotification(clientId, 'health_sync', {
+      steps: todaySteps,
+      calories: todayCalories,
+      heart_rate: todayHeartRate,
+      provider: source,
+    });
+    
+    // Check for low activity and trigger alert if needed
+    const isLowActivity = todaySteps < 5000 || todayCalories < 300;
+    if (isLowActivity && new Date().getHours() >= 18) { // Only alert in evening
+      await triggerHealthNotification(clientId, 'low_activity', {
+        steps: todaySteps,
+        calories: todayCalories,
+      });
+    }
+    
+    // Check for heart rate alerts
+    if (todayHeartRate && (todayHeartRate > 100 || todayHeartRate < 50)) {
+      await triggerHealthNotification(clientId, 'heart_rate_alert', {
+        heart_rate: todayHeartRate,
+      });
+    }
     
     return { success: true, count: healthDataPoints.length };
   } catch (error) {
