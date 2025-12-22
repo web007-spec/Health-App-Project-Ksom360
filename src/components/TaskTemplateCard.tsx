@@ -20,6 +20,7 @@ interface TaskTemplate {
   is_shared: boolean;
   trainer_id: string;
   created_at: string;
+  icon_url: string | null;
 }
 
 interface TaskTemplateCardProps {
@@ -86,6 +87,7 @@ export function TaskTemplateCard({ template }: TaskTemplateCardProps) {
           attachments: template.attachments,
           reminder_enabled: template.reminder_enabled,
           is_shared: false,
+          icon_url: template.icon_url,
         }]);
       if (error) throw error;
     },
@@ -135,8 +137,16 @@ export function TaskTemplateCard({ template }: TaskTemplateCardProps) {
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Icon className="h-5 w-5 text-primary" />
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
+                {template.icon_url ? (
+                  template.icon_url.startsWith("emoji:") ? (
+                    <span className="text-2xl">{template.icon_url.replace("emoji:", "")}</span>
+                  ) : (
+                    <img src={template.icon_url} alt="" className="w-full h-full object-cover" />
+                  )
+                ) : (
+                  <Icon className="h-5 w-5 text-primary" />
+                )}
               </div>
               <div className="flex-1">
                 <CardTitle className="text-lg">{template.name}</CardTitle>

@@ -1266,6 +1266,7 @@ export type Database = {
           attachments: Json | null
           created_at: string
           description: string | null
+          icon_url: string | null
           id: string
           is_shared: boolean | null
           name: string
@@ -1279,6 +1280,7 @@ export type Database = {
           attachments?: Json | null
           created_at?: string
           description?: string | null
+          icon_url?: string | null
           id?: string
           is_shared?: boolean | null
           name: string
@@ -1292,6 +1294,7 @@ export type Database = {
           attachments?: Json | null
           created_at?: string
           description?: string | null
+          icon_url?: string | null
           id?: string
           is_shared?: boolean | null
           name?: string
