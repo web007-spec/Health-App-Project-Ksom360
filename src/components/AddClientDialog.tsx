@@ -50,7 +50,9 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
       });
 
       if (error) throw error;
-      if (!data?.success) throw new Error("Failed to create client");
+      if (!data?.success) {
+        throw new Error(data?.error || "Failed to create client");
+      }
 
       return data;
     },

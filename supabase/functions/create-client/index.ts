@@ -72,14 +72,30 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
 
-    if (createError) {
-      console.error("Error creating user:", createError);
-      // Check for duplicate email error
-      if (createError.message?.includes("already been registered") || createError.message?.includes("email_exists")) {
-        throw new Error("A client with this email address already exists. Please use a different email address.");
-      }
-      throw createError;
-    }
+     if (createError) {
+       console.error("Error creating user:", createError);
+       // Duplicate email: report as a non-200 error *payload* so the UI can show a friendly message
+       if (
+         createError.message?.includes("already been registered") ||
+         createError.message?.includes("email_exists") ||
+         createError.code === "email_exists"
+       ) {
+         return new Response(
+           JSON.stringify({
+             success: false,
+             error: "A client with this email address already exists. Please use a different email address.",
+           }),
+           {
+             status: 200,
+             headers: {
+               "Content-Type": "application/json",
+               ...corsHeaders,
+             },
+           }
+         );
+       }
+       throw createError;
+     }
 
     if (!authData.user) {
       throw new Error("Failed to create user account");
