@@ -12,7 +12,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { compressImage } from "@/lib/imageCompression";
 import { CreateExerciseTagDialog } from "./CreateExerciseTagDialog";
 
 interface CreateExerciseDialogProps {
@@ -35,19 +34,15 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
     muscle_group: "",
     equipment: "",
     category: "",
-    image_url: "",
     video_url: "",
   });
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [videoSourceType, setVideoSourceType] = useState<"upload" | "url">("upload");
   const [isUploading, setIsUploading] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isCreateTagDialogOpen, setIsCreateTagDialogOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch available tags
@@ -66,47 +61,7 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
     enabled: !!user?.id,
   });
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid file type",
-        description: "Please select an image file",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate file size (max 10MB before compression)
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please select an image smaller than 10MB",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setImageFile(file);
-    
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const clearImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
+  // Generate thumbnail from video
 
   const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -149,37 +104,10 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
 
   const createExerciseMutation = useMutation({
     mutationFn: async () => {
-      let imageUrl = formData.image_url;
       let videoUrl = videoSourceType === "url" ? formData.video_url : "";
 
       setIsUploading(true);
       try {
-        // Upload image if file is selected
-        if (imageFile && user?.id) {
-          // Compress the image to thumbnail size (300x300)
-          const compressedBlob = await compressImage(imageFile, 300, 300, 0.85);
-          
-          // Generate unique filename
-          const fileExt = imageFile.name.split('.').pop();
-          const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-          
-          // Upload to Supabase Storage
-          const { error: uploadError } = await supabase.storage
-            .from('exercise-images')
-            .upload(fileName, compressedBlob, {
-              contentType: 'image/jpeg',
-              upsert: false,
-            });
-
-          if (uploadError) throw uploadError;
-
-          // Get public URL
-          const { data: { publicUrl } } = supabase.storage
-            .from('exercise-images')
-            .getPublicUrl(fileName);
-
-          imageUrl = publicUrl;
-        }
 
         // Upload video if file is selected
         if (videoFile && user?.id && videoSourceType === "upload") {
@@ -205,7 +133,7 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
         setIsUploading(false);
       }
 
-      // Insert exercise with image and video URLs
+      // Insert exercise - video_url serves as both video and thumbnail
       const { data, error } = await supabase
         .from("exercises")
         .insert({
@@ -214,7 +142,6 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
           muscle_group: formData.muscle_group,
           equipment: formData.equipment,
           category: formData.category,
-          image_url: imageUrl || null,
           video_url: videoUrl || null,
           trainer_id: user?.id,
         })
@@ -253,11 +180,9 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
         muscle_group: "",
         equipment: "",
         category: "",
-        image_url: "",
         video_url: "",
       });
       setSelectedTags([]);
-      clearImage();
       clearVideo();
       setVideoSourceType("upload");
     },
@@ -418,52 +343,7 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
             </div>
           </div>
 
-          {/* Image Upload */}
-          <div className="space-y-2">
-            <Label htmlFor="image_upload">Exercise Image/Thumbnail</Label>
-            
-            {imagePreview ? (
-              <div className="relative">
-                <img 
-                  src={imagePreview} 
-                  alt="Preview" 
-                  className="w-full h-48 object-cover rounded-lg border border-border"
-                />
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-2 right-2"
-                  onClick={clearImage}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
-              >
-                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-sm text-muted-foreground mb-2">
-                  Click to upload exercise image
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Image will be automatically compressed and resized
-                </p>
-              </div>
-            )}
-            
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageSelect}
-              className="hidden"
-            />
-          </div>
-
-          {/* Video Upload/URL */}
+          {/* Video Upload/URL - Video serves as thumbnail */}
           <div className="space-y-2">
             <Label>Demo Video</Label>
             <Tabs value={videoSourceType} onValueChange={(v) => setVideoSourceType(v as "upload" | "url")}>
