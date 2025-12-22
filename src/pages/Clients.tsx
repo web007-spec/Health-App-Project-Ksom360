@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, MessageSquare, TrendingUp, Plus, Settings, CheckSquare, Mail } from "lucide-react";
+import { Search, MessageSquare, TrendingUp, Plus, Settings, CheckSquare, Mail, Heart } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { AddClientDialog } from "@/components/AddClientDialog";
 import { ClientStatusDialog } from "@/components/ClientStatusDialog";
@@ -25,6 +26,7 @@ export default function Clients() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [addClientDialogOpen, setAddClientDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
@@ -146,6 +148,15 @@ export default function Clients() {
               <Button size="sm" variant="outline" className="gap-2">
                 <TrendingUp className="h-4 w-4" />
                 <span className="hidden sm:inline">Progress</span>
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="gap-2"
+                onClick={() => navigate(`/clients/${client.client_id}/health`)}
+              >
+                <Heart className="h-4 w-4" />
+                <span className="hidden sm:inline">Health</span>
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

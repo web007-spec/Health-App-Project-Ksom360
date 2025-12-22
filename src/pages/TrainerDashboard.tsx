@@ -3,11 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { StatCard } from "@/components/StatCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, Activity, Dumbbell, TrendingUp, Calendar, ArrowRight } from "lucide-react";
+import { Users, Activity, Dumbbell, TrendingUp, Calendar, ArrowRight, Heart, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, parseISO, isToday, isThisWeek } from "date-fns";
+import { format, parseISO, isToday, isThisWeek, subDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 
@@ -128,6 +128,116 @@ export default function TrainerDashboard() {
       workouts: completed,
     };
   }) || [];
+
+  // Fetch health connections for clients
+  const { data: healthConnections } = useQuery({
+    queryKey: ["health-connections", user?.id],
+    queryFn: async () => {
+      if (!clients) return [];
+      const clientIds = clients.map((c) => c.client_id);
+      
+      const { data, error } = await supabase
+        .from("health_connections")
+        .select("*")
+        .in("client_id", clientIds)
+        .eq("is_connected", true);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id && !!clients,
+  });
+
+  // Fetch recent health data for all clients
+  const { data: healthData } = useQuery({
+    queryKey: ["client-health-data", user?.id],
+    queryFn: async () => {
+      if (!clients) return [];
+      const clientIds = clients.map((c) => c.client_id);
+      const weekAgo = subDays(new Date(), 7).toISOString();
+      
+      const { data, error } = await supabase
+        .from("health_data")
+        .select(`
+          *,
+          profiles:client_id (full_name, avatar_url)
+        `)
+        .in("client_id", clientIds)
+        .gte("recorded_at", weekAgo)
+        .order("recorded_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id && !!clients,
+  });
+
+  // Calculate health insights
+  const connectedClientsCount = healthConnections?.length || 0;
+  
+  // Find clients with low activity (less than 3000 steps in the last day)
+  const getLowActivityClients = () => {
+    if (!healthData || !clients) return [];
+    
+    const today = format(new Date(), "yyyy-MM-dd");
+    const clientStepsToday = new Map<string, number>();
+    
+    healthData
+      .filter((d) => d.data_type === "steps" && format(parseISO(d.recorded_at), "yyyy-MM-dd") === today)
+      .forEach((d) => {
+        const current = clientStepsToday.get(d.client_id) || 0;
+        clientStepsToday.set(d.client_id, current + Number(d.value));
+      });
+
+    return clients
+      .filter((c) => {
+        const steps = clientStepsToday.get(c.client_id) || 0;
+        const isConnected = healthConnections?.some((h) => h.client_id === c.client_id);
+        return isConnected && steps < 3000;
+      })
+      .map((c) => ({
+        id: c.client_id,
+        name: c.client_profile?.full_name || "Unknown",
+        steps: clientStepsToday.get(c.client_id) || 0,
+      }));
+  };
+
+  // Find clients with unusual resting heart rate (above 100 or below 40)
+  const getHeartRateAlerts = () => {
+    if (!healthData) return [];
+    
+    const alerts: { clientId: string; name: string; value: number; type: "high" | "low" }[] = [];
+    const seenClients = new Set<string>();
+    
+    healthData
+      .filter((d) => d.data_type === "heart_rate")
+      .forEach((d) => {
+        if (seenClients.has(d.client_id)) return;
+        const value = Number(d.value);
+        if (value > 100) {
+          seenClients.add(d.client_id);
+          alerts.push({
+            clientId: d.client_id,
+            name: d.profiles?.full_name || "Unknown",
+            value,
+            type: "high",
+          });
+        } else if (value < 40) {
+          seenClients.add(d.client_id);
+          alerts.push({
+            clientId: d.client_id,
+            name: d.profiles?.full_name || "Unknown",
+            value,
+            type: "low",
+          });
+        }
+      });
+    
+    return alerts.slice(0, 5);
+  };
+
+  const lowActivityClients = getLowActivityClients();
+  const heartRateAlerts = getHeartRateAlerts();
 
   return (
     <DashboardLayout>
@@ -299,6 +409,79 @@ export default function TrainerDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Health Insights Section */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-destructive" />
+                <CardTitle>Health Insights</CardTitle>
+              </div>
+              <Badge variant="outline">
+                {connectedClientsCount} clients connected
+              </Badge>
+            </div>
+            <CardDescription>Real-time health data from Apple Health & Samsung Health</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Low Activity Alerts */}
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                  <p className="font-medium">Low Activity Today</p>
+                </div>
+                {lowActivityClients.length > 0 ? (
+                  <div className="space-y-2">
+                    {lowActivityClients.slice(0, 3).map((client) => (
+                      <div
+                        key={client.id}
+                        className="flex items-center justify-between p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted"
+                        onClick={() => navigate(`/clients/${client.id}/health`)}
+                      >
+                        <span className="text-sm">{client.name}</span>
+                        <span className="text-xs text-muted-foreground">{client.steps.toLocaleString()} steps</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {connectedClientsCount > 0 ? "All clients are active today!" : "No health data connected yet"}
+                  </p>
+                )}
+              </div>
+
+              {/* Heart Rate Alerts */}
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <p className="font-medium">Heart Rate Alerts</p>
+                </div>
+                {heartRateAlerts.length > 0 ? (
+                  <div className="space-y-2">
+                    {heartRateAlerts.map((alert, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted"
+                        onClick={() => navigate(`/clients/${alert.clientId}/health`)}
+                      >
+                        <span className="text-sm">{alert.name}</span>
+                        <Badge variant={alert.type === "high" ? "destructive" : "secondary"}>
+                          {alert.value} bpm
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {connectedClientsCount > 0 ? "No unusual heart rates detected" : "Connect clients to see alerts"}
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Client Status Overview */}
         <Card>
