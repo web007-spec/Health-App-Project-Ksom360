@@ -635,6 +635,94 @@ export type Database = {
           },
         ]
       }
+      health_connections: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          id: string
+          is_connected: boolean | null
+          last_sync_at: string | null
+          permissions: Json | null
+          provider: string
+          updated_at: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          id?: string
+          is_connected?: boolean | null
+          last_sync_at?: string | null
+          permissions?: Json | null
+          provider: string
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          id?: string
+          is_connected?: boolean | null
+          last_sync_at?: string | null
+          permissions?: Json | null
+          provider?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_connections_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_data: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          data_type: string
+          id: string
+          metadata: Json | null
+          recorded_at: string
+          source: string
+          synced_at: string | null
+          unit: string | null
+          value: number
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          data_type: string
+          id?: string
+          metadata?: Json | null
+          recorded_at: string
+          source: string
+          synced_at?: string | null
+          unit?: string | null
+          value: number
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          data_type?: string
+          id?: string
+          metadata?: Json | null
+          recorded_at?: string
+          source?: string
+          synced_at?: string | null
+          unit?: string | null
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_data_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meal_plan_days: {
         Row: {
           id: string
