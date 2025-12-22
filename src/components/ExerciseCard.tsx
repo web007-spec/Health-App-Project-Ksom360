@@ -1,12 +1,14 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Play, Edit, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ManageExerciseAlternativesDialog } from "@/components/ManageExerciseAlternativesDialog";
+import { cn } from "@/lib/utils";
 
 interface Exercise {
   id: string;
@@ -21,9 +23,12 @@ interface Exercise {
 interface ExerciseCardProps {
   exercise: Exercise;
   onEdit?: (exercise: Exercise) => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
 }
 
-export function ExerciseCard({ exercise, onEdit }: ExerciseCardProps) {
+export function ExerciseCard({ exercise, onEdit, selectionMode, isSelected, onToggleSelect }: ExerciseCardProps) {
   const [showVideoDialog, setShowVideoDialog] = useState(false);
   const [showAlternativesDialog, setShowAlternativesDialog] = useState(false);
 
@@ -83,8 +88,24 @@ export function ExerciseCard({ exercise, onEdit }: ExerciseCardProps) {
 
   return (
     <>
-      <Card className="group overflow-hidden hover:shadow-lg transition-shadow">
+      <Card 
+        className={cn(
+          "group overflow-hidden hover:shadow-lg transition-shadow cursor-pointer",
+          selectionMode && isSelected && "ring-2 ring-primary"
+        )}
+        onClick={selectionMode ? onToggleSelect : undefined}
+      >
         <div className="relative aspect-video bg-muted overflow-hidden">
+          {selectionMode && (
+            <div className="absolute top-3 left-3 z-10">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={onToggleSelect}
+                onClick={(e) => e.stopPropagation()}
+                className="h-5 w-5 bg-background border-2"
+              />
+            </div>
+          )}
           {exercise.image_url ? (
             <img 
               src={exercise.image_url} 

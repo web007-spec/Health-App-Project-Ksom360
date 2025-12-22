@@ -1,15 +1,26 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, Video, ArrowUpDown, Dumbbell } from "lucide-react";
+import { Search, Plus, Video, ArrowUpDown, Dumbbell, Trash2, X } from "lucide-react";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { CreateExerciseDialog } from "@/components/CreateExerciseDialog";
 import { EditExerciseDialog } from "@/components/EditExerciseDialog";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const muscleGroups = ["chest", "back", "shoulders", "arms", "legs", "glutes", "core", "cardio", "full body"];
 const equipmentTypes = ["bodyweight", "dumbbells", "barbell", "machine", "resistance bands", "kettlebell", "cable"];
@@ -17,6 +28,7 @@ const categories = ["strength", "cardio", "flexibility", "mobility", "plyometric
 
 export default function Exercises() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [muscleFilter, setMuscleFilter] = useState("all");
   const [equipmentFilter, setEquipmentFilter] = useState("all");
@@ -26,6 +38,10 @@ export default function Exercises() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<any>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { data: exercises, isLoading } = useQuery({
     queryKey: ["exercises", user?.id],
@@ -116,6 +132,45 @@ export default function Exercises() {
     setIsEditDialogOpen(true);
   };
 
+  const toggleSelection = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("exercises")
+        .delete()
+        .in("id", Array.from(selectedIds));
+
+      if (error) throw error;
+
+      toast.success(`Deleted ${selectedIds.size} exercise${selectedIds.size > 1 ? 's' : ''}`);
+      queryClient.invalidateQueries({ queryKey: ["exercises"] });
+      exitSelectionMode();
+    } catch (error) {
+      console.error("Error deleting exercises:", error);
+      toast.error("Failed to delete exercises");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -127,10 +182,35 @@ export default function Exercises() {
               {exercises?.length || 0} total exercises • {videoDemoCount} with video demos
             </p>
           </div>
-          <Button onClick={() => setIsCreateDialogOpen(true)} size="lg">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Exercise
-          </Button>
+          <div className="flex items-center gap-2">
+            {selectionMode ? (
+              <>
+                <Button variant="outline" onClick={exitSelectionMode}>
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => setShowDeleteDialog(true)}
+                  disabled={selectedIds.size === 0}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete ({selectedIds.size})
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setSelectionMode(true)}>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Bulk Delete
+                </Button>
+                <Button onClick={() => setIsCreateDialogOpen(true)} size="lg">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Exercise
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Filters */}
@@ -258,7 +338,10 @@ export default function Exercises() {
               <ExerciseCard 
                 key={exercise.id} 
                 exercise={exercise} 
-                onEdit={handleEditExercise}
+                onEdit={selectionMode ? undefined : handleEditExercise}
+                selectionMode={selectionMode}
+                isSelected={selectedIds.has(exercise.id)}
+                onToggleSelect={() => toggleSelection(exercise.id)}
               />
             ))}
           </div>
@@ -275,6 +358,27 @@ export default function Exercises() {
         onOpenChange={setIsEditDialogOpen}
         exercise={selectedExercise}
       />
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.size} exercise{selectedIds.size > 1 ? 's' : ''}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the selected exercises from your library.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleBulkDelete} 
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
