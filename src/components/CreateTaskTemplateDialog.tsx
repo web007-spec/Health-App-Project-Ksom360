@@ -103,19 +103,21 @@ export function CreateTaskTemplateDialog({ open, onOpenChange }: CreateTaskTempl
       return `emoji:${selectedEmoji}`;
     }
 
-    if (!iconFile || !user) return null;
+    if (!iconFile) return null;
+    if (!user) throw new Error("You must be logged in to upload an icon");
 
     const fileName = `${user.id}/${Date.now()}-${iconFile.name}`;
     const { error } = await supabase.storage
       .from("task-icons")
-      .upload(fileName, iconFile);
+      .upload(fileName, iconFile, {
+        upsert: true,
+        contentType: iconFile.type,
+        cacheControl: "3600",
+      });
 
     if (error) throw error;
 
-    const { data: urlData } = supabase.storage
-      .from("task-icons")
-      .getPublicUrl(fileName);
-
+    const { data: urlData } = supabase.storage.from("task-icons").getPublicUrl(fileName);
     return urlData.publicUrl;
   };
 
