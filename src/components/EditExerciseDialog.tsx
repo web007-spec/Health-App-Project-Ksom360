@@ -5,7 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Upload, X, Plus } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Upload, X, Plus, Video, Link } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -35,6 +36,12 @@ const muscleGroups = ["chest", "back", "shoulders", "arms", "legs", "glutes", "c
 const equipmentTypes = ["bodyweight", "dumbbells", "barbell", "machine", "resistance bands", "kettlebell", "cable"];
 const categories = ["strength", "cardio", "flexibility", "mobility", "plyometric", "warm-up", "cool-down"];
 
+// Helper to detect if URL is a direct video (not YouTube/Vimeo)
+const isDirectVideoUrl = (url: string | null) => {
+  if (!url) return false;
+  return !url.includes('youtube.com') && !url.includes('youtu.be') && !url.includes('vimeo.com');
+};
+
 export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExerciseDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -51,11 +58,16 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [videoSourceType, setVideoSourceType] = useState<"upload" | "url">("upload");
   const [removeImage, setRemoveImage] = useState(false);
+  const [removeVideo, setRemoveVideo] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isCreateTagDialogOpen, setIsCreateTagDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch available tags
   const { data: availableTags } = useQuery({
@@ -104,6 +116,22 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
       setImagePreview(exercise.image_url);
       setImageFile(null);
       setRemoveImage(false);
+      setVideoFile(null);
+      setRemoveVideo(false);
+      
+      // Set video source type based on existing video
+      if (exercise.video_url) {
+        if (isDirectVideoUrl(exercise.video_url)) {
+          setVideoSourceType("upload");
+          setVideoPreview(exercise.video_url);
+        } else {
+          setVideoSourceType("url");
+          setVideoPreview(null);
+        }
+      } else {
+        setVideoSourceType("upload");
+        setVideoPreview(null);
+      }
     }
   }, [exercise]);
 
@@ -154,26 +182,73 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
     }
   };
 
+  const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('video/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a video file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 100 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select a video smaller than 100MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setVideoFile(file);
+    setVideoPreview(URL.createObjectURL(file));
+    setRemoveVideo(false);
+  };
+
+  const clearVideo = () => {
+    setVideoFile(null);
+    if (videoPreview && !videoPreview.startsWith('http')) {
+      URL.revokeObjectURL(videoPreview);
+    }
+    setVideoPreview(null);
+    setRemoveVideo(true);
+    if (videoInputRef.current) {
+      videoInputRef.current.value = '';
+    }
+  };
+
   const updateExerciseMutation = useMutation({
     mutationFn: async () => {
       if (!exercise) return;
 
       let imageUrl = exercise.image_url;
+      let videoUrl = exercise.video_url;
 
-      // Remove image if user clicked the X button
+      // Handle image removal
       if (removeImage) {
         imageUrl = null;
       }
-      // Upload new image if file is selected
-      else if (imageFile && user?.id) {
-        setIsUploading(true);
-        try {
+
+      // Handle video removal or source type change
+      if (removeVideo) {
+        videoUrl = null;
+      } else if (videoSourceType === "url") {
+        videoUrl = formData.video_url || null;
+      }
+
+      setIsUploading(true);
+      try {
+        // Upload new image if file is selected
+        if (imageFile && user?.id) {
           const compressedBlob = await compressImage(imageFile, 300, 300, 0.85);
-          
           const fileExt = imageFile.name.split('.').pop();
           const fileName = `${user.id}/${Date.now()}.${fileExt}`;
           
-          const { data: uploadData, error: uploadError } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from('exercise-images')
             .upload(fileName, compressedBlob, {
               contentType: 'image/jpeg',
@@ -187,9 +262,30 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
             .getPublicUrl(fileName);
 
           imageUrl = publicUrl;
-        } finally {
-          setIsUploading(false);
         }
+
+        // Upload new video if file is selected
+        if (videoFile && user?.id && videoSourceType === "upload") {
+          const fileExt = videoFile.name.split('.').pop();
+          const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('exercise-videos')
+            .upload(fileName, videoFile, {
+              contentType: videoFile.type,
+              upsert: false,
+            });
+
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('exercise-videos')
+            .getPublicUrl(fileName);
+
+          videoUrl = publicUrl;
+        }
+      } finally {
+        setIsUploading(false);
       }
 
       const { data, error } = await supabase
@@ -200,7 +296,7 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
           muscle_group: formData.muscle_group || null,
           equipment: formData.equipment || null,
           category: formData.category || null,
-          video_url: formData.video_url || null,
+          video_url: videoUrl,
           image_url: imageUrl,
         })
         .eq("id", exercise.id)
@@ -264,6 +360,10 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
     setImageFile(null);
     setImagePreview(null);
     setRemoveImage(false);
+    setVideoFile(null);
+    setVideoPreview(null);
+    setRemoveVideo(false);
+    setVideoSourceType("upload");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -439,15 +539,80 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="video_url">Video URL (Optional)</Label>
-            <Input
-              id="video_url"
-              value={formData.video_url}
-              onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-              placeholder="YouTube or Vimeo URL"
-              type="url"
-            />
+          {/* Video Upload/URL */}
+          <div className="space-y-2">
+            <Label>Demo Video</Label>
+            <Tabs value={videoSourceType} onValueChange={(v) => {
+              setVideoSourceType(v as "upload" | "url");
+              if (v === "url") {
+                setVideoFile(null);
+                setVideoPreview(null);
+              }
+            }}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="upload" className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Upload Video
+                </TabsTrigger>
+                <TabsTrigger value="url" className="flex items-center gap-2">
+                  <Link className="h-4 w-4" />
+                  Video URL
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="upload" className="mt-4">
+                {videoPreview ? (
+                  <div className="relative">
+                    <video 
+                      src={videoPreview} 
+                      controls
+                      className="w-full h-48 object-cover rounded-lg border border-border"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2"
+                      onClick={clearVideo}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => videoInputRef.current?.click()}
+                    className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+                  >
+                    <Video className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Click to upload exercise video
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      MP4, MOV, or WebM (max 100MB)
+                    </p>
+                  </div>
+                )}
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  accept="video/*"
+                  onChange={handleVideoSelect}
+                  className="hidden"
+                />
+              </TabsContent>
+              
+              <TabsContent value="url" className="mt-4">
+                <Input
+                  id="video_url"
+                  value={formData.video_url}
+                  onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
+                  placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Paste YouTube, Vimeo, or direct video URL
+                </p>
+              </TabsContent>
+            </Tabs>
           </div>
 
           <div className="flex gap-3 pt-4">

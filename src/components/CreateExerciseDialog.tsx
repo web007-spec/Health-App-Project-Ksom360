@@ -5,7 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dumbbell, Upload, X, Plus } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dumbbell, Upload, X, Plus, Video, Link } from "lucide-react";
 import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -40,10 +41,14 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [videoSourceType, setVideoSourceType] = useState<"upload" | "url">("upload");
   const [isUploading, setIsUploading] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isCreateTagDialogOpen, setIsCreateTagDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch available tags
   const { data: availableTags } = useQuery({
@@ -103,14 +108,54 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
     }
   };
 
+  const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('video/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a video file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 100MB)
+    if (file.size > 100 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select a video smaller than 100MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setVideoFile(file);
+    setVideoPreview(URL.createObjectURL(file));
+  };
+
+  const clearVideo = () => {
+    setVideoFile(null);
+    if (videoPreview) {
+      URL.revokeObjectURL(videoPreview);
+    }
+    setVideoPreview(null);
+    if (videoInputRef.current) {
+      videoInputRef.current.value = '';
+    }
+  };
+
   const createExerciseMutation = useMutation({
     mutationFn: async () => {
       let imageUrl = formData.image_url;
+      let videoUrl = videoSourceType === "url" ? formData.video_url : "";
 
-      // Upload image if file is selected
-      if (imageFile && user?.id) {
-        setIsUploading(true);
-        try {
+      setIsUploading(true);
+      try {
+        // Upload image if file is selected
+        if (imageFile && user?.id) {
           // Compress the image to thumbnail size (300x300)
           const compressedBlob = await compressImage(imageFile, 300, 300, 0.85);
           
@@ -119,7 +164,7 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
           const fileName = `${user.id}/${Date.now()}.${fileExt}`;
           
           // Upload to Supabase Storage
-          const { data: uploadData, error: uploadError } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from('exercise-images')
             .upload(fileName, compressedBlob, {
               contentType: 'image/jpeg',
@@ -134,17 +179,43 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
             .getPublicUrl(fileName);
 
           imageUrl = publicUrl;
-        } finally {
-          setIsUploading(false);
         }
+
+        // Upload video if file is selected
+        if (videoFile && user?.id && videoSourceType === "upload") {
+          const fileExt = videoFile.name.split('.').pop();
+          const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('exercise-videos')
+            .upload(fileName, videoFile, {
+              contentType: videoFile.type,
+              upsert: false,
+            });
+
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('exercise-videos')
+            .getPublicUrl(fileName);
+
+          videoUrl = publicUrl;
+        }
+      } finally {
+        setIsUploading(false);
       }
 
-      // Insert exercise with image URL
+      // Insert exercise with image and video URLs
       const { data, error } = await supabase
         .from("exercises")
         .insert({
-          ...formData,
-          image_url: imageUrl,
+          name: formData.name,
+          description: formData.description,
+          muscle_group: formData.muscle_group,
+          equipment: formData.equipment,
+          category: formData.category,
+          image_url: imageUrl || null,
+          video_url: videoUrl || null,
           trainer_id: user?.id,
         })
         .select()
@@ -187,6 +258,8 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
       });
       setSelectedTags([]);
       clearImage();
+      clearVideo();
+      setVideoSourceType("upload");
     },
     onError: (error: Error) => {
       toast({
@@ -390,18 +463,74 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
             />
           </div>
 
-          {/* Video URL */}
+          {/* Video Upload/URL */}
           <div className="space-y-2">
-            <Label htmlFor="video_url">Demo Video</Label>
-            <Input
-              id="video_url"
-              value={formData.video_url}
-              onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
-              placeholder="https://vimeo.com/..."
-            />
-            <p className="text-xs text-muted-foreground">
-              Paste YouTube, Vimeo, or direct video URL
-            </p>
+            <Label>Demo Video</Label>
+            <Tabs value={videoSourceType} onValueChange={(v) => setVideoSourceType(v as "upload" | "url")}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="upload" className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Upload Video
+                </TabsTrigger>
+                <TabsTrigger value="url" className="flex items-center gap-2">
+                  <Link className="h-4 w-4" />
+                  Video URL
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="upload" className="mt-4">
+                {videoPreview ? (
+                  <div className="relative">
+                    <video 
+                      src={videoPreview} 
+                      controls
+                      className="w-full h-48 object-cover rounded-lg border border-border"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2"
+                      onClick={clearVideo}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => videoInputRef.current?.click()}
+                    className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+                  >
+                    <Video className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Click to upload exercise video
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      MP4, MOV, or WebM (max 100MB)
+                    </p>
+                  </div>
+                )}
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  accept="video/*"
+                  onChange={handleVideoSelect}
+                  className="hidden"
+                />
+              </TabsContent>
+              
+              <TabsContent value="url" className="mt-4">
+                <Input
+                  id="video_url"
+                  value={formData.video_url}
+                  onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
+                  placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Paste YouTube, Vimeo, or direct video URL
+                </p>
+              </TabsContent>
+            </Tabs>
           </div>
 
           {/* Action Buttons */}
