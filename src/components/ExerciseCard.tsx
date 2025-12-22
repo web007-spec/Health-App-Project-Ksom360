@@ -86,6 +86,9 @@ export function ExerciseCard({ exercise, onEdit, selectionMode, isSelected, onTo
   const embedUrl = getVideoEmbedUrl(exercise.video_url);
   const isDirectVideo = isDirectVideoUrl(exercise.video_url);
 
+  // Use video as thumbnail if it's a direct video URL, otherwise fall back to image_url
+  const thumbnailSource = isDirectVideo ? exercise.video_url : exercise.image_url;
+
   return (
     <>
       <Card 
@@ -106,7 +109,21 @@ export function ExerciseCard({ exercise, onEdit, selectionMode, isSelected, onTo
               />
             </div>
           )}
-          {exercise.image_url ? (
+          {isDirectVideo && exercise.video_url ? (
+            <video 
+              src={exercise.video_url} 
+              className="w-full h-full object-cover object-center"
+              muted
+              playsInline
+              preload="metadata"
+              onMouseEnter={(e) => (e.target as HTMLVideoElement).play()}
+              onMouseLeave={(e) => {
+                const video = e.target as HTMLVideoElement;
+                video.pause();
+                video.currentTime = 0;
+              }}
+            />
+          ) : exercise.image_url ? (
             <img 
               src={exercise.image_url} 
               alt={exercise.name}
@@ -120,7 +137,10 @@ export function ExerciseCard({ exercise, onEdit, selectionMode, isSelected, onTo
           
           {exercise.video_url && (
             <button
-              onClick={() => setShowVideoDialog(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowVideoDialog(true);
+              }}
               className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <div className="bg-white rounded-full p-3">
