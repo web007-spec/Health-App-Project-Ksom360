@@ -44,6 +44,7 @@ import MealPlanDetail from "./pages/MealPlanDetail";
 import MacroCalculator from "./pages/MacroCalculator";
 import MacroTracking from "./pages/MacroTracking";
 import TrainerClientHealth from "./pages/TrainerClientHealth";
+import ClientsHealth from "./pages/ClientsHealth";
 import NotFound from "./pages/NotFound";
 import ClientHealth from "./pages/client/ClientHealth";
 import ClientHealthConnect from "./pages/client/ClientHealthConnect";
@@ -89,6 +90,7 @@ const App = () => (
           <Route path="/macro-calculator" element={<ProtectedRoute allowedRoles={["trainer"]}><MacroCalculator /></ProtectedRoute>} />
           <Route path="/macro-tracking" element={<ProtectedRoute allowedRoles={["trainer"]}><MacroTracking /></ProtectedRoute>} />
           <Route path="/clients/:clientId/health" element={<ProtectedRoute allowedRoles={["trainer"]}><TrainerClientHealth /></ProtectedRoute>} />
+          <Route path="/clients-health" element={<ProtectedRoute allowedRoles={["trainer"]}><ClientsHealth /></ProtectedRoute>} />
           
           {/* Client Routes */}
           <Route path="/client/dashboard" element={<ProtectedRoute allowedRoles={["client"]}><ClientDashboard /></ProtectedRoute>} />
