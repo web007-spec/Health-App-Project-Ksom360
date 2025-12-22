@@ -723,6 +723,54 @@ export type Database = {
           },
         ]
       }
+      health_notifications: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          message: string
+          notification_type: string
+          read_at: string | null
+          sent_at: string
+          trainer_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          message: string
+          notification_type: string
+          read_at?: string | null
+          sent_at?: string
+          trainer_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          notification_type?: string
+          read_at?: string | null
+          sent_at?: string
+          trainer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_notifications_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_notifications_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meal_plan_days: {
         Row: {
           id: string
@@ -896,9 +944,13 @@ export type Database = {
       }
       notification_preferences: {
         Row: {
+          activity_threshold_calories: number | null
+          activity_threshold_steps: number | null
           created_at: string | null
           email_enabled: boolean | null
+          health_sync_alerts: boolean | null
           id: string
+          low_activity_alerts: boolean | null
           push_enabled: boolean | null
           push_subscription: Json | null
           reminder_hours_before: number | null
@@ -906,9 +958,13 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          activity_threshold_calories?: number | null
+          activity_threshold_steps?: number | null
           created_at?: string | null
           email_enabled?: boolean | null
+          health_sync_alerts?: boolean | null
           id?: string
+          low_activity_alerts?: boolean | null
           push_enabled?: boolean | null
           push_subscription?: Json | null
           reminder_hours_before?: number | null
@@ -916,9 +972,13 @@ export type Database = {
           user_id: string
         }
         Update: {
+          activity_threshold_calories?: number | null
+          activity_threshold_steps?: number | null
           created_at?: string | null
           email_enabled?: boolean | null
+          health_sync_alerts?: boolean | null
           id?: string
+          low_activity_alerts?: boolean | null
           push_enabled?: boolean | null
           push_subscription?: Json | null
           reminder_hours_before?: number | null

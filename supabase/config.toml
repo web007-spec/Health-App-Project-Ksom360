@@ -1,1 +1,4 @@
 project_id = "eexxmfuknqttujecbcho"
+
+[functions.send-health-notification]
+verify_jwt = false
