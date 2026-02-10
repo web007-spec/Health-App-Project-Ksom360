@@ -11,18 +11,17 @@ const corsHeaders = {
 interface WelcomeEmailRequest {
   email: string;
   fullName: string;
-  password: string;
+  loginLink: string;
   loginUrl: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { email, fullName, password, loginUrl }: WelcomeEmailRequest = await req.json();
+    const { email, fullName, loginLink, loginUrl }: WelcomeEmailRequest = await req.json();
 
     console.log("Sending welcome email to:", email);
 
@@ -55,7 +54,7 @@ const handler = async (req: Request): Promise<Response> => {
                 padding: 30px;
                 border-radius: 0 0 10px 10px;
               }
-              .credentials {
+              .info-box {
                 background: white;
                 padding: 20px;
                 border-radius: 8px;
@@ -97,17 +96,17 @@ const handler = async (req: Request): Promise<Response> => {
               
               <p>Your trainer has created an account for you on FitCoach Pro. You can now access your personalized fitness dashboard, track your progress, and view your workout plans.</p>
               
-              <div class="credentials">
-                <h3>Your Login Credentials:</h3>
+              <div class="info-box">
+                <h3>Your Account:</h3>
                 <p><strong>Email:</strong> <code>${email}</code></p>
-                <p><strong>Temporary Password:</strong> <code>${password}</code></p>
+                <p>Click the button below to sign in and set up your account.</p>
               </div>
               
-              <p><strong>⚠️ Important:</strong> Please change your password after your first login for security.</p>
-              
               <center>
-                <a href="${loginUrl}" class="button">Login to Your Account</a>
+                <a href="${loginLink}" class="button">Sign In to Your Account</a>
               </center>
+
+              <p style="font-size: 13px; color: #888;">If the button doesn't work, copy and paste this link into your browser:<br/>${loginLink}</p>
               
               <div class="footer">
                 <p>If you have any questions or need help getting started, please don't hesitate to reach out to your trainer.</p>
