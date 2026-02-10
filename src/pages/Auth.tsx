@@ -152,6 +152,32 @@ export default function Auth() {
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Signing in..." : "Sign In"}
                   </Button>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="w-full text-sm text-muted-foreground"
+                    onClick={async () => {
+                      if (!signInData.email) {
+                        toast.error("Please enter your email address first");
+                        return;
+                      }
+                      setIsLoading(true);
+                      try {
+                        const { error } = await supabase.auth.resetPasswordForEmail(signInData.email, {
+                          redirectTo: `${window.location.origin}/auth`,
+                        });
+                        if (error) throw error;
+                        toast.success("Password reset link sent! Check your email.");
+                      } catch (error: any) {
+                        toast.error(error.message || "Failed to send reset link");
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    }}
+                    disabled={isLoading}
+                  >
+                    Forgot Password?
+                  </Button>
                 </form>
               </TabsContent>
 
