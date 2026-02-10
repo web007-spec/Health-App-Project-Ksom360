@@ -119,30 +119,44 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Trainer-client relationship created");
 
-    // Send welcome email (best-effort, but we report status back to UI)
+    // Generate a password reset link so we don't send the password in plain text
     let emailSent = false;
     let emailErrorMessage: string | null = null;
 
-    const { data: emailData, error: emailError } = await supabaseAdmin.functions.invoke(
-      "send-client-welcome-email",
-      {
-        body: {
-          email: email.trim(),
-          fullName: fullName.trim(),
-          password: password.trim(),
-          loginUrl,
-        },
-      }
-    );
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: email.trim(),
+      options: {
+        redirectTo: loginUrl,
+      },
+    });
 
-    if (emailError) {
-      console.error("Failed to send welcome email:", emailError);
-      emailErrorMessage = "Failed to send welcome email";
-    } else if (emailData?.success) {
-      emailSent = true;
+    if (linkError) {
+      console.error("Failed to generate login link:", linkError);
+      emailErrorMessage = "Failed to generate login link";
     } else {
-      emailErrorMessage = emailData?.error || "Failed to send welcome email";
-      console.error("Welcome email not sent:", emailErrorMessage);
+      // Send welcome email with magic link instead of password
+      const { data: emailData, error: emailError } = await supabaseAdmin.functions.invoke(
+        "send-client-welcome-email",
+        {
+          body: {
+            email: email.trim(),
+            fullName: fullName.trim(),
+            loginLink: linkData?.properties?.action_link || loginUrl,
+            loginUrl,
+          },
+        }
+      );
+
+      if (emailError) {
+        console.error("Failed to send welcome email:", emailError);
+        emailErrorMessage = "Failed to send welcome email";
+      } else if (emailData?.success) {
+        emailSent = true;
+      } else {
+        emailErrorMessage = emailData?.error || "Failed to send welcome email";
+        console.error("Welcome email not sent:", emailErrorMessage);
+      }
     }
 
     return new Response(

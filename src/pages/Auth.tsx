@@ -36,7 +36,6 @@ export default function Auth() {
         options: {
           data: {
             full_name: signUpData.fullName,
-            role: signUpData.role,
           },
           emailRedirectTo: `${window.location.origin}/`,
         },
