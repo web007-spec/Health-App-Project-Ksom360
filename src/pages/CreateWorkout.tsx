@@ -6,42 +6,156 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Search, BookTemplate, Filter, GripVertical } from "lucide-react";
+import { Search, Plus, X, GripVertical, Copy, Trash2, Timer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { ExercisePickerDialog } from "@/components/ExercisePickerDialog";
-import { WorkoutSection } from "@/components/WorkoutSection";
 import { CreateFromTemplateDialog } from "@/components/CreateFromTemplateDialog";
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
-interface Exercise {
+interface WorkoutExercise {
   id: string;
   exercise_id: string;
-  sets: number | null;
-  reps: number | null;
-  duration_seconds: number | null;
-  rest_seconds: number | null;
-  tempo: string;
-  notes: string;
-  exercise_type: string;
+  sets: number;
+  target_type: "reps" | "time" | "text";
+  target_value: string;
+  rest_seconds: number;
+  exercise_type: "normal" | "rest";
+  selected: boolean;
 }
 
-interface Section {
-  id: string;
-  name: string;
-  section_type: string;
-  order_index: number;
-  rounds: number;
-  work_seconds: number | null;
-  rest_seconds: number | null;
-  rest_between_rounds_seconds: number | null;
-  notes: string;
-  exercises: Exercise[];
+// Sortable exercise row component
+function SortableExerciseRow({
+  item,
+  exerciseInfo,
+  onUpdate,
+  onDelete,
+  onToggleSelect,
+  getExerciseThumbnail,
+}: {
+  item: WorkoutExercise;
+  exerciseInfo: any;
+  onUpdate: (id: string, updates: Partial<WorkoutExercise>) => void;
+  onDelete: (id: string) => void;
+  onToggleSelect: (id: string) => void;
+  getExerciseThumbnail: (ex: any) => string | null;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  if (item.exercise_type === "rest") {
+    return (
+      <div ref={setNodeRef} style={style} className="flex items-center gap-3 px-4 py-2 border-b bg-amber-50 dark:bg-amber-950/20">
+        <Checkbox
+          checked={item.selected}
+          onCheckedChange={() => onToggleSelect(item.id)}
+        />
+        <div className="w-10 h-10 rounded bg-amber-400 flex items-center justify-center text-lg">
+          ✋
+        </div>
+        <span className="text-sm font-medium flex-1">Rest</span>
+        <Select
+          value={String(item.rest_seconds)}
+          onValueChange={(v) => onUpdate(item.id, { rest_seconds: parseInt(v) })}
+        >
+          <SelectTrigger className="h-8 w-24 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {[30, 35, 40, 45, 50, 55, 60, 90, 120, 150, 180].map((s) => (
+              <SelectItem key={s} value={String(s)}>{s} sec</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div {...attributes} {...listeners} className="cursor-grab p-1">
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
+
+  const thumbnail = exerciseInfo ? getExerciseThumbnail(exerciseInfo) : null;
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-3 px-4 py-2 border-b hover:bg-muted/30 transition-colors">
+      <Checkbox
+        checked={item.selected}
+        onCheckedChange={() => onToggleSelect(item.id)}
+      />
+      {/* Thumbnail */}
+      <div className="w-10 h-10 rounded bg-muted overflow-hidden shrink-0">
+        {thumbnail ? (
+          <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+            <GripVertical className="h-4 w-4 opacity-30" />
+          </div>
+        )}
+      </div>
+      {/* Exercise Name */}
+      <span className="text-sm font-medium w-36 truncate shrink-0" title={exerciseInfo?.name}>
+        {exerciseInfo?.name || "Unknown"}
+      </span>
+      {/* Sets */}
+      <Input
+        type="number"
+        value={item.sets}
+        onChange={(e) => onUpdate(item.id, { sets: parseInt(e.target.value) || 1 })}
+        className="h-8 w-14 text-center text-sm"
+      />
+      {/* X separator */}
+      <span className="text-muted-foreground text-xs">X</span>
+      {/* Target Type Dropdown */}
+      <Select
+        value={item.target_type}
+        onValueChange={(v: "reps" | "time" | "text") => onUpdate(item.id, { target_type: v })}
+      >
+        <SelectTrigger className="h-8 w-16 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="reps">
+            <span className="flex items-center gap-1">🔢</span>
+          </SelectItem>
+          <SelectItem value="time">time</SelectItem>
+          <SelectItem value="text">text</SelectItem>
+        </SelectContent>
+      </Select>
+      {/* Target Value */}
+      <Input
+        value={item.target_value}
+        onChange={(e) => onUpdate(item.id, { target_value: e.target.value })}
+        placeholder={item.target_type === "reps" ? "reps, weight, tempo, etc" : item.target_type === "time" ? "e.g. 30 sec" : "notes..."}
+        className="h-8 flex-1 text-sm min-w-0"
+      />
+      {/* Rest Period */}
+      <Select
+        value={String(item.rest_seconds)}
+        onValueChange={(v) => onUpdate(item.id, { rest_seconds: parseInt(v) })}
+      >
+        <SelectTrigger className="h-8 w-24 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {[30, 35, 40, 45, 50, 55, 60, 90, 120, 150, 180].map((s) => (
+            <SelectItem key={s} value={String(s)}>{s} sec</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {/* Drag Handle */}
+      <div {...attributes} {...listeners} className="cursor-grab p-1">
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
+    </div>
+  );
 }
 
 export default function CreateWorkout() {
@@ -50,30 +164,18 @@ export default function CreateWorkout() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [workoutData, setWorkoutData] = useState({
-    name: "",
-    description: "",
-    category: "",
-    difficulty: "beginner" as const,
-    duration_minutes: 30,
-    video_url: "",
-    image_url: "",
-  });
+  const [workoutName, setWorkoutName] = useState("");
+  const [instructions, setInstructions] = useState("");
+  const [category, setCategory] = useState("");
+  const [difficulty, setDifficulty] = useState<"beginner" | "intermediate" | "advanced">("beginner");
+  const [durationMinutes, setDurationMinutes] = useState(30);
 
-  const [sections, setSections] = useState<Section[]>([]);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [currentSectionId, setCurrentSectionId] = useState<string | null>(null);
-  const [currentExerciseId, setCurrentExerciseId] = useState<string | null>(null);
+  const [exerciseItems, setExerciseItems] = useState<WorkoutExercise[]>([]);
   const [exerciseSearch, setExerciseSearch] = useState("");
-  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [sortBy, setSortBy] = useState("name");
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
+  const sensors = useSensors(useSensor(PointerSensor));
 
   const { data: exercises } = useQuery({
     queryKey: ["exercises", user?.id],
@@ -83,7 +185,6 @@ export default function CreateWorkout() {
         .select("*")
         .eq("trainer_id", user?.id)
         .order("name");
-
       if (error) throw error;
       return data;
     },
@@ -101,12 +202,97 @@ export default function CreateWorkout() {
       return 0;
     });
 
+  const getExerciseThumbnail = (exercise: any) => {
+    if (exercise.image_url) return exercise.image_url;
+    if (exercise.video_url) {
+      const ytMatch = exercise.video_url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      if (ytMatch) return `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
+    }
+    return null;
+  };
+
+  const isDirectVideo = (url: string) => /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url);
+
+  const getExerciseById = (id: string) => exercises?.find((e) => e.id === id);
+
+  // Add exercise from library
+  const addExercise = (exerciseId: string) => {
+    const newItem: WorkoutExercise = {
+      id: crypto.randomUUID(),
+      exercise_id: exerciseId,
+      sets: 3,
+      target_type: "reps",
+      target_value: "",
+      rest_seconds: 90,
+      exercise_type: "normal",
+      selected: false,
+    };
+    setExerciseItems((prev) => [...prev, newItem]);
+  };
+
+  // Add rest
+  const addRest = () => {
+    const newItem: WorkoutExercise = {
+      id: crypto.randomUUID(),
+      exercise_id: "",
+      sets: 0,
+      target_type: "text",
+      target_value: "",
+      rest_seconds: 90,
+      exercise_type: "rest",
+      selected: false,
+    };
+    setExerciseItems((prev) => [...prev, newItem]);
+  };
+
+  const updateItem = (id: string, updates: Partial<WorkoutExercise>) => {
+    setExerciseItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+  };
+
+  const deleteItem = (id: string) => {
+    setExerciseItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const toggleSelect = (id: string) => {
+    setExerciseItems((prev) => prev.map((item) => (item.id === id ? { ...item, selected: !item.selected } : item)));
+  };
+
+  const toggleSelectAll = () => {
+    const allSelected = exerciseItems.every((i) => i.selected);
+    setExerciseItems((prev) => prev.map((item) => ({ ...item, selected: !allSelected })));
+  };
+
+  const deleteSelected = () => {
+    setExerciseItems((prev) => prev.filter((item) => !item.selected));
+  };
+
+  const duplicateSelected = () => {
+    const selected = exerciseItems.filter((i) => i.selected);
+    const copies = selected.map((item) => ({ ...item, id: crypto.randomUUID(), selected: false }));
+    setExerciseItems((prev) => [...prev, ...copies]);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setExerciseItems((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
   const createWorkoutMutation = useMutation({
     mutationFn: async () => {
       const { data: workout, error: workoutError } = await supabase
         .from("workout_plans")
         .insert({
-          ...workoutData,
+          name: workoutName,
+          description: instructions,
+          category: category,
+          difficulty: difficulty,
+          duration_minutes: durationMinutes,
           trainer_id: user?.id,
         })
         .select()
@@ -114,345 +300,137 @@ export default function CreateWorkout() {
 
       if (workoutError) throw workoutError;
 
-      for (const section of sections) {
-        const { data: createdSection, error: sectionError } = await supabase
-          .from("workout_sections")
-          .insert({
-            workout_plan_id: workout.id,
-            name: section.name,
-            section_type: section.section_type,
-            order_index: section.order_index,
-            rounds: section.rounds,
-            work_seconds: section.work_seconds,
-            rest_seconds: section.rest_seconds,
-            rest_between_rounds_seconds: section.rest_between_rounds_seconds,
-            notes: section.notes,
-          })
-          .select()
-          .single();
+      // Create a single default section
+      const { data: section, error: sectionError } = await supabase
+        .from("workout_sections")
+        .insert({
+          workout_plan_id: workout.id,
+          name: "Main",
+          section_type: "straight_set",
+          order_index: 0,
+          rounds: 1,
+        })
+        .select()
+        .single();
 
-        if (sectionError) throw sectionError;
+      if (sectionError) throw sectionError;
 
-        if (section.exercises.length > 0) {
-          const exercisesToInsert = section.exercises.map((ex, index) => ({
-            workout_plan_id: workout.id,
-            section_id: createdSection.id,
-            exercise_id: ex.exercise_id,
-            order_index: index,
-            sets: ex.sets,
-            reps: ex.reps,
-            duration_seconds: ex.duration_seconds,
-            rest_seconds: ex.rest_seconds,
-            tempo: ex.tempo,
-            notes: ex.notes,
-            exercise_type: ex.exercise_type,
-          }));
+      // Insert exercises
+      const exercisesToInsert = exerciseItems
+        .filter((item) => item.exercise_type === "normal")
+        .map((item, index) => ({
+          workout_plan_id: workout.id,
+          section_id: section.id,
+          exercise_id: item.exercise_id,
+          order_index: index,
+          sets: item.sets,
+          reps: item.target_type === "reps" ? parseInt(item.target_value) || null : null,
+          duration_seconds: item.target_type === "time" ? parseInt(item.target_value) || null : null,
+          rest_seconds: item.rest_seconds,
+          notes: item.target_type === "text" ? item.target_value : "",
+          exercise_type: item.exercise_type,
+          tempo: "",
+        }));
 
-          const { error: exercisesError } = await supabase
-            .from("workout_plan_exercises")
-            .insert(exercisesToInsert);
-
-          if (exercisesError) throw exercisesError;
-        }
+      if (exercisesToInsert.length > 0) {
+        const { error: exercisesError } = await supabase
+          .from("workout_plan_exercises")
+          .insert(exercisesToInsert);
+        if (exercisesError) throw exercisesError;
       }
 
       return workout;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
-      toast({
-        title: "Success!",
-        description: "Workout plan created successfully",
-      });
+      toast({ title: "Success!", description: "Workout created" });
       navigate("/workouts");
     },
     onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
-  const addSection = () => {
-    const newSection: Section = {
-      id: crypto.randomUUID(),
-      name: "Section " + (sections.length + 1),
-      section_type: "straight_set",
-      order_index: sections.length,
-      rounds: 1,
-      work_seconds: null,
-      rest_seconds: null,
-      rest_between_rounds_seconds: 60,
-      notes: "",
-      exercises: [],
-    };
-    setSections([...sections, newSection]);
-  };
-
-  const updateSection = (sectionId: string, updates: Partial<Section>) => {
-    setSections(sections.map((s) => (s.id === sectionId ? { ...s, ...updates } : s)));
-  };
-
-  const deleteSection = (sectionId: string) => {
-    setSections(sections.filter((s) => s.id !== sectionId));
-  };
-
-  const addExerciseToSection = (sectionId: string) => {
-    setCurrentSectionId(sectionId);
-    setCurrentExerciseId(crypto.randomUUID());
-    setPickerOpen(true);
-  };
-
-  const handleExerciseSelect = (exerciseId: string) => {
-    if (!currentSectionId || !currentExerciseId) return;
-
-    const newExercise: Exercise = {
-      id: currentExerciseId,
-      exercise_id: exerciseId,
-      sets: 3,
-      reps: 12,
-      duration_seconds: null,
-      rest_seconds: 60,
-      tempo: "",
-      notes: "",
-      exercise_type: "normal",
-    };
-
-    setSections(
-      sections.map((s) =>
-        s.id === currentSectionId
-          ? { ...s, exercises: [...s.exercises, newExercise] }
-          : s
-      )
-    );
-
-    setPickerOpen(false);
-    setCurrentSectionId(null);
-    setCurrentExerciseId(null);
-  };
-
-  const addExerciseDirectly = (exerciseId: string) => {
-    if (sections.length === 0) {
-      // Auto-create a section first
-      const newSection: Section = {
-        id: crypto.randomUUID(),
-        name: "Section 1",
-        section_type: "straight_set",
-        order_index: 0,
-        rounds: 1,
-        work_seconds: null,
-        rest_seconds: null,
-        rest_between_rounds_seconds: 60,
-        notes: "",
-        exercises: [],
-      };
-
-      const newExercise: Exercise = {
-        id: crypto.randomUUID(),
-        exercise_id: exerciseId,
-        sets: 3,
-        reps: 12,
-        duration_seconds: null,
-        rest_seconds: 60,
-        tempo: "",
-        notes: "",
-        exercise_type: "normal",
-      };
-
-      newSection.exercises.push(newExercise);
-      setSections([newSection]);
-      toast({ title: "Exercise added", description: "Created a new section with this exercise" });
+  const handleSave = () => {
+    if (!workoutName.trim()) {
+      toast({ title: "Missing name", description: "Enter a workout name", variant: "destructive" });
       return;
     }
-
-    const lastSection = sections[sections.length - 1];
-    const newExercise: Exercise = {
-      id: crypto.randomUUID(),
-      exercise_id: exerciseId,
-      sets: 3,
-      reps: 12,
-      duration_seconds: null,
-      rest_seconds: 60,
-      tempo: "",
-      notes: "",
-      exercise_type: "normal",
-    };
-
-    setSections(
-      sections.map((s) =>
-        s.id === lastSection.id
-          ? { ...s, exercises: [...s.exercises, newExercise] }
-          : s
-      )
-    );
-    toast({ title: "Exercise added", description: `Added to ${lastSection.name}` });
-  };
-
-  const updateExerciseInSection = (sectionId: string, exerciseId: string, updates: Partial<Exercise>) => {
-    setSections(
-      sections.map((s) =>
-        s.id === sectionId
-          ? {
-              ...s,
-              exercises: s.exercises.map((ex) =>
-                ex.id === exerciseId ? { ...ex, ...updates } : ex
-              ),
-            }
-          : s
-      )
-    );
-  };
-
-  const deleteExerciseFromSection = (sectionId: string, exerciseId: string) => {
-    setSections(
-      sections.map((s) =>
-        s.id === sectionId
-          ? { ...s, exercises: s.exercises.filter((ex) => ex.id !== exerciseId) }
-          : s
-      )
-    );
-  };
-
-  const openExercisePickerForEdit = (sectionId: string, exerciseId: string) => {
-    setCurrentSectionId(sectionId);
-    setCurrentExerciseId(exerciseId);
-    setPickerOpen(true);
-  };
-
-  const handleEditExerciseSelect = (newExerciseId: string) => {
-    if (!currentSectionId || !currentExerciseId) return;
-
-    updateExerciseInSection(currentSectionId, currentExerciseId, {
-      exercise_id: newExerciseId,
-    });
-
-    setPickerOpen(false);
-    setCurrentSectionId(null);
-    setCurrentExerciseId(null);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (over && active.id !== over.id) {
-      setSections((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        const reordered = arrayMove(items, oldIndex, newIndex);
-        return reordered.map((item, index) => ({ ...item, order_index: index }));
-      });
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!workoutData.name || !workoutData.category) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in workout name and category",
-        variant: "destructive",
-      });
+    if (!category.trim()) {
+      toast({ title: "Missing category", description: "Enter a category", variant: "destructive" });
       return;
     }
-
-    if (sections.length === 0) {
-      toast({
-        title: "No Sections",
-        description: "Please add at least one section to your workout",
-        variant: "destructive",
-      });
+    const hasExercises = exerciseItems.some((i) => i.exercise_type === "normal");
+    if (!hasExercises) {
+      toast({ title: "No exercises", description: "Add at least one exercise", variant: "destructive" });
       return;
     }
-
     createWorkoutMutation.mutate();
   };
 
-  // Helper to detect if URL is a direct video
-  const isDirectVideo = (url: string) => {
-    return /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url);
-  };
-
-  const getExerciseThumbnail = (exercise: typeof exercises extends (infer T)[] | undefined ? T : never) => {
-    if (exercise.image_url) return exercise.image_url;
-    if (exercise.video_url && !isDirectVideo(exercise.video_url)) {
-      // Try to extract YouTube thumbnail
-      const ytMatch = exercise.video_url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-      if (ytMatch) return `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
-    }
-    return null;
-  };
+  const anySelected = exerciseItems.some((i) => i.selected);
 
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Top Bar */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-card shrink-0">
+      <div className="flex items-center justify-between px-4 py-2 bg-card border-b shrink-0">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/workouts")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Workout:</span>
-            <Input
-              value={workoutData.name}
-              onChange={(e) => setWorkoutData({ ...workoutData, name: e.target.value })}
-              placeholder="Workout name..."
-              className="h-8 w-56 font-semibold"
-            />
-          </div>
+          <span className="text-sm text-muted-foreground whitespace-nowrap">Regular workout:</span>
+          <Input
+            value={workoutName}
+            onChange={(e) => setWorkoutName(e.target.value)}
+            placeholder="Workout name"
+            className="h-8 w-64 font-semibold text-sm"
+          />
         </div>
         <div className="flex items-center gap-2">
           <Button
-            variant="outline"
             size="sm"
-            onClick={() => setTemplateDialogOpen(true)}
-          >
-            <BookTemplate className="h-4 w-4 mr-1.5" />
-            From Template
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleSubmit}
+            onClick={handleSave}
             disabled={createWorkoutMutation.isPending}
-            className="bg-primary text-primary-foreground"
+            className="bg-primary text-primary-foreground px-6"
           >
             {createWorkoutMutation.isPending ? "Saving..." : "SAVE"}
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/workouts")} className="h-8 w-8">
+            <X className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Panel - Workout Builder */}
+        {/* Left Panel - Builder */}
         <div className="flex-1 flex flex-col overflow-hidden border-r">
           {/* Instructions */}
-          <div className="p-4 border-b bg-muted/20">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Instructions</p>
+          <div className="px-4 pt-4 pb-2">
+            <p className="text-xs font-bold uppercase tracking-wide mb-1">Instructions</p>
+            <p className="text-xs text-muted-foreground mb-2">
+              (Optional) A short summary of this workout or general cues during workout.
+            </p>
             <Textarea
-              value={workoutData.description}
-              onChange={(e) => setWorkoutData({ ...workoutData, description: e.target.value })}
-              placeholder="(Optional) A short summary of this workout or general cues during workout."
-              className="text-sm min-h-[60px] bg-transparent border-none resize-none p-0 focus-visible:ring-0 shadow-none"
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              placeholder="Add rest times and any weight/rep/tempo targets with each exercise so the client can follow along with the mobile app."
+              className="text-sm min-h-[50px] resize-none"
+              rows={2}
             />
           </div>
 
-          {/* Workout Settings Row */}
-          <div className="flex items-center gap-4 px-4 py-3 border-b bg-muted/10">
-            <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground">Category:</Label>
+          {/* Workout Settings (hidden compact row) */}
+          <div className="flex items-center gap-3 px-4 py-2 border-b text-xs">
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Category:</span>
               <Input
-                value={workoutData.category}
-                onChange={(e) => setWorkoutData({ ...workoutData, category: e.target.value })}
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
                 placeholder="e.g., Strength"
-                className="h-7 w-32 text-xs"
+                className="h-7 w-28 text-xs"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground">Difficulty:</Label>
-              <Select
-                value={workoutData.difficulty}
-                onValueChange={(value: any) => setWorkoutData({ ...workoutData, difficulty: value })}
-              >
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Difficulty:</span>
+              <Select value={difficulty} onValueChange={(v: any) => setDifficulty(v)}>
                 <SelectTrigger className="h-7 w-28 text-xs">
                   <SelectValue />
                 </SelectTrigger>
@@ -463,79 +441,96 @@ export default function CreateWorkout() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-2">
-              <Label className="text-xs text-muted-foreground">Duration:</Label>
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Duration:</span>
               <Input
                 type="number"
-                value={workoutData.duration_minutes}
-                onChange={(e) => setWorkoutData({ ...workoutData, duration_minutes: parseInt(e.target.value) || 0 })}
-                className="h-7 w-16 text-xs"
+                value={durationMinutes}
+                onChange={(e) => setDurationMinutes(parseInt(e.target.value) || 0)}
+                className="h-7 w-14 text-xs"
               />
-              <span className="text-xs text-muted-foreground">min</span>
+              <span className="text-muted-foreground">min</span>
             </div>
           </div>
 
-          {/* Exercises Section Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b">
-            <h2 className="text-sm font-bold uppercase tracking-wide">Exercises</h2>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={addSection}>
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Add Section
-              </Button>
-            </div>
+          {/* Exercises Header */}
+          <div className="px-4 pt-3 pb-1">
+            <p className="text-xs font-bold uppercase tracking-wide">Exercises</p>
           </div>
 
-          {/* Sections & Exercises */}
+          {/* Toolbar */}
+          <div className="flex items-center gap-1 px-4 py-2 border-b">
+            <Checkbox
+              checked={exerciseItems.length > 0 && exerciseItems.every((i) => i.selected)}
+              onCheckedChange={toggleSelectAll}
+            />
+            <Button variant="outline" size="sm" className="text-xs h-7 ml-2" disabled={!anySelected}>
+              SUPERSET
+            </Button>
+            <Button variant="outline" size="sm" className="text-xs h-7" disabled={!anySelected}>
+              CIRCUIT
+            </Button>
+            <Button variant="outline" size="icon" className="h-7 w-7" onClick={duplicateSelected} disabled={!anySelected}>
+              <Copy className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="outline" size="icon" className="h-7 w-7" onClick={deleteSelected} disabled={!anySelected}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+            <div className="flex-1" />
+            <Button variant="outline" size="sm" className="text-xs h-7" onClick={addRest}>
+              <Timer className="h-3.5 w-3.5 mr-1" />
+              ADD REST
+            </Button>
+          </div>
+
+          {/* Column Headers */}
+          <div className="flex items-center gap-3 px-4 py-1.5 text-[11px] text-muted-foreground uppercase tracking-wide border-b bg-muted/20">
+            <div className="w-5" />
+            <div className="w-10" />
+            <div className="w-36">Exercise Name</div>
+            <div className="w-14 text-center">Sets</div>
+            <div className="w-4" />
+            <div className="w-16">Target</div>
+            <div className="flex-1" />
+            <div className="w-24">Rest Period</div>
+            <div className="w-6" />
+          </div>
+
+          {/* Exercise List */}
           <ScrollArea className="flex-1">
-            <div className="p-4">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={sections.map((s) => s.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {sections.map((section) => (
-                    <WorkoutSection
-                      key={section.id}
-                      section={section}
-                      onUpdate={updateSection}
-                      onDelete={deleteSection}
-                      onAddExercise={addExerciseToSection}
-                      onUpdateExercise={updateExerciseInSection}
-                      onDeleteExercise={deleteExerciseFromSection}
-                      onSelectExercise={openExercisePickerForEdit}
-                      exerciseOptions={exercises || []}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={exerciseItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+                {exerciseItems.map((item) => (
+                  <SortableExerciseRow
+                    key={item.id}
+                    item={item}
+                    exerciseInfo={getExerciseById(item.exercise_id)}
+                    onUpdate={updateItem}
+                    onDelete={deleteItem}
+                    onToggleSelect={toggleSelect}
+                    getExerciseThumbnail={getExerciseThumbnail}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
 
-              {sections.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="mb-4 text-6xl opacity-30">💪</div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">
-                    Workouts require at least one exercise
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Click an exercise from the library to add it
-                  </p>
-                  <Button onClick={addSection} variant="outline" size="sm">
-                    <Plus className="h-3.5 w-3.5 mr-1" />
-                    Add First Section
-                  </Button>
-                </div>
-              )}
-            </div>
+            {exerciseItems.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="mb-3 text-5xl opacity-30">💪</div>
+                <p className="text-sm text-muted-foreground font-medium">
+                  Workouts require at least one exercise
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Click an exercise from the library to add it
+                </p>
+              </div>
+            )}
           </ScrollArea>
         </div>
 
         {/* Right Panel - Exercise Library */}
-        <div className="w-[520px] flex flex-col overflow-hidden bg-muted/10">
-          {/* Search Bar */}
+        <div className="w-[520px] flex flex-col overflow-hidden">
+          {/* Search */}
           <div className="p-3 border-b space-y-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -551,15 +546,11 @@ export default function CreateWorkout() {
                 variant="link"
                 size="sm"
                 className="text-primary p-0 h-auto text-xs"
-                onClick={() => {
-                  // Could open create exercise dialog
-                  navigate("/exercises");
-                }}
+                onClick={() => navigate("/exercises")}
               >
                 + Add custom exercise
               </Button>
-              <div className="flex items-center gap-2">
-                <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+              <div className="flex items-center gap-1">
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="h-7 w-24 text-xs border-none shadow-none">
                     <SelectValue />
@@ -584,9 +575,8 @@ export default function CreateWorkout() {
                   <div
                     key={exercise.id}
                     className="group cursor-pointer rounded-lg border bg-card hover:border-primary hover:shadow-md transition-all overflow-hidden"
-                    onClick={() => addExerciseDirectly(exercise.id)}
+                    onClick={() => addExercise(exercise.id)}
                   >
-                    {/* Thumbnail */}
                     <div className="aspect-[4/3] bg-muted relative overflow-hidden">
                       {hasVideo ? (
                         <video
@@ -603,31 +593,18 @@ export default function CreateWorkout() {
                           }}
                         />
                       ) : thumbnail ? (
-                        <img
-                          src={thumbnail}
-                          alt={exercise.name}
-                          className="w-full h-full object-cover"
-                        />
+                        <img src={thumbnail} alt={exercise.name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                           <GripVertical className="h-8 w-8 opacity-20" />
                         </div>
                       )}
-                      {/* Hover overlay */}
                       <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <Plus className="h-6 w-6 text-primary" />
                       </div>
                     </div>
-                    {/* Name */}
                     <div className="p-2">
-                      <p className="text-xs font-medium leading-tight line-clamp-2">
-                        {exercise.name}
-                      </p>
-                      {exercise.muscle_group && (
-                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                          {exercise.muscle_group}
-                        </p>
-                      )}
+                      <p className="text-xs font-medium leading-tight line-clamp-2">{exercise.name}</p>
                     </div>
                   </div>
                 );
@@ -642,24 +619,6 @@ export default function CreateWorkout() {
           </ScrollArea>
         </div>
       </div>
-
-      <ExercisePickerDialog
-        open={pickerOpen}
-        onOpenChange={setPickerOpen}
-        exercises={exercises || []}
-        selectedExerciseId={
-          currentSectionId && currentExerciseId
-            ? sections
-                .find((s) => s.id === currentSectionId)
-                ?.exercises.find((ex) => ex.id === currentExerciseId)?.exercise_id
-            : undefined
-        }
-        onSelectExercise={
-          sections.find((s) => s.id === currentSectionId)?.exercises.some((ex) => ex.id === currentExerciseId)
-            ? handleEditExerciseSelect
-            : handleExerciseSelect
-        }
-      />
 
       <CreateFromTemplateDialog
         open={templateDialogOpen}
