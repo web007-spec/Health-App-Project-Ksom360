@@ -103,101 +103,115 @@ export default function Clients() {
   };
 
   const ClientCard = ({ client }: any) => (
-    <Card className="hover:shadow-lg transition-shadow">
-      <CardContent className="pt-6">
-        <div className="flex items-start gap-4">
-          <Avatar className="h-16 w-16">
+    <Card className="hover:shadow-lg transition-all group border-border/60">
+      <CardContent className="p-0">
+        {/* Header with avatar and status */}
+        <div className="flex items-center gap-4 p-5 pb-4">
+          <Avatar className="h-12 w-12 ring-2 ring-border">
             <AvatarImage src={client.client?.avatar_url} />
-            <AvatarFallback className="bg-primary/10 text-primary text-lg">
+            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
               {client.client?.full_name?.charAt(0) || "C"}
             </AvatarFallback>
           </Avatar>
-          
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2 mb-3">
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-lg truncate">
-                  {client.client?.full_name || "New Client"}
-                </h3>
-                <p className="text-sm text-muted-foreground truncate">
-                  {client.client?.email}
-                </p>
-              </div>
-              <Badge className={statusColors[client.status as keyof typeof statusColors]}>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-foreground truncate">
+                {client.client?.full_name || "New Client"}
+              </h3>
+              <Badge 
+                variant="secondary"
+                className={`${statusColors[client.status as keyof typeof statusColors]} text-xs px-2 py-0 shrink-0`}
+              >
                 {client.status}
               </Badge>
             </div>
+            <p className="text-sm text-muted-foreground truncate mt-0.5">
+              {client.client?.email}
+            </p>
+          </div>
+        </div>
 
-            <div className="flex flex-wrap gap-3 mt-1">
-              <Button size="sm" variant="outline" className="gap-2">
-                <MessageSquare className="h-4 w-4" />
-                <span className="hidden sm:inline">Message</span>
+        {/* Divider */}
+        <div className="border-t border-border/60 mx-5" />
+
+        {/* Actions row */}
+        <div className="p-4 flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              className="h-9 w-9 text-muted-foreground hover:text-primary"
+              title="Message"
+            >
+              <MessageSquare className="h-4 w-4" />
+            </Button>
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              className="h-9 w-9 text-muted-foreground hover:text-primary"
+              title="Assign Task"
+              onClick={() => {
+                setSelectedClientForTask(client.client_id);
+                setAssignTaskDialogOpen(true);
+              }}
+            >
+              <CheckSquare className="h-4 w-4" />
+            </Button>
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              className="h-9 w-9 text-muted-foreground hover:text-primary"
+              title="Progress"
+            >
+              <TrendingUp className="h-4 w-4" />
+            </Button>
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              className="h-9 w-9 text-muted-foreground hover:text-primary"
+              title="Health"
+              onClick={() => navigate(`/clients/${client.client_id}/health`)}
+            >
+              <Heart className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-9 w-9 text-muted-foreground hover:text-foreground">
+                <Settings className="h-4 w-4" />
               </Button>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="gap-2"
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="z-[100] bg-background border-border w-56">
+              <DropdownMenuItem
                 onClick={() => {
-                  setSelectedClientForTask(client.client_id);
-                  setAssignTaskDialogOpen(true);
+                  setSelectedClient({
+                    id: client.id,
+                    status: client.status,
+                    name: client.client?.full_name || "Client",
+                  });
+                  setStatusDialogOpen(true);
                 }}
               >
-                <CheckSquare className="h-4 w-4" />
-                <span className="hidden sm:inline">Task</span>
-              </Button>
-              <Button size="sm" variant="outline" className="gap-2">
-                <TrendingUp className="h-4 w-4" />
-                <span className="hidden sm:inline">Progress</span>
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="gap-2"
-                onClick={() => navigate(`/clients/${client.client_id}/health`)}
+                <Settings className="h-4 w-4 mr-2" />
+                Change Status
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => resendEmailMutation.mutate(client.client_id)}
+                disabled={resendEmailMutation.isPending}
               >
-                <Heart className="h-4 w-4" />
-                <span className="hidden sm:inline">Health</span>
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-2"
-                  >
-                    <Settings className="h-4 w-4" />
-                    <span className="hidden sm:inline">More</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="z-[100] bg-background border-border w-56">
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setSelectedClient({
-                        id: client.id,
-                        status: client.status,
-                        name: client.client?.full_name || "Client",
-                      });
-                      setStatusDialogOpen(true);
-                    }}
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Change Status
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => resendEmailMutation.mutate(client.client_id)}
-                    disabled={resendEmailMutation.isPending}
-                  >
-                    <Mail className="h-4 w-4 mr-2" />
-                    Resend Welcome Email
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                <Mail className="h-4 w-4 mr-2" />
+                Resend Welcome Email
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
-            <div className="mt-3 text-xs text-muted-foreground">
-              Joined {new Date(client.assigned_at).toLocaleDateString()}
-            </div>
-          </div>
+        {/* Footer */}
+        <div className="px-5 pb-4 pt-0">
+          <p className="text-xs text-muted-foreground">
+            Joined {new Date(client.assigned_at).toLocaleDateString()}
+          </p>
         </div>
       </CardContent>
     </Card>
