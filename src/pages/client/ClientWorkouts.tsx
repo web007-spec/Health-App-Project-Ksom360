@@ -302,7 +302,7 @@ export default function ClientWorkouts() {
 
                     <Button
                       className="w-full"
-                      onClick={() => navigate(`/client/workouts/${workout.workout_plan_id}`)}
+                      onClick={() => navigate(`/client/workouts/${workout.workout_plan_id}?start=true`)}
                     >
                       Start Workout
                     </Button>
