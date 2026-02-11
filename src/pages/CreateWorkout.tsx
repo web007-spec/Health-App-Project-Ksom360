@@ -136,7 +136,7 @@ function ExerciseRow({
       </div>
 
       {/* Name */}
-      <span className="text-sm font-medium w-32 truncate shrink-0" title={exerciseInfo?.name}>
+      <span className="text-xs font-medium w-24 truncate shrink-0" title={exerciseInfo?.name}>
         {exerciseInfo?.name || "Unknown"}
       </span>
 
