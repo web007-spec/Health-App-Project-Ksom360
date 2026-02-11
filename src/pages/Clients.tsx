@@ -128,7 +128,7 @@ export default function Clients() {
               </Badge>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3 mt-1">
               <Button size="sm" variant="outline" className="gap-2">
                 <MessageSquare className="h-4 w-4" />
                 <span className="hidden sm:inline">Message</span>
