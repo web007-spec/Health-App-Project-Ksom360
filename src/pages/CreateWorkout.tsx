@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, X, GripVertical, Copy, Trash2, Timer } from "lucide-react";
+import { Search, Plus, X, GripVertical, Copy, Trash2, Timer, FileText, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CreateFromTemplateDialog } from "@/components/CreateFromTemplateDialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -20,28 +20,61 @@ interface WorkoutExercise {
   id: string;
   exercise_id: string;
   sets: number;
-  target_type: "reps" | "time" | "text";
+  target_type: "text" | "time";
   target_value: string;
+  time_seconds: number;
   rest_seconds: number;
   exercise_type: "normal" | "rest";
   selected: boolean;
+  group_id: string | null;
 }
 
-// Sortable exercise row component
-function SortableExerciseRow({
+interface ExerciseGroup {
+  id: string;
+  type: "superset" | "circuit";
+  sets: number;
+}
+
+const REST_OPTIONS = [
+  { value: "0", label: "None" },
+  { value: "10", label: "10 sec" },
+  { value: "15", label: "15 sec" },
+  { value: "20", label: "20 sec" },
+  { value: "30", label: "30 sec" },
+  { value: "45", label: "45 sec" },
+  { value: "60", label: "60 sec" },
+  { value: "90", label: "90 sec" },
+  { value: "120", label: "2 min" },
+  { value: "150", label: "2:30" },
+  { value: "180", label: "3 min" },
+  { value: "240", label: "4 min" },
+  { value: "300", label: "5 min" },
+];
+
+const TIME_OPTIONS = [
+  { value: "10", label: "10 sec" },
+  { value: "15", label: "15 sec" },
+  { value: "20", label: "20 sec" },
+  { value: "30", label: "30 sec" },
+  { value: "45", label: "45 sec" },
+  { value: "60", label: "60 sec" },
+  { value: "90", label: "90 sec" },
+  { value: "120", label: "2 min" },
+  { value: "180", label: "3 min" },
+  { value: "300", label: "5 min" },
+];
+
+// Exercise row for the builder
+function ExerciseRow({
   item,
   exerciseInfo,
   onUpdate,
-  onDelete,
   onToggleSelect,
-  getExerciseThumbnail,
 }: {
   item: WorkoutExercise;
   exerciseInfo: any;
   onUpdate: (id: string, updates: Partial<WorkoutExercise>) => void;
-  onDelete: (id: string) => void;
   onToggleSelect: (id: string) => void;
-  getExerciseThumbnail: (ex: any) => string | null;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
 
@@ -53,25 +86,19 @@ function SortableExerciseRow({
 
   if (item.exercise_type === "rest") {
     return (
-      <div ref={setNodeRef} style={style} className="flex items-center gap-3 px-4 py-2 border-b bg-amber-50 dark:bg-amber-950/20">
-        <Checkbox
-          checked={item.selected}
-          onCheckedChange={() => onToggleSelect(item.id)}
-        />
-        <div className="w-10 h-10 rounded bg-amber-400 flex items-center justify-center text-lg">
-          ✋
+      <div ref={setNodeRef} style={style} className="flex items-center gap-3 px-4 py-3 border-b bg-amber-50 dark:bg-amber-950/20">
+        <Checkbox checked={item.selected} onCheckedChange={() => onToggleSelect(item.id)} />
+        <div className="w-12 h-12 rounded bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
+          <Timer className="h-5 w-5 text-amber-600" />
         </div>
         <span className="text-sm font-medium flex-1">Rest</span>
-        <Select
-          value={String(item.rest_seconds)}
-          onValueChange={(v) => onUpdate(item.id, { rest_seconds: parseInt(v) })}
-        >
-          <SelectTrigger className="h-8 w-24 text-xs">
+        <Select value={String(item.rest_seconds)} onValueChange={(v) => onUpdate(item.id, { rest_seconds: parseInt(v) })}>
+          <SelectTrigger className="h-9 w-28 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {[30, 35, 40, 45, 50, 55, 60, 90, 120, 150, 180].map((s) => (
-              <SelectItem key={s} value={String(s)}>{s} sec</SelectItem>
+            {REST_OPTIONS.filter(o => o.value !== "0").map((o) => (
+              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -82,74 +109,95 @@ function SortableExerciseRow({
     );
   }
 
-  const thumbnail = exerciseInfo ? getExerciseThumbnail(exerciseInfo) : null;
+  const hasDirectVideo = exerciseInfo?.video_url && /\.(mp4|webm|ogg|mov)(\?|$)/i.test(exerciseInfo.video_url);
+  const thumbnail = exerciseInfo?.image_url || (exerciseInfo?.video_url?.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/) ? `https://img.youtube.com/vi/${exerciseInfo.video_url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)[1]}/mqdefault.jpg` : null);
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-3 px-4 py-2 border-b hover:bg-muted/30 transition-colors">
-      <Checkbox
-        checked={item.selected}
-        onCheckedChange={() => onToggleSelect(item.id)}
-      />
-      {/* Thumbnail */}
-      <div className="w-10 h-10 rounded bg-muted overflow-hidden shrink-0">
-        {thumbnail ? (
+      <Checkbox checked={item.selected} onCheckedChange={() => onToggleSelect(item.id)} />
+
+      {/* Thumbnail - show video if available */}
+      <div className="w-16 h-12 rounded bg-muted overflow-hidden shrink-0">
+        {hasDirectVideo ? (
+          <video
+            src={exerciseInfo.video_url}
+            className="w-full h-full object-cover"
+            muted
+            loop
+            playsInline
+            onMouseEnter={(e) => (e.target as HTMLVideoElement).play()}
+            onMouseLeave={(e) => { const v = e.target as HTMLVideoElement; v.pause(); v.currentTime = 0; }}
+          />
+        ) : thumbnail ? (
           <img src={thumbnail} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-            <GripVertical className="h-4 w-4 opacity-30" />
-          </div>
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground/30 text-xs">IMG</div>
         )}
       </div>
-      {/* Exercise Name */}
-      <span className="text-sm font-medium w-36 truncate shrink-0" title={exerciseInfo?.name}>
+
+      {/* Name */}
+      <span className="text-sm font-medium w-40 truncate shrink-0" title={exerciseInfo?.name}>
         {exerciseInfo?.name || "Unknown"}
       </span>
-      {/* Sets */}
-      <Input
-        type="number"
-        value={item.sets}
-        onChange={(e) => onUpdate(item.id, { sets: parseInt(e.target.value) || 1 })}
-        className="h-8 w-14 text-center text-sm"
-      />
-      {/* X separator */}
-      <span className="text-muted-foreground text-xs">X</span>
-      {/* Target Type Dropdown */}
-      <Select
-        value={item.target_type}
-        onValueChange={(v: "reps" | "time" | "text") => onUpdate(item.id, { target_type: v })}
-      >
-        <SelectTrigger className="h-8 w-16 text-xs">
-          <SelectValue />
+
+      {/* Target Type Toggle */}
+      <Select value={item.target_type} onValueChange={(v: "text" | "time") => onUpdate(item.id, { target_type: v })}>
+        <SelectTrigger className="h-9 w-14 text-xs px-2">
+          <SelectValue>
+            {item.target_type === "text" ? <FileText className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="reps">
-            <span className="flex items-center gap-1">🔢</span>
+          <SelectItem value="text">
+            <span className="flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> Text</span>
           </SelectItem>
-          <SelectItem value="time">time</SelectItem>
-          <SelectItem value="text">text</SelectItem>
+          <SelectItem value="time">
+            <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Time</span>
+          </SelectItem>
         </SelectContent>
       </Select>
-      {/* Target Value */}
-      <Input
-        value={item.target_value}
-        onChange={(e) => onUpdate(item.id, { target_value: e.target.value })}
-        placeholder={item.target_type === "reps" ? "reps, weight, tempo, etc" : item.target_type === "time" ? "e.g. 30 sec" : "notes..."}
-        className="h-8 flex-1 text-sm min-w-0"
-      />
+
+      {/* Conditional target fields */}
+      {item.target_type === "time" ? (
+        <>
+          <Select value={String(item.time_seconds || 30)} onValueChange={(v) => onUpdate(item.id, { time_seconds: parseInt(v) })}>
+            <SelectTrigger className="h-9 w-24 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TIME_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            value={item.target_value}
+            onChange={(e) => onUpdate(item.id, { target_value: e.target.value })}
+            placeholder="reps, tem..."
+            className="h-9 w-28 text-sm"
+          />
+        </>
+      ) : (
+        <Input
+          value={item.target_value}
+          onChange={(e) => onUpdate(item.id, { target_value: e.target.value })}
+          placeholder="reps, weight, tempo, etc"
+          className="h-9 flex-1 text-sm min-w-[180px]"
+        />
+      )}
+
       {/* Rest Period */}
-      <Select
-        value={String(item.rest_seconds)}
-        onValueChange={(v) => onUpdate(item.id, { rest_seconds: parseInt(v) })}
-      >
-        <SelectTrigger className="h-8 w-24 text-xs">
+      <Select value={String(item.rest_seconds)} onValueChange={(v) => onUpdate(item.id, { rest_seconds: parseInt(v) })}>
+        <SelectTrigger className="h-9 w-28 text-sm">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {[30, 35, 40, 45, 50, 55, 60, 90, 120, 150, 180].map((s) => (
-            <SelectItem key={s} value={String(s)}>{s} sec</SelectItem>
+          {REST_OPTIONS.map((o) => (
+            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
           ))}
         </SelectContent>
       </Select>
+
       {/* Drag Handle */}
       <div {...attributes} {...listeners} className="cursor-grab p-1">
         <GripVertical className="h-4 w-4 text-muted-foreground" />
@@ -168,9 +216,9 @@ export default function CreateWorkout() {
   const [instructions, setInstructions] = useState("");
   const [category, setCategory] = useState("");
   const [difficulty, setDifficulty] = useState<"beginner" | "intermediate" | "advanced">("beginner");
-  const [durationMinutes, setDurationMinutes] = useState(30);
 
   const [exerciseItems, setExerciseItems] = useState<WorkoutExercise[]>([]);
+  const [groups, setGroups] = useState<ExerciseGroup[]>([]);
   const [exerciseSearch, setExerciseSearch] = useState("");
   const [sortBy, setSortBy] = useState("name");
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
@@ -191,6 +239,24 @@ export default function CreateWorkout() {
     enabled: !!user?.id,
   });
 
+  // Auto-calculate duration from exercises
+  const calculatedDuration = useMemo(() => {
+    let totalSeconds = 0;
+    for (const item of exerciseItems) {
+      if (item.exercise_type === "rest") {
+        totalSeconds += item.rest_seconds;
+      } else {
+        // Estimate: each set ~45 sec work + rest between sets
+        const sets = item.sets || 1;
+        const workPerSet = item.target_type === "time" ? (item.time_seconds || 30) : 45;
+        totalSeconds += sets * workPerSet + (sets - 1) * item.rest_seconds;
+        // Add rest after exercise
+        totalSeconds += item.rest_seconds;
+      }
+    }
+    return Math.max(1, Math.round(totalSeconds / 60));
+  }, [exerciseItems]);
+
   const filteredExercises = exercises
     ?.filter((ex) =>
       ex.name.toLowerCase().includes(exerciseSearch.toLowerCase()) ||
@@ -202,35 +268,24 @@ export default function CreateWorkout() {
       return 0;
     });
 
-  const getExerciseThumbnail = (exercise: any) => {
-    if (exercise.image_url) return exercise.image_url;
-    if (exercise.video_url) {
-      const ytMatch = exercise.video_url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-      if (ytMatch) return `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
-    }
-    return null;
-  };
-
-  const isDirectVideo = (url: string) => /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url);
-
   const getExerciseById = (id: string) => exercises?.find((e) => e.id === id);
 
-  // Add exercise from library
   const addExercise = (exerciseId: string) => {
     const newItem: WorkoutExercise = {
       id: crypto.randomUUID(),
       exercise_id: exerciseId,
       sets: 3,
-      target_type: "reps",
+      target_type: "text",
       target_value: "",
+      time_seconds: 30,
       rest_seconds: 90,
       exercise_type: "normal",
       selected: false,
+      group_id: null,
     };
     setExerciseItems((prev) => [...prev, newItem]);
   };
 
-  // Add rest
   const addRest = () => {
     const newItem: WorkoutExercise = {
       id: crypto.randomUUID(),
@@ -238,24 +293,22 @@ export default function CreateWorkout() {
       sets: 0,
       target_type: "text",
       target_value: "",
+      time_seconds: 0,
       rest_seconds: 90,
       exercise_type: "rest",
       selected: false,
+      group_id: null,
     };
     setExerciseItems((prev) => [...prev, newItem]);
   };
 
-  const updateItem = (id: string, updates: Partial<WorkoutExercise>) => {
+  const updateItem = useCallback((id: string, updates: Partial<WorkoutExercise>) => {
     setExerciseItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
-  };
+  }, []);
 
-  const deleteItem = (id: string) => {
-    setExerciseItems((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const toggleSelect = (id: string) => {
+  const toggleSelect = useCallback((id: string) => {
     setExerciseItems((prev) => prev.map((item) => (item.id === id ? { ...item, selected: !item.selected } : item)));
-  };
+  }, []);
 
   const toggleSelectAll = () => {
     const allSelected = exerciseItems.every((i) => i.selected);
@@ -268,8 +321,38 @@ export default function CreateWorkout() {
 
   const duplicateSelected = () => {
     const selected = exerciseItems.filter((i) => i.selected);
-    const copies = selected.map((item) => ({ ...item, id: crypto.randomUUID(), selected: false }));
+    const copies = selected.map((item) => ({ ...item, id: crypto.randomUUID(), selected: false, group_id: null }));
     setExerciseItems((prev) => [...prev, ...copies]);
+  };
+
+  // Superset / Circuit grouping
+  const createGroup = (type: "superset" | "circuit") => {
+    const selectedNormal = exerciseItems.filter((i) => i.selected && i.exercise_type === "normal");
+    if (selectedNormal.length < 2) {
+      toast({ title: "Select at least 2 exercises", variant: "destructive" });
+      return;
+    }
+    const groupId = crypto.randomUUID();
+    const newGroup: ExerciseGroup = { id: groupId, type, sets: 3 };
+    setGroups((prev) => [...prev, newGroup]);
+    setExerciseItems((prev) =>
+      prev.map((item) =>
+        item.selected && item.exercise_type === "normal"
+          ? { ...item, selected: false, group_id: groupId }
+          : item
+      )
+    );
+  };
+
+  const ungroupItems = (groupId: string) => {
+    setExerciseItems((prev) =>
+      prev.map((item) => (item.group_id === groupId ? { ...item, group_id: null } : item))
+    );
+    setGroups((prev) => prev.filter((g) => g.id !== groupId));
+  };
+
+  const updateGroupSets = (groupId: string, sets: number) => {
+    setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, sets } : g)));
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -292,42 +375,67 @@ export default function CreateWorkout() {
           description: instructions,
           category: category,
           difficulty: difficulty,
-          duration_minutes: durationMinutes,
+          duration_minutes: calculatedDuration,
           trainer_id: user?.id,
         })
         .select()
         .single();
-
       if (workoutError) throw workoutError;
 
-      // Create a single default section
-      const { data: section, error: sectionError } = await supabase
-        .from("workout_sections")
-        .insert({
+      // Create sections for groups + a default section for ungrouped
+      const ungroupedItems = exerciseItems.filter((i) => !i.group_id && i.exercise_type === "normal");
+      const sectionInserts: any[] = [];
+      let sectionIdx = 0;
+
+      if (ungroupedItems.length > 0) {
+        sectionInserts.push({
           workout_plan_id: workout.id,
           name: "Main",
           section_type: "straight_set",
-          order_index: 0,
+          order_index: sectionIdx++,
           rounds: 1,
-        })
-        .select()
-        .single();
+        });
+      }
 
+      for (const group of groups) {
+        sectionInserts.push({
+          workout_plan_id: workout.id,
+          name: group.type === "superset" ? "Superset" : "Circuit",
+          section_type: group.type,
+          order_index: sectionIdx++,
+          rounds: group.sets,
+        });
+      }
+
+      const { data: sections, error: sectionError } = await supabase
+        .from("workout_sections")
+        .insert(sectionInserts)
+        .select();
       if (sectionError) throw sectionError;
+
+      // Map sections
+      const mainSection = sections.find((s) => s.name === "Main");
+      const groupSections = new Map<string, string>();
+      let groupIdx = 0;
+      for (const group of groups) {
+        const sec = sections.find((s) => s.section_type === group.type && s.order_index === (ungroupedItems.length > 0 ? groupIdx + 1 : groupIdx));
+        if (sec) groupSections.set(group.id, sec.id);
+        groupIdx++;
+      }
 
       // Insert exercises
       const exercisesToInsert = exerciseItems
         .filter((item) => item.exercise_type === "normal")
         .map((item, index) => ({
           workout_plan_id: workout.id,
-          section_id: section.id,
+          section_id: item.group_id ? groupSections.get(item.group_id) || sections[0].id : mainSection?.id || sections[0].id,
           exercise_id: item.exercise_id,
           order_index: index,
           sets: item.sets,
-          reps: item.target_type === "reps" ? parseInt(item.target_value) || null : null,
-          duration_seconds: item.target_type === "time" ? parseInt(item.target_value) || null : null,
+          reps: item.target_type === "text" ? null : null,
+          duration_seconds: item.target_type === "time" ? item.time_seconds : null,
           rest_seconds: item.rest_seconds,
-          notes: item.target_type === "text" ? item.target_value : "",
+          notes: item.target_value || "",
           exercise_type: item.exercise_type,
           tempo: "",
         }));
@@ -369,6 +477,101 @@ export default function CreateWorkout() {
   };
 
   const anySelected = exerciseItems.some((i) => i.selected);
+
+  // Build rendered list with group headers
+  const renderExerciseList = () => {
+    const rendered: React.ReactNode[] = [];
+    const renderedGroups = new Set<string>();
+
+    for (let i = 0; i < exerciseItems.length; i++) {
+      const item = exerciseItems[i];
+
+      // If this item belongs to a group and we haven't rendered the group header yet
+      if (item.group_id && !renderedGroups.has(item.group_id)) {
+        renderedGroups.add(item.group_id);
+        const group = groups.find((g) => g.id === item.group_id);
+        const groupItems = exerciseItems.filter((ei) => ei.group_id === item.group_id);
+
+        if (group) {
+          rendered.push(
+            <div key={`group-${item.group_id}`} className="border-2 border-primary/20 rounded-lg mx-2 my-2 overflow-hidden">
+              {/* Group Header */}
+              <div className="flex items-center gap-3 px-4 py-2 bg-primary/5 border-b">
+                <Checkbox
+                  checked={groupItems.every((gi) => gi.selected)}
+                  onCheckedChange={() => {
+                    const allSelected = groupItems.every((gi) => gi.selected);
+                    setExerciseItems((prev) =>
+                      prev.map((ei) =>
+                        ei.group_id === item.group_id ? { ...ei, selected: !allSelected } : ei
+                      )
+                    );
+                  }}
+                />
+                <span className="text-sm text-muted-foreground">
+                  {group.type === "superset" ? "Superset" : "Circuit"} of
+                </span>
+                <Input
+                  type="number"
+                  value={group.sets}
+                  onChange={(e) => updateGroupSets(group.id, parseInt(e.target.value) || 1)}
+                  className="h-7 w-14 text-sm text-center"
+                  min={1}
+                />
+                <span className="text-sm text-muted-foreground">sets</span>
+                <div className="flex-1" />
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="text-primary text-xs p-0 h-auto"
+                  onClick={() => ungroupItems(group.id)}
+                >
+                  Ungroup
+                </Button>
+                <GripVertical className="h-4 w-4 text-muted-foreground" />
+              </div>
+              {/* Group Items */}
+              {groupItems.map((gi) => (
+                <ExerciseRow
+                  key={gi.id}
+                  item={gi}
+                  exerciseInfo={getExerciseById(gi.exercise_id)}
+                  onUpdate={updateItem}
+                  onToggleSelect={toggleSelect}
+                />
+              ))}
+            </div>
+          );
+        }
+      }
+
+      // Render ungrouped items normally
+      if (!item.group_id) {
+        rendered.push(
+          <ExerciseRow
+            key={item.id}
+            item={item}
+            exerciseInfo={getExerciseById(item.exercise_id)}
+            onUpdate={updateItem}
+            onToggleSelect={toggleSelect}
+          />
+        );
+      }
+    }
+
+    return rendered;
+  };
+
+  const isDirectVideo = (url: string) => /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url);
+
+  const getExerciseThumbnail = (exercise: any) => {
+    if (exercise.image_url) return exercise.image_url;
+    if (exercise.video_url) {
+      const ytMatch = exercise.video_url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      if (ytMatch) return `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
+    }
+    return null;
+  };
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -417,7 +620,7 @@ export default function CreateWorkout() {
             />
           </div>
 
-          {/* Workout Settings (hidden compact row) */}
+          {/* Workout Settings */}
           <div className="flex items-center gap-3 px-4 py-2 border-b text-xs">
             <div className="flex items-center gap-1.5">
               <span className="text-muted-foreground">Category:</span>
@@ -443,13 +646,8 @@ export default function CreateWorkout() {
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-muted-foreground">Duration:</span>
-              <Input
-                type="number"
-                value={durationMinutes}
-                onChange={(e) => setDurationMinutes(parseInt(e.target.value) || 0)}
-                className="h-7 w-14 text-xs"
-              />
-              <span className="text-muted-foreground">min</span>
+              <span className="font-medium">{calculatedDuration} min</span>
+              <span className="text-muted-foreground">(auto)</span>
             </div>
           </div>
 
@@ -464,10 +662,22 @@ export default function CreateWorkout() {
               checked={exerciseItems.length > 0 && exerciseItems.every((i) => i.selected)}
               onCheckedChange={toggleSelectAll}
             />
-            <Button variant="outline" size="sm" className="text-xs h-7 ml-2" disabled={!anySelected}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-7 ml-2"
+              disabled={!anySelected}
+              onClick={() => createGroup("superset")}
+            >
               SUPERSET
             </Button>
-            <Button variant="outline" size="sm" className="text-xs h-7" disabled={!anySelected}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-7"
+              disabled={!anySelected}
+              onClick={() => createGroup("circuit")}
+            >
               CIRCUIT
             </Button>
             <Button variant="outline" size="icon" className="h-7 w-7" onClick={duplicateSelected} disabled={!anySelected}>
@@ -483,34 +693,11 @@ export default function CreateWorkout() {
             </Button>
           </div>
 
-          {/* Column Headers */}
-          <div className="flex items-center gap-3 px-4 py-1.5 text-[11px] text-muted-foreground uppercase tracking-wide border-b bg-muted/20">
-            <div className="w-5" />
-            <div className="w-10" />
-            <div className="w-36">Exercise Name</div>
-            <div className="w-14 text-center">Sets</div>
-            <div className="w-4" />
-            <div className="w-16">Target</div>
-            <div className="flex-1" />
-            <div className="w-24">Rest Period</div>
-            <div className="w-6" />
-          </div>
-
           {/* Exercise List */}
           <ScrollArea className="flex-1">
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={exerciseItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-                {exerciseItems.map((item) => (
-                  <SortableExerciseRow
-                    key={item.id}
-                    item={item}
-                    exerciseInfo={getExerciseById(item.exercise_id)}
-                    onUpdate={updateItem}
-                    onDelete={deleteItem}
-                    onToggleSelect={toggleSelect}
-                    getExerciseThumbnail={getExerciseThumbnail}
-                  />
-                ))}
+                {renderExerciseList()}
               </SortableContext>
             </DndContext>
 
@@ -530,7 +717,6 @@ export default function CreateWorkout() {
 
         {/* Right Panel - Exercise Library */}
         <div className="w-[520px] flex flex-col overflow-hidden">
-          {/* Search */}
           <div className="p-3 border-b space-y-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -550,21 +736,18 @@ export default function CreateWorkout() {
               >
                 + Add custom exercise
               </Button>
-              <div className="flex items-center gap-1">
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="h-7 w-24 text-xs border-none shadow-none">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="name">Name</SelectItem>
-                    <SelectItem value="muscle_group">Muscle</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="h-7 w-24 text-xs border-none shadow-none">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Name</SelectItem>
+                  <SelectItem value="muscle_group">Muscle</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          {/* Exercise Grid */}
           <ScrollArea className="flex-1">
             <div className="p-3 grid grid-cols-3 gap-2">
               {filteredExercises?.map((exercise) => {
