@@ -140,7 +140,20 @@ function ExerciseRow({
         {exerciseInfo?.name || "Unknown"}
       </span>
 
-      {/* Target Type Toggle */}
+      {/* Sets - only for ungrouped exercises (grouped ones use the group header sets) */}
+      {!item.group_id && (
+        <>
+          <Input
+            type="number"
+            value={item.sets}
+            onChange={(e) => onUpdate(item.id, { sets: parseInt(e.target.value) || 1 })}
+            className="h-9 w-14 text-center text-sm shrink-0"
+            min={1}
+          />
+          <span className="text-muted-foreground text-xs shrink-0">×</span>
+        </>
+      )}
+
       <Select value={item.target_type} onValueChange={(v: "text" | "time") => onUpdate(item.id, { target_type: v })}>
         <SelectTrigger className="h-9 w-14 text-xs px-2">
           <SelectValue>
