@@ -114,10 +114,10 @@ export default function Clients() {
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-foreground truncate">
-                {client.client?.full_name || "New Client"}
-              </h3>
+            <h3 className="font-semibold text-foreground">
+              {client.client?.full_name || "New Client"}
+            </h3>
+            <div className="flex items-center gap-2 mt-0.5">
               <Badge 
                 variant="secondary"
                 className={`${statusColors[client.status as keyof typeof statusColors]} text-xs px-2 py-0 shrink-0`}
