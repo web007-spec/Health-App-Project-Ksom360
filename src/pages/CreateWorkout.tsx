@@ -113,7 +113,7 @@ function ExerciseRow({
   const thumbnail = exerciseInfo?.image_url || (exerciseInfo?.video_url?.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/) ? `https://img.youtube.com/vi/${exerciseInfo.video_url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)[1]}/mqdefault.jpg` : null);
 
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-2 px-3 py-2 border-b hover:bg-muted/30 transition-colors min-w-0">
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2 px-3 py-2 border-b hover:bg-muted/30 transition-colors overflow-hidden">
       <Checkbox checked={item.selected} onCheckedChange={() => onToggleSelect(item.id)} className="shrink-0" />
 
       {/* Thumbnail - show video if available */}
@@ -174,7 +174,7 @@ function ExerciseRow({
             value={item.target_value}
             onChange={(e) => onUpdate(item.id, { target_value: e.target.value })}
             placeholder="reps, tempo, etc"
-            className="h-9 flex-1 text-sm min-w-[100px]"
+            className="h-9 flex-1 text-sm min-w-0"
           />
         </>
       ) : (
@@ -182,7 +182,7 @@ function ExerciseRow({
           value={item.target_value}
           onChange={(e) => onUpdate(item.id, { target_value: e.target.value })}
           placeholder="reps, weight, tempo, etc"
-          className="h-9 flex-1 text-sm min-w-[180px]"
+          className="h-9 flex-1 text-sm min-w-0"
         />
       )}
 
