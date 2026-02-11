@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { WorkoutDetailDialog } from "@/components/WorkoutDetailDialog";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -19,6 +20,7 @@ const difficultyColors = {
 
 export default function ClientWorkouts() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedWorkout, setSelectedWorkout] = useState<any>(null);
@@ -206,7 +208,7 @@ export default function ClientWorkouts() {
 
                     <Button
                       className="w-full"
-                      onClick={() => handleViewWorkout(workout)}
+                      onClick={() => navigate(`/client/workouts/${workout.workout_plan_id}`)}
                     >
                       Start Workout
                     </Button>
