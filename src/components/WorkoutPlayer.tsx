@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
-import { Card } from "@/components/ui/card";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Play, Pause, SkipForward, SkipBack, Check, X, RefreshCw } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { X, Timer, MoreVertical, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ExerciseSwapDialog } from "@/components/ExerciseSwapDialog";
 
@@ -34,6 +34,12 @@ interface Section {
   exercises: Exercise[];
 }
 
+interface SetLog {
+  reps: string;
+  weight: string;
+  completed: boolean;
+}
+
 interface WorkoutPlayerProps {
   sections: Section[];
   onComplete: () => void;
@@ -42,75 +48,87 @@ interface WorkoutPlayerProps {
 
 export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerProps) {
   const { toast } = useToast();
-  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
-  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
-  const [currentRound, setCurrentRound] = useState(1);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(0);
-  const [phase, setPhase] = useState<"work" | "rest" | "round_rest">("work");
-  const [currentSet, setCurrentSet] = useState(1);
-  const [swapDialogOpen, setSwapDialogOpen] = useState(false);
   const [modifiedSections, setModifiedSections] = useState<Section[]>(sections);
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const completionAudioRef = useRef<HTMLAudioElement>(null);
-  const beepAudioRef = useRef<HTMLAudioElement>(null);
-  const lastAnnouncedSecond = useRef<number>(-1);
+  const [swapDialogOpen, setSwapDialogOpen] = useState(false);
+  const [swapTarget, setSwapTarget] = useState<{ sectionIdx: number; exerciseIdx: number } | null>(null);
 
-  // Update modified sections when sections prop changes
+  // Set logs: key = `${sectionIdx}-${exerciseIdx}-${round}-${setNum}`
+  const [setLogs, setSetLogs] = useState<Record<string, SetLog>>({});
+
+  // Rest timer
+  const [restTimer, setRestTimer] = useState(0);
+  const [isResting, setIsResting] = useState(false);
+  const [restAfterKey, setRestAfterKey] = useState("");
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     setModifiedSections(sections);
   }, [sections]);
 
-  // Cleanup speech on unmount
+  // Timer countdown
   useEffect(() => {
+    if (isResting && restTimer > 0) {
+      timerRef.current = setInterval(() => {
+        setRestTimer((prev) => {
+          if (prev <= 1) {
+            setIsResting(false);
+            if (timerRef.current) clearInterval(timerRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
     return () => {
-      window.speechSynthesis.cancel();
+      if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, []);
+  }, [isResting]);
 
-  // Voice announcement function
-  const speak = (text: string) => {
-    if (!voiceEnabled) return;
-    
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
-    window.speechSynthesis.speak(utterance);
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Announce exercise changes
-  useEffect(() => {
-    if (currentExercise && isPlaying && phase === "work") {
-      const exerciseName = currentExercise.exercise_name || "Exercise";
-      speak(`Starting ${exerciseName}`);
-      
-      // Announce the next exercise if not the last one
-      const nextExerciseIndex = currentExerciseIndex + 1;
-      if (nextExerciseIndex < currentSection.exercises.length) {
-        const nextExercise = currentSection.exercises[nextExerciseIndex];
-        setTimeout(() => {
-          if (voiceEnabled) {
-            speak(`Next up: ${nextExercise.exercise_name}`);
-          }
-        }, 2000);
-      }
-    }
-  }, [currentExerciseIndex, currentSectionIndex, currentRound, phase]);
+  const getSetKey = (sectionIdx: number, exerciseIdx: number, round: number, setNum: number) =>
+    `${sectionIdx}-${exerciseIdx}-${round}-${setNum}`;
 
-  const currentSection = modifiedSections[currentSectionIndex];
-  const currentExercise = currentSection?.exercises[currentExerciseIndex];
-  const isTimedWorkout = ["emom", "amrap", "tabata"].includes(currentSection?.section_type);
+  const updateSetLog = (key: string, field: "reps" | "weight", value: string) => {
+    setSetLogs((prev) => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        [field]: value,
+        completed: prev[key]?.completed || false,
+      },
+    }));
+  };
+
+  const completeSet = (key: string) => {
+    setSetLogs((prev) => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        reps: prev[key]?.reps || "",
+        weight: prev[key]?.weight || "",
+        completed: true,
+      },
+    }));
+  };
+
+  const startRestTimer = (seconds: number, key: string) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setRestTimer(seconds);
+    setRestAfterKey(key);
+    setIsResting(true);
+  };
 
   const handleSwapExercise = (newExercise: any) => {
+    if (!swapTarget) return;
     const updatedSections = [...modifiedSections];
-    const currentExerciseData = updatedSections[currentSectionIndex].exercises[currentExerciseIndex];
-    
-    // Preserve the workout parameters but update the exercise details
-    updatedSections[currentSectionIndex].exercises[currentExerciseIndex] = {
+    const currentExerciseData = updatedSections[swapTarget.sectionIdx].exercises[swapTarget.exerciseIdx];
+
+    updatedSections[swapTarget.sectionIdx].exercises[swapTarget.exerciseIdx] = {
       ...currentExerciseData,
       exercise_id: newExercise.id,
       exercise_name: newExercise.name,
@@ -120,208 +138,14 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
     };
 
     setModifiedSections(updatedSections);
-    
-    toast({
-      title: "Exercise Swapped",
-      description: `Switched to ${newExercise.name}`,
-    });
+    toast({ title: "Exercise Swapped", description: `Switched to ${newExercise.name}` });
   };
 
-  // Calculate total progress
-  const getTotalProgress = () => {
-    let completedExercises = 0;
-    let totalExercises = 0;
-
-    modifiedSections.forEach((section, sIdx) => {
-      const exercisesInSection = section.exercises.length * section.rounds;
-      totalExercises += exercisesInSection;
-
-      if (sIdx < currentSectionIndex) {
-        completedExercises += exercisesInSection;
-      } else if (sIdx === currentSectionIndex) {
-        completedExercises += (currentRound - 1) * section.exercises.length + currentExerciseIndex;
-      }
-    });
-
-    return (completedExercises / totalExercises) * 100;
-  };
-
-  // Timer logic
-  useEffect(() => {
-    if (!isPlaying || timeRemaining <= 0) return;
-
-    const interval = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          handleTimerComplete();
-          return 0;
-        }
-        
-        // Play countdown beeps during rest periods
-        if ((phase === "rest" || phase === "round_rest") && prev <= 5 && prev > 1) {
-          beepAudioRef.current?.play().catch(console.error);
-        }
-        
-        // Voice countdown for rest periods
-        if ((phase === "rest" || phase === "round_rest") && prev <= 5 && prev !== lastAnnouncedSecond.current && voiceEnabled) {
-          lastAnnouncedSecond.current = prev;
-          speak(`${prev}`);
-        }
-        
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isPlaying, timeRemaining, phase, voiceEnabled]);
-
-  // Play completion sound
-  const playSound = () => {
-    if (completionAudioRef.current) {
-      completionAudioRef.current.play().catch(console.error);
-    }
-  };
-
-  const handleTimerComplete = () => {
-    playSound();
-
-    if (phase === "work") {
-      // Move to rest phase
-      if (currentSection.rest_seconds || currentExercise.rest_seconds) {
-        setPhase("rest");
-        const restTime = currentExercise.rest_seconds || currentSection.rest_seconds || 0;
-        setTimeRemaining(restTime);
-        lastAnnouncedSecond.current = -1; // Reset for new rest period
-        speak(`Rest for ${restTime} seconds`);
-      } else {
-        moveToNextExercise();
-      }
-    } else if (phase === "rest") {
-      moveToNextExercise();
-    } else if (phase === "round_rest") {
-      startNextRound();
-    }
-  };
-
-  const moveToNextExercise = () => {
-    const nextExerciseIndex = currentExerciseIndex + 1;
-
-    if (nextExerciseIndex < currentSection.exercises.length) {
-      // Next exercise in current section
-      setCurrentExerciseIndex(nextExerciseIndex);
-      setPhase("work");
-      setCurrentSet(1);
-      startWorkPhase();
-    } else if (currentRound < currentSection.rounds) {
-      // Next round in current section
-      setPhase("round_rest");
-      const roundRestTime = currentSection.rest_between_rounds_seconds || 60;
-      setTimeRemaining(roundRestTime);
-      lastAnnouncedSecond.current = -1; // Reset for new rest period
-      speak(`Round complete. Rest for ${roundRestTime} seconds before round ${currentRound + 1}`);
-    } else {
-      // Move to next section
-      moveToNextSection();
-    }
-  };
-
-  const moveToPreviousExercise = () => {
-    if (currentExerciseIndex > 0) {
-      setCurrentExerciseIndex(currentExerciseIndex - 1);
-      setPhase("work");
-      setCurrentSet(1);
-      startWorkPhase();
-    } else if (currentSectionIndex > 0) {
-      const prevSection = modifiedSections[currentSectionIndex - 1];
-      setCurrentSectionIndex(currentSectionIndex - 1);
-      setCurrentExerciseIndex(prevSection.exercises.length - 1);
-      setCurrentRound(prevSection.rounds);
-      setPhase("work");
-      setCurrentSet(1);
-      startWorkPhase();
-    }
-  };
-
-  const startNextRound = () => {
-    setCurrentRound((prev) => prev + 1);
-    setCurrentExerciseIndex(0);
-    setPhase("work");
-    setCurrentSet(1);
-    speak(`Starting round ${currentRound + 1}`);
-    startWorkPhase();
-  };
-
-  const moveToNextSection = () => {
-    const nextSectionIndex = currentSectionIndex + 1;
-
-    if (nextSectionIndex < modifiedSections.length) {
-      setCurrentSectionIndex(nextSectionIndex);
-      setCurrentExerciseIndex(0);
-      setCurrentRound(1);
-      setPhase("work");
-      setCurrentSet(1);
-      setIsPlaying(false);
-      setTimeRemaining(0);
-      
-      const nextSectionName = modifiedSections[nextSectionIndex].name;
-      speak(`Section complete. Moving to ${nextSectionName}`);
-      
-      toast({
-        title: "Section Complete!",
-        description: `Starting: ${nextSectionName}`,
-      });
-    } else {
-      // Workout complete
-      setIsPlaying(false);
-      speak("Workout complete! Great job!");
-      toast({
-        title: "Workout Complete!",
-        description: "Great job! You finished the workout.",
-      });
-      onComplete();
-    }
-  };
-
-  const startWorkPhase = () => {
-    if (isTimedWorkout && currentSection.work_seconds) {
-      setTimeRemaining(currentSection.work_seconds);
-      setIsPlaying(true);
-    }
-  };
-
-  const handlePlayPause = () => {
-    if (!isPlaying && timeRemaining === 0) {
-      // Start workout
-      startWorkPhase();
-    } else {
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  const handleCompleteSet = () => {
-    if (currentExercise.sets && currentSet < currentExercise.sets) {
-      setCurrentSet((prev) => prev + 1);
-      if (currentExercise.rest_seconds) {
-        setPhase("rest");
-        setTimeRemaining(currentExercise.rest_seconds);
-        setIsPlaying(true);
-      }
-    } else {
-      moveToNextExercise();
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  const getSectionTypeLabel = (type: string) => {
+  const getSectionTypeLabel = (type: string, rounds: number) => {
+    if (type === "superset") return `Superset of ${rounds} sets`;
+    if (type === "circuit") return `Circuit of ${rounds} rounds`;
+    if (type === "straight_set") return null;
     const labels: Record<string, string> = {
-      straight_set: "Straight Set",
-      superset: "Superset",
-      circuit: "Circuit",
       drop_set: "Drop Set",
       emom: "EMOM",
       amrap: "AMRAP",
@@ -330,214 +154,376 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
     return labels[type] || type;
   };
 
-  if (!currentSection || !currentExercise) {
-    return null;
-  }
+  const isAllCompleted = () => {
+    let allDone = true;
+    modifiedSections.forEach((section, sIdx) => {
+      const isGrouped = ["superset", "circuit"].includes(section.section_type);
+      if (isGrouped) {
+        for (let round = 1; round <= section.rounds; round++) {
+          section.exercises.forEach((ex, eIdx) => {
+            const key = getSetKey(sIdx, eIdx, round, 1);
+            if (!setLogs[key]?.completed) allDone = false;
+          });
+        }
+      } else {
+        section.exercises.forEach((ex, eIdx) => {
+          const totalSets = ex.sets || 1;
+          for (let s = 1; s <= totalSets; s++) {
+            const key = getSetKey(sIdx, eIdx, 1, s);
+            if (!setLogs[key]?.completed) allDone = false;
+          }
+        });
+      }
+    });
+    return allDone;
+  };
+
+  const renderExerciseRow = (
+    exercise: Exercise,
+    sectionIdx: number,
+    exerciseIdx: number,
+    round: number,
+    setNum: number,
+    restSeconds: number | null
+  ) => {
+    const key = getSetKey(sectionIdx, exerciseIdx, round, setNum);
+    const log = setLogs[key] || { reps: "", weight: "", completed: false };
+
+    return (
+      <div key={key} className="py-3">
+        {/* Exercise header */}
+        <div className="flex items-center gap-3 mb-3">
+          {exercise.exercise_image ? (
+            <img
+              src={exercise.exercise_image}
+              alt={exercise.exercise_name}
+              className="w-14 h-14 rounded-lg object-cover shrink-0"
+            />
+          ) : (
+            <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
+              <span className="text-xs text-muted-foreground">No img</span>
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <h4 className="font-semibold text-sm leading-tight">{exercise.exercise_name}</h4>
+            <p className="text-xs text-muted-foreground">
+              {exercise.reps ? `${exercise.reps} Reps` : ""}
+              {exercise.duration_seconds ? `${exercise.duration_seconds}s` : ""}
+              {exercise.tempo ? ` • ${exercise.tempo}` : ""}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-8 w-8"
+            onClick={() => {
+              setSwapTarget({ sectionIdx, exerciseIdx });
+              setSwapDialogOpen(true);
+            }}
+          >
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Input row */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 text-xs text-muted-foreground">
+            <div className="font-medium mb-1">Previous</div>
+            <div>—</div>
+          </div>
+          <div className="w-20">
+            <div className="text-xs text-muted-foreground font-medium mb-1 text-center">Reps</div>
+            <Input
+              type="number"
+              value={log.reps}
+              onChange={(e) => updateSetLog(key, "reps", e.target.value)}
+              className="h-9 text-center text-sm"
+              placeholder=""
+              disabled={log.completed}
+            />
+          </div>
+          <div className="w-20">
+            <div className="text-xs text-muted-foreground font-medium mb-1 text-center">Lbs</div>
+            <Input
+              type="number"
+              value={log.weight}
+              onChange={(e) => updateSetLog(key, "weight", e.target.value)}
+              className="h-9 text-center text-sm"
+              placeholder=""
+              disabled={log.completed}
+            />
+          </div>
+          <div className="w-16 pt-4">
+            <Button
+              size="sm"
+              variant={log.completed ? "secondary" : "default"}
+              className="w-full h-9 text-xs"
+              onClick={() => {
+                completeSet(key);
+                if (restSeconds && restSeconds > 0) {
+                  startRestTimer(restSeconds, key);
+                }
+              }}
+              disabled={log.completed}
+            >
+              {log.completed ? "✓" : "Log"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto p-4">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-2xl font-bold">{currentSection.name}</h1>
-              <div className="flex gap-2 mt-1">
-                <Badge variant="outline">{getSectionTypeLabel(currentSection.section_type)}</Badge>
-                <Badge variant="outline">Round {currentRound}/{currentSection.rounds}</Badge>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => setVoiceEnabled(!voiceEnabled)}
-                title={voiceEnabled ? "Disable voice guidance" : "Enable voice guidance"}
-              >
-                {voiceEnabled ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                    <line x1="12" x2="12" y1="19" y2="22"/>
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="2" x2="22" y1="2" y2="22"/>
-                    <path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"/>
-                    <path d="M5 10v2a7 7 0 0 0 12 5"/>
-                    <path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/>
-                    <path d="M9 9v3a3 3 0 0 0 5.12 2.12"/>
-                    <line x1="12" x2="12" y1="19" y2="22"/>
-                  </svg>
-                )}
-              </Button>
-              <Button variant="ghost" onClick={onExit}>
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-          <Progress value={getTotalProgress()} className="h-2" />
+      <div className="sticky top-0 z-10 bg-card border-b">
+        <div className="flex items-center justify-between px-4 py-3">
+          <Button variant="ghost" size="sm" onClick={onExit}>
+            Cancel
+          </Button>
+          <h1 className="font-semibold">Workout</h1>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              toast({ title: "Workout Saved", description: "Your progress has been saved." });
+              onComplete();
+            }}
+            className="text-primary font-semibold"
+          >
+            Save
+          </Button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 container mx-auto p-6 max-w-4xl">
-        <div className="space-y-6">
-          {/* Exercise Display */}
-          <Card className="p-6">
-            <div className="text-center space-y-4">
-              {/* Phase Indicator */}
-              {phase === "rest" && (
-                <div className="bg-primary/10 text-primary px-4 py-2 rounded-full inline-block font-semibold">
-                  REST TIME
-                </div>
-              )}
-              {phase === "round_rest" && (
-                <div className="bg-accent text-accent-foreground px-4 py-2 rounded-full inline-block font-semibold">
-                  ROUND REST
-                </div>
-              )}
-              {phase === "work" && (
-                <div className="bg-green-500/10 text-green-600 px-4 py-2 rounded-full inline-block font-semibold">
-                  WORK TIME
-                </div>
-              )}
+      {/* Rest Timer Banner */}
+      {isResting && (
+        <div className="bg-muted border-b px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Timer className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Rest for {formatTime(restTimer)}</span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setIsResting(false);
+              setRestTimer(0);
+              if (timerRef.current) clearInterval(timerRef.current);
+            }}
+          >
+            Skip
+          </Button>
+        </div>
+      )}
 
-              {/* Exercise Media */}
-              {currentExercise.exercise_video && (
-                <div className="aspect-video rounded-lg overflow-hidden bg-muted">
-                  <video
-                    src={currentExercise.exercise_video}
-                    controls
-                    loop
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-              {!currentExercise.exercise_video && currentExercise.exercise_image && (
-                <div className="aspect-video rounded-lg overflow-hidden bg-muted">
-                  <img
-                    src={currentExercise.exercise_image}
-                    alt={currentExercise.exercise_name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto pb-24">
+        {modifiedSections.map((section, sIdx) => {
+          const isGrouped = ["superset", "circuit"].includes(section.section_type);
+          const sectionLabel = getSectionTypeLabel(section.section_type, section.rounds);
+          const restBetweenRounds = section.rest_between_rounds_seconds || 60;
 
-              {/* Exercise Name */}
-              <h2 className="text-4xl font-bold">{currentExercise.exercise_name}</h2>
-
-              {/* Timer or Set Info */}
-              {isTimedWorkout ? (
-                <div className="text-8xl font-bold text-primary tabular-nums">
-                  {formatTime(timeRemaining)}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {currentExercise.sets && (
-                    <div className="text-5xl font-bold">
-                      Set {currentSet} / {currentExercise.sets}
-                    </div>
-                  )}
-                  <div className="text-2xl text-muted-foreground">
-                    {currentExercise.reps && `${currentExercise.reps} reps`}
-                    {currentExercise.duration_seconds && `${currentExercise.duration_seconds}s`}
-                    {currentExercise.tempo && ` • Tempo: ${currentExercise.tempo}`}
+          if (isGrouped) {
+            // Render grouped: show rounds with all exercises per round
+            return (
+              <div key={section.id}>
+                {/* Section Header */}
+                {sectionLabel && (
+                  <div className="bg-muted/70 px-4 py-2 border-b border-t">
+                    <span className="text-sm font-semibold">{sectionLabel}</span>
+                    {section.notes && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{section.notes}</p>
+                    )}
                   </div>
-                </div>
-              )}
-
-              {/* Exercise Notes */}
-              {currentExercise.notes && (
-                <p className="text-muted-foreground text-lg">{currentExercise.notes}</p>
-              )}
-              {currentExercise.exercise_description && (
-                <p className="text-sm text-muted-foreground">{currentExercise.exercise_description}</p>
-              )}
-
-              {/* Swap Exercise Button */}
-              <Button
-                variant="outline"
-                onClick={() => setSwapDialogOpen(true)}
-                className="gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Swap Exercise
-              </Button>
-            </div>
-          </Card>
-
-          {/* Controls */}
-          <div className="flex items-center justify-center gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={moveToPreviousExercise}
-              disabled={currentSectionIndex === 0 && currentExerciseIndex === 0}
-            >
-              <SkipBack className="h-6 w-6" />
-            </Button>
-
-            {isTimedWorkout ? (
-              <Button
-                size="lg"
-                onClick={handlePlayPause}
-                className="h-16 w-16 rounded-full"
-              >
-                {isPlaying ? (
-                  <Pause className="h-8 w-8" />
-                ) : (
-                  <Play className="h-8 w-8 ml-1" />
                 )}
-              </Button>
-            ) : (
-              <Button
-                size="lg"
-                onClick={handleCompleteSet}
-                className="h-16 px-8 rounded-full"
-              >
-                <Check className="h-6 w-6 mr-2" />
-                Complete Set
-              </Button>
-            )}
 
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={moveToNextExercise}
-            >
-              <SkipForward className="h-6 w-6" />
-            </Button>
-          </div>
-
-          {/* Up Next */}
-          {currentExerciseIndex < currentSection.exercises.length - 1 && (
-            <Card className="p-4 bg-muted/50">
-              <div className="text-sm text-muted-foreground mb-1">Up Next</div>
-              <div className="font-medium">
-                {currentSection.exercises[currentExerciseIndex + 1].exercise_name}
+                {Array.from({ length: section.rounds }, (_, roundIdx) => {
+                  const round = roundIdx + 1;
+                  return (
+                    <div key={`round-${round}`}>
+                      <div className="px-4 pt-4 pb-1">
+                        <h3 className="font-bold text-sm">Set {round}</h3>
+                      </div>
+                      <div className="px-4">
+                        {section.exercises.map((exercise, eIdx) => (
+                          <div key={`${sIdx}-${eIdx}-${round}`}>
+                            {renderExerciseRow(exercise, sIdx, eIdx, round, 1, null)}
+                            {eIdx < section.exercises.length - 1 && <Separator />}
+                          </div>
+                        ))}
+                      </div>
+                      {/* Rest between rounds */}
+                      {round < section.rounds && (
+                        <div className="px-4 py-2 flex items-center justify-between bg-muted/30 mx-4 rounded-lg mb-2">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Timer className="h-4 w-4" />
+                            <span>Rest for {restBetweenRounds}s</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            onClick={() => startRestTimer(restBetweenRounds, `round-${sIdx}-${round}`)}
+                          >
+                            <Timer className="h-3 w-3 mr-1" />
+                            Start
+                          </Button>
+                        </div>
+                      )}
+                      {round < section.rounds && <Separator />}
+                    </div>
+                  );
+                })}
+                <Separator className="my-2" />
               </div>
-            </Card>
-          )}
-        </div>
+            );
+          } else {
+            // Straight sets: each exercise independently
+            return (
+              <div key={section.id}>
+                {section.name && section.name !== "Section" && (
+                  <div className="bg-muted/70 px-4 py-2 border-b border-t">
+                    <span className="text-sm font-semibold">{section.name}</span>
+                    {section.notes && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{section.notes}</p>
+                    )}
+                  </div>
+                )}
+
+                {section.exercises.map((exercise, eIdx) => {
+                  const totalSets = exercise.sets || 1;
+                  const restSeconds = exercise.rest_seconds || 0;
+
+                  return (
+                    <div key={`${sIdx}-${eIdx}`} className="px-4">
+                      {/* Exercise header once */}
+                      <div className="flex items-center gap-3 pt-4 pb-2">
+                        {exercise.exercise_image ? (
+                          <img
+                            src={exercise.exercise_image}
+                            alt={exercise.exercise_name}
+                            className="w-14 h-14 rounded-lg object-cover shrink-0"
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            <span className="text-xs text-muted-foreground">No img</span>
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-sm">{exercise.exercise_name}</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {totalSets} sets
+                            {exercise.reps ? ` × ${exercise.reps} Reps` : ""}
+                            {exercise.duration_seconds ? ` × ${exercise.duration_seconds}s` : ""}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0 h-8 w-8"
+                          onClick={() => {
+                            setSwapTarget({ sectionIdx: sIdx, exerciseIdx: eIdx });
+                            setSwapDialogOpen(true);
+                          }}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      {/* Set rows */}
+                      <div className="space-y-2 pb-3">
+                        {/* Header labels */}
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+                          <div className="w-10 text-center">Set</div>
+                          <div className="flex-1">Previous</div>
+                          <div className="w-20 text-center">Reps</div>
+                          <div className="w-20 text-center">Lbs</div>
+                          <div className="w-16"></div>
+                        </div>
+
+                        {Array.from({ length: totalSets }, (_, setIdx) => {
+                          const setNum = setIdx + 1;
+                          const key = getSetKey(sIdx, eIdx, 1, setNum);
+                          const log = setLogs[key] || { reps: "", weight: "", completed: false };
+
+                          return (
+                            <div key={key} className="flex items-center gap-2">
+                              <div className="w-10 text-center text-sm font-medium">{setNum}</div>
+                              <div className="flex-1 text-xs text-muted-foreground">—</div>
+                              <Input
+                                type="number"
+                                value={log.reps}
+                                onChange={(e) => updateSetLog(key, "reps", e.target.value)}
+                                className="w-20 h-9 text-center text-sm"
+                                disabled={log.completed}
+                              />
+                              <Input
+                                type="number"
+                                value={log.weight}
+                                onChange={(e) => updateSetLog(key, "weight", e.target.value)}
+                                className="w-20 h-9 text-center text-sm"
+                                disabled={log.completed}
+                              />
+                              <Button
+                                size="sm"
+                                variant={log.completed ? "secondary" : "default"}
+                                className="w-16 h-9 text-xs"
+                                onClick={() => {
+                                  completeSet(key);
+                                  if (restSeconds > 0 && setNum < totalSets) {
+                                    startRestTimer(restSeconds, key);
+                                  }
+                                }}
+                                disabled={log.completed}
+                              >
+                                {log.completed ? "✓" : "Log"}
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {eIdx < section.exercises.length - 1 && <Separator />}
+                    </div>
+                  );
+                })}
+                <Separator className="my-2" />
+              </div>
+            );
+          }
+        })}
       </div>
 
-      {/* Audio for sounds */}
-      <audio ref={completionAudioRef} src="/notification.mp3" preload="auto" />
-      <audio ref={beepAudioRef} src="data:audio/wav;base64,UklGRhQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" preload="auto" />
+      {/* Finish Button */}
+      <div className="fixed bottom-0 left-0 right-0 bg-card border-t p-4">
+        <Button
+          className="w-full"
+          size="lg"
+          onClick={() => {
+            toast({ title: "Workout Complete!", description: "Great job! Your workout has been saved." });
+            onComplete();
+          }}
+        >
+          Finish Workout
+        </Button>
+      </div>
 
       {/* Exercise Swap Dialog */}
-      <ExerciseSwapDialog
-        open={swapDialogOpen}
-        onOpenChange={setSwapDialogOpen}
-        currentExercise={{
-          id: currentExercise.exercise_id,
-          name: currentExercise.exercise_name || "",
-          muscle_group: currentExercise.exercise_description,
-          equipment: "",
-        }}
-        onSwap={handleSwapExercise}
-      />
+      {swapTarget && modifiedSections[swapTarget.sectionIdx]?.exercises[swapTarget.exerciseIdx] && (
+        <ExerciseSwapDialog
+          open={swapDialogOpen}
+          onOpenChange={setSwapDialogOpen}
+          currentExercise={{
+            id: modifiedSections[swapTarget.sectionIdx].exercises[swapTarget.exerciseIdx].exercise_id,
+            name: modifiedSections[swapTarget.sectionIdx].exercises[swapTarget.exerciseIdx].exercise_name || "",
+            muscle_group: modifiedSections[swapTarget.sectionIdx].exercises[swapTarget.exerciseIdx].exercise_description,
+            equipment: "",
+          }}
+          onSwap={handleSwapExercise}
+        />
+      )}
     </div>
   );
 }
