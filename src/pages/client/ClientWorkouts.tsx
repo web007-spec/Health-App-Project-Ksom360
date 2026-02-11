@@ -255,11 +255,11 @@ export default function ClientWorkouts() {
                                       <div className="min-w-0">
                                         <p className="text-sm font-medium truncate">{ex.exercise?.name}</p>
                                         <p className="text-xs text-muted-foreground">
-                                          {ex.sets && `${ex.sets} sets`}
-                                          {ex.reps && ` x ${ex.reps} reps`}
-                                          {ex.duration_seconds && ` ${ex.duration_seconds}s`}
-                                          {ex.rest_seconds && ` · ${ex.rest_seconds}s rest`}
-                                          {ex.tempo && ` · ${ex.tempo}`}
+                                          {ex.sets ? `${ex.sets} sets` : ''}
+                                          {ex.notes ? ` x ${ex.notes}` : ex.reps ? ` x ${ex.reps} reps` : ''}
+                                          {ex.duration_seconds ? ` ${ex.duration_seconds}s` : ''}
+                                          {ex.rest_seconds ? ` · ${ex.rest_seconds}s rest` : ''}
+                                          {ex.tempo ? ` · ${ex.tempo}` : ''}
                                         </p>
                                       </div>
                                     </div>
@@ -289,10 +289,10 @@ export default function ClientWorkouts() {
                             <div className="min-w-0">
                               <p className="text-sm font-medium truncate">{ex.exercise?.name}</p>
                               <p className="text-xs text-muted-foreground">
-                                {ex.sets && `${ex.sets} sets`}
-                                {ex.reps && ` x ${ex.reps} reps`}
-                                {ex.duration_seconds && ` ${ex.duration_seconds}s`}
-                                {ex.rest_seconds && ` · ${ex.rest_seconds}s rest`}
+                                {ex.sets ? `${ex.sets} sets` : ''}
+                                {ex.notes ? ` x ${ex.notes}` : ex.reps ? ` x ${ex.reps} reps` : ''}
+                                {ex.duration_seconds ? ` ${ex.duration_seconds}s` : ''}
+                                {ex.rest_seconds ? ` · ${ex.rest_seconds}s rest` : ''}
                               </p>
                             </div>
                           </div>
@@ -394,10 +394,10 @@ export default function ClientWorkouts() {
                                       <div className="min-w-0">
                                         <p className="text-sm font-medium truncate">{ex.exercise?.name}</p>
                                         <p className="text-xs text-muted-foreground">
-                                          {ex.sets && `${ex.sets} sets`}
-                                          {ex.reps && ` x ${ex.reps} reps`}
-                                          {ex.duration_seconds && ` ${ex.duration_seconds}s`}
-                                          {ex.rest_seconds && ` · ${ex.rest_seconds}s rest`}
+                                          {ex.sets ? `${ex.sets} sets` : ''}
+                                          {ex.notes ? ` x ${ex.notes}` : ex.reps ? ` x ${ex.reps} reps` : ''}
+                                          {ex.duration_seconds ? ` ${ex.duration_seconds}s` : ''}
+                                          {ex.rest_seconds ? ` · ${ex.rest_seconds}s rest` : ''}
                                         </p>
                                       </div>
                                     </div>
@@ -426,10 +426,10 @@ export default function ClientWorkouts() {
                             <div className="min-w-0">
                               <p className="text-sm font-medium truncate">{ex.exercise?.name}</p>
                               <p className="text-xs text-muted-foreground">
-                                {ex.sets && `${ex.sets} sets`}
-                                {ex.reps && ` x ${ex.reps} reps`}
-                                {ex.duration_seconds && ` ${ex.duration_seconds}s`}
-                                {ex.rest_seconds && ` · ${ex.rest_seconds}s rest`}
+                                {ex.sets ? `${ex.sets} sets` : ''}
+                                {ex.notes ? ` x ${ex.notes}` : ex.reps ? ` x ${ex.reps} reps` : ''}
+                                {ex.duration_seconds ? ` ${ex.duration_seconds}s` : ''}
+                                {ex.rest_seconds ? ` · ${ex.rest_seconds}s rest` : ''}
                               </p>
                             </div>
                           </div>
