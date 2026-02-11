@@ -199,6 +199,15 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
               alt={exercise.exercise_name}
               className="w-14 h-14 rounded-lg object-cover shrink-0"
             />
+          ) : exercise.exercise_video ? (
+            <video
+              src={exercise.exercise_video}
+              muted
+              playsInline
+              className="w-14 h-14 rounded-lg object-cover shrink-0"
+              onMouseEnter={(e) => e.currentTarget.play()}
+              onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+            />
           ) : (
             <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
               <span className="text-xs text-muted-foreground">No img</span>
@@ -405,6 +414,15 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
                             src={exercise.exercise_image}
                             alt={exercise.exercise_name}
                             className="w-14 h-14 rounded-lg object-cover shrink-0"
+                          />
+                        ) : exercise.exercise_video ? (
+                          <video
+                            src={exercise.exercise_video}
+                            muted
+                            playsInline
+                            className="w-14 h-14 rounded-lg object-cover shrink-0"
+                            onMouseEnter={(e) => e.currentTarget.play()}
+                            onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
                           />
                         ) : (
                           <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
