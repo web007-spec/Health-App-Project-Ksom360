@@ -389,7 +389,7 @@ export default function Workouts() {
             <p className="text-muted-foreground mb-4 max-w-md">
               Build personalized workout plans with our easy-to-use builder. Add exercises, set reps, and customize for each client.
             </p>
-            <Button size="lg">
+            <Button size="lg" onClick={() => navigate("/workouts/create")}>
               <Plus className="h-4 w-4 mr-2" />
               Start Building
             </Button>
