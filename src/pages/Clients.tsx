@@ -125,7 +125,7 @@ export default function Clients() {
                 {client.status}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground truncate mt-0.5">
+            <p className="text-sm text-muted-foreground break-all mt-0.5">
               {client.client?.email}
             </p>
           </div>
