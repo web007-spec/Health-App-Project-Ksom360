@@ -20,7 +20,7 @@ interface CreateExerciseDialogProps {
 }
 
 const muscleGroups = ["chest", "back", "shoulders", "arms", "legs", "glutes", "core", "full body", "cardio"];
-const equipmentTypes = ["bodyweight", "dumbbells", "barbell", "machine", "resistance bands", "kettlebell", "cable"];
+const equipmentTypes = ["bodyweight", "dumbbells", "barbell", "machine", "resistance bands", "kettlebell", "cable", "mini bands", "medicine ball"];
 const categories = ["strength", "cardio", "flexibility", "mobility", "plyometric", "warm-up", "cool-down"];
 
 export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialogProps) {
