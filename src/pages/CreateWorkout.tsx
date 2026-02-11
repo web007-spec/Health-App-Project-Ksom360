@@ -161,7 +161,7 @@ function ExerciseRow({
       {item.target_type === "time" ? (
         <>
           <Select value={String(item.time_seconds || 30)} onValueChange={(v) => onUpdate(item.id, { time_seconds: parseInt(v) })}>
-            <SelectTrigger className="h-9 w-24 text-sm">
+            <SelectTrigger className="h-9 w-28 text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -173,8 +173,8 @@ function ExerciseRow({
           <Input
             value={item.target_value}
             onChange={(e) => onUpdate(item.id, { target_value: e.target.value })}
-            placeholder="reps, tem..."
-            className="h-9 w-28 text-sm"
+            placeholder="reps, tempo, etc"
+            className="h-9 flex-1 text-sm min-w-[100px]"
           />
         </>
       ) : (
