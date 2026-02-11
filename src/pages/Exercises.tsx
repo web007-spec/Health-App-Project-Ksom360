@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const muscleGroups = ["chest", "back", "shoulders", "arms", "legs", "glutes", "core", "cardio", "full body"];
-const equipmentTypes = ["bodyweight", "dumbbells", "barbell", "machine", "resistance bands", "kettlebell", "cable"];
+const equipmentTypes = ["bodyweight", "dumbbells", "barbell", "machine", "resistance bands", "kettlebell", "cable", "mini bands", "medicine ball"];
 const categories = ["strength", "cardio", "flexibility", "mobility", "plyometric", "warm-up", "cool-down"];
 
 export default function Exercises() {
