@@ -2,6 +2,7 @@ import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { Check, Clock, Dumbbell, Calendar, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -36,6 +37,13 @@ export default function ClientWorkouts() {
           *,
           workout_plan:workout_plans(
             *,
+            workout_sections(
+              *,
+              workout_plan_exercises(
+                *,
+                exercise:exercises(*)
+              )
+            ),
             workout_plan_exercises(
               *,
               exercise:exercises(*)
@@ -206,6 +214,92 @@ export default function ClientWorkouts() {
                       </p>
                     )}
 
+                    {/* Exercise Details */}
+                    <div className="space-y-1">
+                      {(() => {
+                        const sections = workout.workout_plan.workout_sections
+                          ?.sort((a: any, b: any) => a.order_index - b.order_index) || [];
+                        
+                        if (sections.length > 0) {
+                          return sections.map((section: any) => {
+                            const sectionExercises = section.workout_plan_exercises
+                              ?.sort((a: any, b: any) => a.order_index - b.order_index) || [];
+                            if (sectionExercises.length === 0) return null;
+                            
+                            const isGrouped = section.section_type === 'superset' || section.section_type === 'circuit';
+                            
+                            return (
+                              <div key={section.id} className="space-y-1">
+                                {isGrouped && (
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <div className="w-1 h-full bg-primary rounded-full" />
+                                    <p className="text-xs font-semibold text-foreground capitalize">
+                                      {section.section_type} of {section.rounds || 1} sets
+                                    </p>
+                                  </div>
+                                )}
+                                <div className={isGrouped ? "border-l-2 border-primary pl-3 space-y-1" : "space-y-1"}>
+                                  {sectionExercises.map((ex: any) => (
+                                    <div key={ex.id} className="flex items-center gap-3 py-1.5">
+                                      {ex.exercise?.image_url ? (
+                                        <img
+                                          src={ex.exercise.image_url}
+                                          alt={ex.exercise.name}
+                                          className="w-10 h-10 rounded-lg object-cover shrink-0"
+                                        />
+                                      ) : (
+                                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                          <Dumbbell className="h-4 w-4 text-muted-foreground" />
+                                        </div>
+                                      )}
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-medium truncate">{ex.exercise?.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {ex.sets && `${ex.sets} sets`}
+                                          {ex.reps && ` x ${ex.reps} reps`}
+                                          {ex.duration_seconds && ` ${ex.duration_seconds}s`}
+                                          {ex.rest_seconds && ` · ${ex.rest_seconds}s rest`}
+                                          {ex.tempo && ` · ${ex.tempo}`}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          });
+                        }
+                        
+                        // Fallback: show flat exercise list if no sections
+                        const exercises = workout.workout_plan.workout_plan_exercises
+                          ?.sort((a: any, b: any) => a.order_index - b.order_index) || [];
+                        return exercises.map((ex: any) => (
+                          <div key={ex.id} className="flex items-center gap-3 py-1.5">
+                            {ex.exercise?.image_url ? (
+                              <img
+                                src={ex.exercise.image_url}
+                                alt={ex.exercise.name}
+                                className="w-10 h-10 rounded-lg object-cover shrink-0"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                <Dumbbell className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{ex.exercise?.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {ex.sets && `${ex.sets} sets`}
+                                {ex.reps && ` x ${ex.reps} reps`}
+                                {ex.duration_seconds && ` ${ex.duration_seconds}s`}
+                                {ex.rest_seconds && ` · ${ex.rest_seconds}s rest`}
+                              </p>
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+
                     <Button
                       className="w-full"
                       onClick={() => navigate(`/client/workouts/${workout.workout_plan_id}`)}
@@ -262,10 +356,91 @@ export default function ClientWorkouts() {
                       </div>
                     </div>
 
+                    {/* Exercise Details */}
+                    <div className="space-y-1">
+                      {(() => {
+                        const sections = workout.workout_plan.workout_sections
+                          ?.sort((a: any, b: any) => a.order_index - b.order_index) || [];
+                        
+                        if (sections.length > 0) {
+                          return sections.map((section: any) => {
+                            const sectionExercises = section.workout_plan_exercises
+                              ?.sort((a: any, b: any) => a.order_index - b.order_index) || [];
+                            if (sectionExercises.length === 0) return null;
+                            
+                            const isGrouped = section.section_type === 'superset' || section.section_type === 'circuit';
+                            
+                            return (
+                              <div key={section.id} className="space-y-1">
+                                {isGrouped && (
+                                  <p className="text-xs font-semibold text-foreground capitalize mt-2">
+                                    {section.section_type} of {section.rounds || 1} sets
+                                  </p>
+                                )}
+                                <div className={isGrouped ? "border-l-2 border-primary pl-3 space-y-1" : "space-y-1"}>
+                                  {sectionExercises.map((ex: any) => (
+                                    <div key={ex.id} className="flex items-center gap-3 py-1.5">
+                                      {ex.exercise?.image_url ? (
+                                        <img
+                                          src={ex.exercise.image_url}
+                                          alt={ex.exercise.name}
+                                          className="w-10 h-10 rounded-lg object-cover shrink-0"
+                                        />
+                                      ) : (
+                                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                          <Dumbbell className="h-4 w-4 text-muted-foreground" />
+                                        </div>
+                                      )}
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-medium truncate">{ex.exercise?.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {ex.sets && `${ex.sets} sets`}
+                                          {ex.reps && ` x ${ex.reps} reps`}
+                                          {ex.duration_seconds && ` ${ex.duration_seconds}s`}
+                                          {ex.rest_seconds && ` · ${ex.rest_seconds}s rest`}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          });
+                        }
+                        
+                        const exercises = workout.workout_plan.workout_plan_exercises
+                          ?.sort((a: any, b: any) => a.order_index - b.order_index) || [];
+                        return exercises.map((ex: any) => (
+                          <div key={ex.id} className="flex items-center gap-3 py-1.5">
+                            {ex.exercise?.image_url ? (
+                              <img
+                                src={ex.exercise.image_url}
+                                alt={ex.exercise.name}
+                                className="w-10 h-10 rounded-lg object-cover shrink-0"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                <Dumbbell className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{ex.exercise?.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {ex.sets && `${ex.sets} sets`}
+                                {ex.reps && ` x ${ex.reps} reps`}
+                                {ex.duration_seconds && ` ${ex.duration_seconds}s`}
+                                {ex.rest_seconds && ` · ${ex.rest_seconds}s rest`}
+                              </p>
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => handleViewWorkout(workout)}
+                      onClick={() => navigate(`/client/workouts/${workout.workout_plan_id}`)}
                     >
                       View Details
                     </Button>
