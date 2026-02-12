@@ -62,7 +62,11 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
   const [isUploading, setIsUploading] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isCreateTagDialogOpen, setIsCreateTagDialogOpen] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch available tags
   const { data: availableTags } = useQuery({
@@ -110,6 +114,9 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
       });
       setVideoFile(null);
       setRemoveVideo(false);
+      setImageFile(null);
+      setRemoveImage(false);
+      setImagePreview(exercise.image_url || null);
       
       // Set video source type based on existing video
       if (exercise.video_url) {
@@ -133,6 +140,30 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
       setSelectedTags(exerciseTags);
     }
   }, [exerciseTags]);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Invalid file type", description: "Please select an image file", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Please select an image smaller than 10MB", variant: "destructive" });
+      return;
+    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setRemoveImage(false);
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    if (imagePreview && !imagePreview.startsWith('http')) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+    setRemoveImage(true);
+    if (imageInputRef.current) imageInputRef.current.value = '';
+  };
 
   const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -212,6 +243,26 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
         setIsUploading(false);
       }
 
+      // Handle thumbnail image upload
+      let imageUrl = exercise.image_url;
+      if (removeImage) {
+        imageUrl = null;
+      }
+      if (imageFile && user?.id) {
+        const { compressImage } = await import("@/lib/imageCompression");
+        const compressed = await compressImage(imageFile);
+        const fileExt = 'jpg';
+        const imgFileName = `${user.id}/${Date.now()}-thumb.${fileExt}`;
+        const { error: imgUploadError } = await supabase.storage
+          .from('exercise-images')
+          .upload(imgFileName, compressed, { contentType: 'image/jpeg', upsert: false });
+        if (imgUploadError) throw imgUploadError;
+        const { data: { publicUrl: imgPublicUrl } } = supabase.storage
+          .from('exercise-images')
+          .getPublicUrl(imgFileName);
+        imageUrl = imgPublicUrl;
+      }
+
       const { data, error } = await supabase
         .from("exercises")
         .update({
@@ -221,6 +272,7 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
           equipment: formData.equipment || null,
           category: formData.category || null,
           video_url: videoUrl,
+          image_url: imageUrl,
         })
         .eq("id", exercise.id)
         .select()
@@ -284,6 +336,9 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
     setVideoPreview(null);
     setRemoveVideo(false);
     setVideoSourceType("upload");
+    setImageFile(null);
+    setImagePreview(null);
+    setRemoveImage(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -418,7 +473,30 @@ export function EditExerciseDialog({ open, onOpenChange, exercise }: EditExercis
             />
           </div>
 
-          {/* Video Upload/URL - Video serves as thumbnail */}
+          {/* Thumbnail Image Upload */}
+          <div className="space-y-2">
+            <Label>Thumbnail Image</Label>
+            {imagePreview ? (
+              <div className="relative">
+                <img src={imagePreview} alt="Thumbnail" className="w-full h-48 object-cover rounded-lg border border-border" />
+                <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2" onClick={clearImage}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div
+                onClick={() => imageInputRef.current?.click()}
+                className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+              >
+                <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Click to upload thumbnail image</p>
+                <p className="text-xs text-muted-foreground">JPG, PNG, or WebP (max 10MB)</p>
+              </div>
+            )}
+            <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+          </div>
+
+          {/* Video Upload/URL */}
           <div className="space-y-2">
             <Label>Demo Video</Label>
             <Tabs value={videoSourceType} onValueChange={(v) => {
