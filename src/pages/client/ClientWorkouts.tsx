@@ -247,14 +247,6 @@ export default function ClientWorkouts() {
                                           alt={ex.exercise.name}
                                           className="w-10 h-10 rounded-lg object-cover shrink-0"
                                         />
-                                      ) : ex.exercise?.video_url ? (
-                                        <video
-                                          src={`${ex.exercise.video_url}#t=0.1`}
-                                          className="w-10 h-10 rounded-lg object-cover shrink-0"
-                                          muted
-                                          playsInline
-                                          preload="metadata"
-                                        />
                                       ) : (
                                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                                           <span className="text-sm font-bold text-primary">
@@ -290,14 +282,6 @@ export default function ClientWorkouts() {
                                 src={ex.exercise.image_url}
                                 alt={ex.exercise.name}
                                 className="w-10 h-10 rounded-lg object-cover shrink-0"
-                              />
-                            ) : ex.exercise?.video_url ? (
-                              <video
-                                src={`${ex.exercise.video_url}#t=0.1`}
-                                className="w-10 h-10 rounded-lg object-cover shrink-0"
-                                muted
-                                playsInline
-                                preload="metadata"
                               />
                             ) : (
                               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -406,14 +390,6 @@ export default function ClientWorkouts() {
                                           alt={ex.exercise.name}
                                           className="w-10 h-10 rounded-lg object-cover shrink-0"
                                         />
-                                      ) : ex.exercise?.video_url ? (
-                                        <video
-                                          src={`${ex.exercise.video_url}#t=0.1`}
-                                          className="w-10 h-10 rounded-lg object-cover shrink-0"
-                                          muted
-                                          playsInline
-                                          preload="metadata"
-                                        />
                                       ) : (
                                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                                           <span className="text-sm font-bold text-primary">
@@ -447,14 +423,6 @@ export default function ClientWorkouts() {
                                 src={ex.exercise.image_url}
                                 alt={ex.exercise.name}
                                 className="w-10 h-10 rounded-lg object-cover shrink-0"
-                              />
-                            ) : ex.exercise?.video_url ? (
-                              <video
-                                src={`${ex.exercise.video_url}#t=0.1`}
-                                className="w-10 h-10 rounded-lg object-cover shrink-0"
-                                muted
-                                playsInline
-                                preload="metadata"
                               />
                             ) : (
                               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
