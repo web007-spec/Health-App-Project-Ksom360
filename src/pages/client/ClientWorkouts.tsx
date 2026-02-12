@@ -241,11 +241,19 @@ export default function ClientWorkouts() {
                                 <div className={isGrouped ? "border-l-2 border-primary pl-3 space-y-1" : "space-y-1"}>
                                   {sectionExercises.map((ex: any) => (
                                     <div key={ex.id} className="flex items-center gap-3 py-1.5">
-                                      {ex.exercise?.image_url ? (
+                                    {ex.exercise?.image_url ? (
                                         <img
                                           src={ex.exercise.image_url}
                                           alt={ex.exercise.name}
                                           className="w-10 h-10 rounded-lg object-cover shrink-0"
+                                        />
+                                      ) : ex.exercise?.video_url ? (
+                                        <video
+                                          src={ex.exercise.video_url}
+                                          muted
+                                          playsInline
+                                          preload="metadata"
+                                          className="w-10 h-10 rounded-lg object-cover shrink-0 pointer-events-none"
                                         />
                                       ) : (
                                         <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
@@ -280,6 +288,14 @@ export default function ClientWorkouts() {
                                 src={ex.exercise.image_url}
                                 alt={ex.exercise.name}
                                 className="w-10 h-10 rounded-lg object-cover shrink-0"
+                              />
+                            ) : ex.exercise?.video_url ? (
+                              <video
+                                src={ex.exercise.video_url}
+                                muted
+                                playsInline
+                                preload="metadata"
+                                className="w-10 h-10 rounded-lg object-cover shrink-0 pointer-events-none"
                               />
                             ) : (
                               <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
