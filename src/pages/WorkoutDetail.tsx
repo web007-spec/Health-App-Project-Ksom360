@@ -84,6 +84,16 @@ export default function WorkoutDetail() {
     navigate(isClient ? "/client/workouts" : "/workouts");
   };
 
+  const handleEndEarly = () => {
+    setIsPlaying(false);
+    navigate(isClient ? "/client/workouts" : "/workouts");
+  };
+
+  const handleDiscard = () => {
+    setIsPlaying(false);
+    navigate(isClient ? "/client/workouts" : "/workouts");
+  };
+
   const handleExit = () => {
     setIsPlaying(false);
   };
@@ -120,6 +130,8 @@ export default function WorkoutDetail() {
       <WorkoutPlayer
         sections={transformedSections}
         onComplete={handleComplete}
+        onEndEarly={handleEndEarly}
+        onDiscard={handleDiscard}
         onExit={handleExit}
       />
     );

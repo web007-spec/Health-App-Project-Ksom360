@@ -4,7 +4,23 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { X, Timer, MoreVertical, Play, Pause, Clock } from "lucide-react";
+import { X, Timer, MoreVertical, Play, Pause, Clock, LogOut } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ExerciseSwapDialog } from "@/components/ExerciseSwapDialog";
 import { cn } from "@/lib/utils";
@@ -45,10 +61,12 @@ interface SetLog {
 interface WorkoutPlayerProps {
   sections: Section[];
   onComplete: () => void;
+  onEndEarly: () => void;
+  onDiscard: () => void;
   onExit: () => void;
 }
 
-export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerProps) {
+export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onExit }: WorkoutPlayerProps) {
   const { toast } = useToast();
   const [modifiedSections, setModifiedSections] = useState<Section[]>(sections);
   const [swapDialogOpen, setSwapDialogOpen] = useState(false);
@@ -68,6 +86,10 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
 
   // Track which set key to highlight next
   const [activeSetKey, setActiveSetKey] = useState<string>("");
+
+  // End early / discard confirm dialogs
+  const [showEndEarlyDialog, setShowEndEarlyDialog] = useState(false);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
   useEffect(() => {
     setModifiedSections(sections);
@@ -224,9 +246,22 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
         </div>
         {/* Cancel / Save bar */}
         <div className="flex items-center justify-between px-4 py-2">
-          <Button variant="ghost" size="sm" onClick={onExit} className="text-sm">
-            Cancel
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-sm">
+                <LogOut className="h-4 w-4 mr-1" />
+                Exit
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setShowEndEarlyDialog(true)} className="text-primary font-medium">
+                End Early & Save
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowDiscardDialog(true)} className="text-destructive font-medium">
+                Discard Workout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startRestTimer(60)}>
               <Clock className="h-4 w-4" />
@@ -505,6 +540,50 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
           Finish Workout
         </Button>
       </div>
+
+      {/* End Early Confirm */}
+      <AlertDialog open={showEndEarlyDialog} onOpenChange={setShowEndEarlyDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>End Workout Early?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your progress so far will be saved and this workout will be marked as ended early in your stats.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue Workout</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (elapsedRef.current) clearInterval(elapsedRef.current);
+              toast({ title: "Workout Ended Early", description: `Duration: ${formatTime(elapsedSeconds)}. Progress saved.` });
+              onEndEarly();
+            }}>
+              End & Save
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Discard Confirm */}
+      <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard Workout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This workout will not be saved and won't appear in your stats. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue Workout</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => {
+              if (elapsedRef.current) clearInterval(elapsedRef.current);
+              toast({ title: "Workout Discarded" });
+              onDiscard();
+            }}>
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Exercise Swap Dialog */}
       {swapTarget && modifiedSections[swapTarget.sectionIdx]?.exercises[swapTarget.exerciseIdx] && (
