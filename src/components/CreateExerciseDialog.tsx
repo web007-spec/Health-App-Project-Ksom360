@@ -43,7 +43,10 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
   const [isUploading, setIsUploading] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isCreateTagDialogOpen, setIsCreateTagDialogOpen] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch available tags
   const { data: availableTags } = useQuery({
@@ -61,7 +64,27 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
     enabled: !!user?.id,
   });
 
-  // Generate thumbnail from video
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Invalid file type", description: "Please select an image file", variant: "destructive" });
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Please select an image smaller than 10MB", variant: "destructive" });
+      return;
+    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+    if (imageInputRef.current) imageInputRef.current.value = '';
+  };
 
   const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -133,7 +156,23 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
         setIsUploading(false);
       }
 
-      // Insert exercise - video_url serves as both video and thumbnail
+      // Upload thumbnail image if selected
+      let imageUrl: string | null = null;
+      if (imageFile && user?.id) {
+        const { compressImage } = await import("@/lib/imageCompression");
+        const compressed = await compressImage(imageFile);
+        const fileExt = 'jpg';
+        const fileName = `${user.id}/${Date.now()}-thumb.${fileExt}`;
+        const { error: imgUploadError } = await supabase.storage
+          .from('exercise-images')
+          .upload(fileName, compressed, { contentType: 'image/jpeg', upsert: false });
+        if (imgUploadError) throw imgUploadError;
+        const { data: { publicUrl } } = supabase.storage
+          .from('exercise-images')
+          .getPublicUrl(fileName);
+        imageUrl = publicUrl;
+      }
+
       const { data, error } = await supabase
         .from("exercises")
         .insert({
@@ -143,6 +182,7 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
           equipment: formData.equipment,
           category: formData.category,
           video_url: videoUrl || null,
+          image_url: imageUrl,
           trainer_id: user?.id,
         })
         .select()
@@ -184,6 +224,7 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
       });
       setSelectedTags([]);
       clearVideo();
+      clearImage();
       setVideoSourceType("upload");
     },
     onError: (error: Error) => {
@@ -343,7 +384,30 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
             </div>
           </div>
 
-          {/* Video Upload/URL - Video serves as thumbnail */}
+          {/* Thumbnail Image Upload */}
+          <div className="space-y-2">
+            <Label>Thumbnail Image</Label>
+            {imagePreview ? (
+              <div className="relative">
+                <img src={imagePreview} alt="Thumbnail" className="w-full h-48 object-cover rounded-lg border border-border" />
+                <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2" onClick={clearImage}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div
+                onClick={() => imageInputRef.current?.click()}
+                className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+              >
+                <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Click to upload thumbnail image</p>
+                <p className="text-xs text-muted-foreground">JPG, PNG, or WebP (max 10MB)</p>
+              </div>
+            )}
+            <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+          </div>
+
+          {/* Video Upload/URL */}
           <div className="space-y-2">
             <Label>Demo Video</Label>
             <Tabs value={videoSourceType} onValueChange={(v) => setVideoSourceType(v as "upload" | "url")}>
