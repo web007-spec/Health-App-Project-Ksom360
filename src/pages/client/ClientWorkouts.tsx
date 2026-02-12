@@ -249,7 +249,7 @@ export default function ClientWorkouts() {
                                         />
                                       ) : ex.exercise?.video_url ? (
                                         <video
-                                          src={ex.exercise.video_url}
+                                          src={`${ex.exercise.video_url}#t=0.1`}
                                           muted
                                           playsInline
                                           preload="metadata"
@@ -291,7 +291,7 @@ export default function ClientWorkouts() {
                               />
                             ) : ex.exercise?.video_url ? (
                               <video
-                                src={ex.exercise.video_url}
+                                src={`${ex.exercise.video_url}#t=0.1`}
                                 muted
                                 playsInline
                                 preload="metadata"

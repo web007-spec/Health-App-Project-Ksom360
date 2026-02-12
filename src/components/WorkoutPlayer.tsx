@@ -201,7 +201,7 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
             />
                          ) : exercise.exercise_video ? (
                           <video
-                            src={exercise.exercise_video}
+                            src={`${exercise.exercise_video}#t=0.1`}
                             muted
                             playsInline
                             preload="metadata"
@@ -416,7 +416,7 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
                           />
                         ) : exercise.exercise_video ? (
                           <video
-                            src={exercise.exercise_video}
+                            src={`${exercise.exercise_video}#t=0.1`}
                             muted
                             playsInline
                             preload="metadata"
