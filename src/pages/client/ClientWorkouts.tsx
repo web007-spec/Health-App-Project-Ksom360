@@ -247,17 +247,11 @@ export default function ClientWorkouts() {
                                           alt={ex.exercise.name}
                                           className="w-10 h-10 rounded-lg object-cover shrink-0"
                                         />
-                                      ) : ex.exercise?.video_url ? (
-                                        <video
-                                          src={`${ex.exercise.video_url}#t=0.1`}
-                                          muted
-                                          playsInline
-                                          preload="metadata"
-                                          className="w-10 h-10 rounded-lg object-cover shrink-0 pointer-events-none"
-                                        />
                                       ) : (
-                                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                                          <Dumbbell className="h-4 w-4 text-muted-foreground" />
+                                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                          <span className="text-sm font-bold text-primary">
+                                            {ex.exercise?.name?.charAt(0)?.toUpperCase() || "E"}
+                                          </span>
                                         </div>
                                       )}
                                       <div className="min-w-0">
@@ -289,17 +283,11 @@ export default function ClientWorkouts() {
                                 alt={ex.exercise.name}
                                 className="w-10 h-10 rounded-lg object-cover shrink-0"
                               />
-                            ) : ex.exercise?.video_url ? (
-                              <video
-                                src={`${ex.exercise.video_url}#t=0.1`}
-                                muted
-                                playsInline
-                                preload="metadata"
-                                className="w-10 h-10 rounded-lg object-cover shrink-0 pointer-events-none"
-                              />
                             ) : (
-                              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                                <Dumbbell className="h-4 w-4 text-muted-foreground" />
+                              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                <span className="text-sm font-bold text-primary">
+                                  {ex.exercise?.name?.charAt(0)?.toUpperCase() || "E"}
+                                </span>
                               </div>
                             )}
                             <div className="min-w-0">

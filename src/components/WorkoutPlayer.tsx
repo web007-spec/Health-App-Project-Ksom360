@@ -199,17 +199,11 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
               alt={exercise.exercise_name}
               className="w-14 h-14 rounded-lg object-cover shrink-0"
             />
-                         ) : exercise.exercise_video ? (
-                          <video
-                            src={`${exercise.exercise_video}#t=0.1`}
-                            muted
-                            playsInline
-                            preload="metadata"
-                            className="w-14 h-14 rounded-lg object-cover shrink-0 pointer-events-none"
-                          />
           ) : (
-            <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
-              <span className="text-xs text-muted-foreground">No img</span>
+            <div className="w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-lg font-bold text-primary">
+                {exercise.exercise_name?.charAt(0)?.toUpperCase() || "E"}
+              </span>
             </div>
           )}
           <div className="flex-1 min-w-0">
@@ -414,17 +408,11 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
                             alt={exercise.exercise_name}
                             className="w-14 h-14 rounded-lg object-cover shrink-0"
                           />
-                        ) : exercise.exercise_video ? (
-                          <video
-                            src={`${exercise.exercise_video}#t=0.1`}
-                            muted
-                            playsInline
-                            preload="metadata"
-                            className="w-14 h-14 rounded-lg object-cover shrink-0 pointer-events-none"
-                          />
                         ) : (
-                          <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                            <span className="text-xs text-muted-foreground">No img</span>
+                          <div className="w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <span className="text-lg font-bold text-primary">
+                              {exercise.exercise_name?.charAt(0)?.toUpperCase() || "E"}
+                            </span>
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
