@@ -310,7 +310,7 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
                                   {exercise.exercise_image ? (
                                     <img src={exercise.exercise_image} alt={exercise.exercise_name} className="w-14 h-14 rounded-lg object-cover shrink-0" />
                                   ) : exercise.exercise_video ? (
-                                    <video src={exercise.exercise_video} className="w-14 h-14 rounded-lg object-cover shrink-0" muted playsInline preload="metadata" />
+                                    <video src={`${exercise.exercise_video}#t=0.1`} className="w-14 h-14 rounded-lg object-cover shrink-0" muted playsInline preload="metadata" />
                                   ) : (
                                     <div className="w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                                       <span className="text-lg font-bold text-primary">{exercise.exercise_name?.charAt(0)?.toUpperCase() || "E"}</span>
@@ -399,7 +399,7 @@ export function WorkoutPlayer({ sections, onComplete, onExit }: WorkoutPlayerPro
                         {exercise.exercise_image ? (
                           <img src={exercise.exercise_image} alt={exercise.exercise_name} className="w-14 h-14 rounded-lg object-cover shrink-0" />
                         ) : exercise.exercise_video ? (
-                          <video src={exercise.exercise_video} className="w-14 h-14 rounded-lg object-cover shrink-0" muted playsInline preload="metadata" />
+                          <video src={`${exercise.exercise_video}#t=0.1`} className="w-14 h-14 rounded-lg object-cover shrink-0" muted playsInline preload="metadata" />
                         ) : (
                           <div className="w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                             <span className="text-lg font-bold text-primary">{exercise.exercise_name?.charAt(0)?.toUpperCase() || "E"}</span>
