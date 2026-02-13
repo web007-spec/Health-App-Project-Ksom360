@@ -59,6 +59,8 @@ export default function EditWorkout() {
     video_url: "",
     image_url: "",
   });
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
 
   const [sections, setSections] = useState<Section[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -165,12 +167,25 @@ export default function EditWorkout() {
 
   const updateWorkoutMutation = useMutation({
     mutationFn: async () => {
+      // Upload cover image if changed
+      let updatedData = { ...workoutData };
+      if (coverImage) {
+        const fileExt = coverImage.name.split('.').pop();
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('workout-covers')
+          .upload(fileName, coverImage);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage
+          .from('workout-covers')
+          .getPublicUrl(fileName);
+        updatedData.image_url = urlData.publicUrl;
+      }
+
       // Update workout plan
       const { error: workoutError } = await supabase
         .from("workout_plans")
-        .update({
-          ...workoutData,
-        })
+        .update(updatedData)
         .eq("id", id);
 
       if (workoutError) throw workoutError;
@@ -525,6 +540,53 @@ export default function EditWorkout() {
                       onChange={(e) => setWorkoutData({ ...workoutData, video_url: e.target.value })}
                       placeholder="https://..."
                     />
+                  </div>
+                </div>
+
+                {/* Cover Image Upload */}
+                <div>
+                  <Label>Cover Image</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    This image appears on the client's Today screen workout card
+                  </p>
+                  <div className="flex items-center gap-3">
+                    {(coverImagePreview || workoutData.image_url) && (
+                      <img
+                        src={coverImagePreview || workoutData.image_url}
+                        alt="Cover"
+                        className="h-20 w-32 object-cover rounded-lg border"
+                      />
+                    )}
+                    <label className="cursor-pointer">
+                      <Button variant="outline" size="sm" asChild>
+                        <span>{workoutData.image_url || coverImagePreview ? "Change Image" : "Upload Image"}</span>
+                      </Button>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setCoverImage(file);
+                            setCoverImagePreview(URL.createObjectURL(file));
+                          }
+                        }}
+                      />
+                    </label>
+                    {(coverImagePreview || workoutData.image_url) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setCoverImage(null);
+                          setCoverImagePreview(null);
+                          setWorkoutData({ ...workoutData, image_url: "" });
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
