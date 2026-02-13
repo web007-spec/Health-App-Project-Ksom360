@@ -105,14 +105,14 @@ export default function ClientDashboard() {
   const firstName = profile?.full_name?.split(" ")[0] || "there";
   const todayDate = format(new Date(), "EEEE, MMM d").toUpperCase();
 
-  // Today's workout (first uncompleted or today's scheduled)
-  const todaysWorkout = clientWorkouts?.find((w) => {
+  // Today's workouts (all uncompleted scheduled for today)
+  const todaysWorkouts = clientWorkouts?.filter((w) => {
     if (w.completed_at) return false;
     if (w.scheduled_date && isToday(parseISO(w.scheduled_date))) return true;
     return false;
-  }) || clientWorkouts?.find((w) => !w.completed_at);
+  }) || [];
 
-  const isRestDay = !todaysWorkout;
+  const isRestDay = todaysWorkouts.length === 0;
 
   // Task stats
   const pendingTasks = tasks?.filter((t) => !t.completed_at) || [];
@@ -143,10 +143,10 @@ export default function ClientDashboard() {
           </Button>
         </div>
 
-        {/* Today's Workout */}
+        {/* Today's Workouts */}
         <div>
           <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-            Today's Workout
+            Today's Workout{todaysWorkouts.length > 1 ? "s" : ""}
           </h2>
           {isRestDay ? (
             <Card className="overflow-hidden">
@@ -157,39 +157,42 @@ export default function ClientDashboard() {
               </CardContent>
             </Card>
           ) : (
-            <Card
-              className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => navigate("/client/workouts")}
-            >
-              {/* Workout Cover Image */}
-              <div className="relative h-44 bg-gradient-to-br from-primary/20 to-primary/5">
-                {todaysWorkout.workout_plan.image_url ? (
-                  <img
-                    src={todaysWorkout.workout_plan.image_url}
-                    alt={todaysWorkout.workout_plan.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Dumbbell className="h-16 w-16 text-primary/20" />
+            <div className={todaysWorkouts.length > 1 ? "flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 scrollbar-hide" : ""}>
+              {todaysWorkouts.map((workout) => (
+                <Card
+                  key={workout.id}
+                  className={`overflow-hidden cursor-pointer hover:shadow-md transition-shadow shrink-0 snap-start ${todaysWorkouts.length > 1 ? "w-[85%]" : "w-full"}`}
+                  onClick={() => navigate("/client/workouts")}
+                >
+                  <div className="relative h-44 bg-gradient-to-br from-primary/20 to-primary/5">
+                    {workout.workout_plan?.image_url ? (
+                      <img
+                        src={workout.workout_plan.image_url}
+                        alt={workout.workout_plan.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Dumbbell className="h-16 w-16 text-primary/20" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Today's Workout</p>
+                      <p className="text-lg font-bold text-white">{workout.workout_plan?.name}</p>
+                    </div>
                   </div>
-                )}
-                {/* Overlay with workout name */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Today's Workout</p>
-                  <p className="text-lg font-bold text-white">{todaysWorkout.workout_plan.name}</p>
-                </div>
-              </div>
-              <CardContent className="p-3">
-                <Button className="w-full" size="lg" onClick={(e) => {
-                  e.stopPropagation();
-                  navigate("/client/workouts");
-                }}>
-                  Start Workout
-                </Button>
-              </CardContent>
-            </Card>
+                  <CardContent className="p-3">
+                    <Button className="w-full" size="lg" onClick={(e) => {
+                      e.stopPropagation();
+                      navigate("/client/workouts");
+                    }}>
+                      Start Workout
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
         </div>
 
