@@ -206,11 +206,11 @@ export default function ClientDashboard() {
                       </div>
                     </div>
                     <CardContent className="p-3">
-                      <Button className="w-full" size="lg" onClick={(e) => {
+                      <Button className="w-full" size="lg" variant="outline" onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/client/workouts/${workout.workout_plan_id}?start=true`);
+                        navigate(`/client/workouts/${workout.workout_plan_id}`);
                       }}>
-                        Start Workout
+                        View Workout
                       </Button>
                     </CardContent>
                   </Card>
