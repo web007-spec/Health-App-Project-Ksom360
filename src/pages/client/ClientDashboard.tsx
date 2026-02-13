@@ -7,11 +7,23 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { format, isToday, parseISO } from "date-fns";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 export default function ClientDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Carousel state
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const index = Math.round(el.scrollLeft / el.clientWidth);
+    setActiveIndex(index);
+  }, []);
 
   // Check if profile is complete, redirect to onboarding if not
   const { data: profile } = useQuery({
@@ -36,7 +48,6 @@ export default function ClientDashboard() {
   const { data: clientWorkouts } = useQuery({
     queryKey: ["client-workouts-today", user?.id],
     queryFn: async () => {
-      const today = format(new Date(), "yyyy-MM-dd");
       const { data, error } = await supabase
         .from("client_workouts")
         .select(`
@@ -113,9 +124,17 @@ export default function ClientDashboard() {
   }) || [];
 
   const isRestDay = todaysWorkouts.length === 0;
+  const hasMultiple = todaysWorkouts.length > 1;
+
+  // Attach scroll listener
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !hasMultiple) return;
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, [handleScroll, hasMultiple]);
 
   // Task stats
-  const pendingTasks = tasks?.filter((t) => !t.completed_at) || [];
   const completedTaskCount = tasks?.filter((t) => t.completed_at)?.length || 0;
   const totalTaskCount = tasks?.length || 0;
 
@@ -146,7 +165,7 @@ export default function ClientDashboard() {
         {/* Today's Workouts */}
         <div>
           <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-            Today's Workout{todaysWorkouts.length > 1 ? "s" : ""}
+            Today's Workout{hasMultiple ? "s" : ""}
           </h2>
           {isRestDay ? (
             <Card className="overflow-hidden">
@@ -157,41 +176,66 @@ export default function ClientDashboard() {
               </CardContent>
             </Card>
           ) : (
-            <div className={todaysWorkouts.length > 1 ? "flex overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-hide" : ""}>
-              {todaysWorkouts.map((workout) => (
-                <Card
-                  key={workout.id}
-                  className={`overflow-hidden cursor-pointer hover:shadow-md transition-shadow shrink-0 snap-center ${todaysWorkouts.length > 1 ? "w-full min-w-full" : "w-full"}`}
-                  onClick={() => navigate("/client/workouts")}
-                >
-                  <div className="relative h-44 bg-gradient-to-br from-primary/20 to-primary/5">
-                    {workout.workout_plan?.image_url ? (
-                      <img
-                        src={workout.workout_plan.image_url}
-                        alt={workout.workout_plan.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Dumbbell className="h-16 w-16 text-primary/20" />
+            <div>
+              <div
+                ref={scrollRef}
+                className={hasMultiple ? "flex overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-hide" : ""}
+              >
+                {todaysWorkouts.map((workout) => (
+                  <Card
+                    key={workout.id}
+                    className={`overflow-hidden cursor-pointer hover:shadow-md transition-all duration-300 shrink-0 snap-center ${hasMultiple ? "w-full min-w-full" : "w-full"}`}
+                    onClick={() => navigate(`/client/workouts/${workout.workout_plan_id}`)}
+                  >
+                    <div className="relative h-44 bg-gradient-to-br from-primary/20 to-primary/5">
+                      {workout.workout_plan?.image_url ? (
+                        <img
+                          src={workout.workout_plan.image_url}
+                          alt={workout.workout_plan.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Dumbbell className="h-16 w-16 text-primary/20" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Today's Workout</p>
+                        <p className="text-lg font-bold text-white">{workout.workout_plan?.name}</p>
                       </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Today's Workout</p>
-                      <p className="text-lg font-bold text-white">{workout.workout_plan?.name}</p>
                     </div>
-                  </div>
-                  <CardContent className="p-3">
-                    <Button className="w-full" size="lg" onClick={(e) => {
-                      e.stopPropagation();
-                      navigate("/client/workouts");
-                    }}>
-                      Start Workout
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+                    <CardContent className="p-3">
+                      <Button className="w-full" size="lg" onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/client/workouts/${workout.workout_plan_id}?start=true`);
+                      }}>
+                        Start Workout
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Dot indicators */}
+              {hasMultiple && (
+                <div className="flex justify-center gap-1.5 mt-3">
+                  {todaysWorkouts.map((_, i) => (
+                    <button
+                      key={i}
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        i === activeIndex ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30"
+                      }`}
+                      onClick={() => {
+                        scrollRef.current?.scrollTo({
+                          left: i * (scrollRef.current?.clientWidth || 0),
+                          behavior: "smooth",
+                        });
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -251,8 +295,8 @@ export default function ClientDashboard() {
             onClick={() => navigate("/client/nutrition")}
           >
             <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-orange-500/10 rounded-xl">
-                <UtensilsCrossed className="h-6 w-6 text-orange-500" />
+              <div className="p-3 bg-accent/10 rounded-xl">
+                <UtensilsCrossed className="h-6 w-6 text-accent" />
               </div>
               <div className="flex-1">
                 <p className="font-semibold text-sm">
@@ -288,8 +332,8 @@ export default function ClientDashboard() {
             onClick={() => navigate("/client/health-connect")}
           >
             <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-blue-500/10 rounded-xl">
-                <Footprints className="h-6 w-6 text-blue-500" />
+              <div className="p-3 bg-primary/10 rounded-xl">
+                <Footprints className="h-6 w-6 text-primary" />
               </div>
               <div className="flex-1">
                 <p className="font-semibold text-sm">Connect Health App</p>
