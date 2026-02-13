@@ -81,17 +81,17 @@ export default function WorkoutDetail() {
 
   const handleComplete = () => {
     setIsPlaying(false);
-    navigate(isClient ? "/client/workouts" : "/workouts");
+    navigate(isClient ? "/client/dashboard" : "/workouts");
   };
 
   const handleEndEarly = () => {
     setIsPlaying(false);
-    navigate(isClient ? "/client/workouts" : "/workouts");
+    navigate(isClient ? "/client/dashboard" : "/workouts");
   };
 
   const handleDiscard = () => {
     setIsPlaying(false);
-    navigate(isClient ? "/client/workouts" : "/workouts");
+    navigate(isClient ? "/client/dashboard" : "/workouts");
   };
 
   const handleExit = () => {
