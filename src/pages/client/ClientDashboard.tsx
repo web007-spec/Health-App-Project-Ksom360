@@ -157,11 +157,11 @@ export default function ClientDashboard() {
               </CardContent>
             </Card>
           ) : (
-            <div className={todaysWorkouts.length > 1 ? "flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 scrollbar-hide" : ""}>
+            <div className={todaysWorkouts.length > 1 ? "flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 scrollbar-hide" : ""}>
               {todaysWorkouts.map((workout) => (
                 <Card
                   key={workout.id}
-                  className={`overflow-hidden cursor-pointer hover:shadow-md transition-shadow shrink-0 snap-start ${todaysWorkouts.length > 1 ? "w-[85%]" : "w-full"}`}
+                  className={`overflow-hidden cursor-pointer hover:shadow-md transition-shadow shrink-0 snap-center ${todaysWorkouts.length > 1 ? "w-[calc(100%-2rem)]" : "w-full"}`}
                   onClick={() => navigate("/client/workouts")}
                 >
                   <div className="relative h-44 bg-gradient-to-br from-primary/20 to-primary/5">
