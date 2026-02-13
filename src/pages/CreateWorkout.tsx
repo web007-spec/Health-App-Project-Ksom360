@@ -231,6 +231,8 @@ export default function CreateWorkout() {
   const [instructions, setInstructions] = useState("");
   const [category, setCategory] = useState("");
   const [difficulty, setDifficulty] = useState<"beginner" | "intermediate" | "advanced">("beginner");
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
 
   const [exerciseItems, setExerciseItems] = useState<WorkoutExercise[]>([]);
   const [groups, setGroups] = useState<ExerciseGroup[]>([]);
@@ -383,6 +385,21 @@ export default function CreateWorkout() {
 
   const createWorkoutMutation = useMutation({
     mutationFn: async () => {
+      // Upload cover image if provided
+      let imageUrl: string | null = null;
+      if (coverImage) {
+        const fileExt = coverImage.name.split('.').pop();
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('workout-covers')
+          .upload(fileName, coverImage);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage
+          .from('workout-covers')
+          .getPublicUrl(fileName);
+        imageUrl = urlData.publicUrl;
+      }
+
       const { data: workout, error: workoutError } = await supabase
         .from("workout_plans")
         .insert({
@@ -392,6 +409,7 @@ export default function CreateWorkout() {
           difficulty: difficulty,
           duration_minutes: calculatedDuration,
           trainer_id: user?.id,
+          image_url: imageUrl,
         })
         .select()
         .single();
@@ -636,7 +654,7 @@ export default function CreateWorkout() {
           </div>
 
           {/* Workout Settings */}
-          <div className="flex items-center gap-3 px-4 py-2 border-b text-xs">
+          <div className="flex items-center gap-3 px-4 py-2 border-b text-xs flex-wrap">
             <div className="flex items-center gap-1.5">
               <span className="text-muted-foreground">Category:</span>
               <Input
@@ -663,6 +681,38 @@ export default function CreateWorkout() {
               <span className="text-muted-foreground">Duration:</span>
               <span className="font-medium">{calculatedDuration} min</span>
               <span className="text-muted-foreground">(auto)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Cover:</span>
+              {coverImagePreview ? (
+                <div className="flex items-center gap-1">
+                  <img src={coverImagePreview} alt="Cover" className="h-7 w-10 object-cover rounded" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => { setCoverImage(null); setCoverImagePreview(null); }}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <label className="cursor-pointer">
+                  <span className="text-primary hover:underline text-xs">Upload</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setCoverImage(file);
+                        setCoverImagePreview(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
+                </label>
+              )}
             </div>
           </div>
 

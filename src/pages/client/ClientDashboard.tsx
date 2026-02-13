@@ -1,47 +1,42 @@
 import { ClientLayout } from "@/components/ClientLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Calendar, Dumbbell, TrendingUp, Apple, CheckCircle2, Clock, Target } from "lucide-react";
+import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { format, isToday, isTomorrow, parseISO } from "date-fns";
-
-const difficultyColors = {
-  beginner: "bg-success/10 text-success",
-  intermediate: "bg-accent/10 text-accent",
-  advanced: "bg-destructive/10 text-destructive",
-};
+import { format, isToday, parseISO } from "date-fns";
 
 export default function ClientDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // Check if profile is complete, redirect to onboarding if not
-  useQuery({
+  const { data: profile } = useQuery({
     queryKey: ["profile-check", user?.id],
     queryFn: async () => {
-      const { data: profile } = await supabase
+      const { data } = await supabase
         .from("profiles")
         .select("full_name")
         .eq("id", user?.id)
         .single();
 
-      if (!profile?.full_name || profile.full_name.trim() === '') {
+      if (!data?.full_name || data.full_name.trim() === '') {
         navigate("/client/onboarding");
       }
       
-      return profile;
+      return data;
     },
     enabled: !!user?.id,
   });
 
-  // Fetch client workouts
+  // Fetch today's workouts
   const { data: clientWorkouts } = useQuery({
-    queryKey: ["client-workouts-dashboard", user?.id],
+    queryKey: ["client-workouts-today", user?.id],
     queryFn: async () => {
+      const today = format(new Date(), "yyyy-MM-dd");
       const { data, error } = await supabase
         .from("client_workouts")
         .select(`
@@ -57,16 +52,17 @@ export default function ClientDashboard() {
     enabled: !!user?.id,
   });
 
-  // Fetch progress entries
-  const { data: progressEntries } = useQuery({
-    queryKey: ["progress-entries-recent", user?.id],
+  // Fetch today's tasks
+  const { data: tasks } = useQuery({
+    queryKey: ["client-tasks-today", user?.id],
     queryFn: async () => {
+      const today = format(new Date(), "yyyy-MM-dd");
       const { data, error } = await supabase
-        .from("progress_entries")
+        .from("client_tasks")
         .select("*")
         .eq("client_id", user?.id)
-        .order("entry_date", { ascending: false })
-        .limit(2);
+        .or(`due_date.eq.${today},due_date.is.null`)
+        .order("assigned_at", { ascending: false });
 
       if (error) throw error;
       return data;
@@ -91,240 +87,217 @@ export default function ClientDashboard() {
     enabled: !!user?.id,
   });
 
-  const totalWorkouts = clientWorkouts?.length || 0;
-  const completedWorkouts = clientWorkouts?.filter((w) => w.completed_at)?.length || 0;
-  const upcomingWorkouts = clientWorkouts?.filter((w) => !w.completed_at && w.scheduled_date) || [];
-  const nextWorkouts = upcomingWorkouts.slice(0, 3);
+  // Complete task mutation
+  const completeMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const { error } = await supabase
+        .from("client_tasks")
+        .update({ completed_at: new Date().toISOString() })
+        .eq("id", taskId)
+        .eq("client_id", user?.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client-tasks-today"] });
+    },
+  });
 
-  // Calculate nutrition totals
+  const firstName = profile?.full_name?.split(" ")[0] || "there";
+  const todayDate = format(new Date(), "EEEE, MMM d").toUpperCase();
+
+  // Today's workout (first uncompleted or today's scheduled)
+  const todaysWorkout = clientWorkouts?.find((w) => {
+    if (w.completed_at) return false;
+    if (w.scheduled_date && isToday(parseISO(w.scheduled_date))) return true;
+    return false;
+  }) || clientWorkouts?.find((w) => !w.completed_at);
+
+  const isRestDay = !todaysWorkout;
+
+  // Task stats
+  const pendingTasks = tasks?.filter((t) => !t.completed_at) || [];
+  const completedTaskCount = tasks?.filter((t) => t.completed_at)?.length || 0;
+  const totalTaskCount = tasks?.length || 0;
+
+  // Nutrition stats
+  const todayMealCount = todayNutrition?.length || 0;
   const todayCalories = todayNutrition?.reduce((sum, log) => sum + (log.calories || 0), 0) || 0;
-  const todayProtein = todayNutrition?.reduce((sum, log) => sum + (Number(log.protein) || 0), 0) || 0;
-
-  // Get weight trend
-  const latestWeight = progressEntries?.[0]?.weight;
-  const previousWeight = progressEntries?.[1]?.weight;
-  const weightChange = latestWeight && previousWeight ? latestWeight - previousWeight : null;
-
-  const getDateLabel = (dateString: string) => {
-    const date = parseISO(dateString);
-    if (isToday(date)) return "Today";
-    if (isTomorrow(date)) return "Tomorrow";
-    return format(date, "MMM d");
-  };
 
   return (
     <ClientLayout>
-      <div className="p-6 space-y-6">
-        {/* Welcome Header */}
+      <div className="p-4 pb-8 max-w-lg mx-auto space-y-5">
+        {/* Header */}
+        <div className="flex items-center justify-between pt-2">
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground tracking-wider">{todayDate}</p>
+            <h1 className="text-2xl font-bold mt-0.5">Hello, {firstName}! 👋</h1>
+            <p className="text-sm text-muted-foreground font-medium mt-0.5">Let's do this</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative"
+            onClick={() => navigate("/client/settings")}
+          >
+            <Bell className="h-5 w-5" />
+          </Button>
+        </div>
+
+        {/* Today's Workout */}
         <div>
-          <h1 className="text-3xl font-bold">Welcome Back!</h1>
-          <p className="text-muted-foreground mt-1">Here's your fitness overview</p>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Dumbbell className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Workouts</p>
-                  <p className="text-2xl font-bold">{totalWorkouts}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-success/10 rounded-lg">
-                  <CheckCircle2 className="h-5 w-5 text-success" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Completed</p>
-                  <p className="text-2xl font-bold">{completedWorkouts}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-accent/10 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-accent" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Weight</p>
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-2xl font-bold">
-                      {latestWeight ? `${latestWeight}kg` : "—"}
-                    </p>
-                    {weightChange !== null && (
-                      <span className={`text-xs ${weightChange > 0 ? "text-destructive" : "text-success"}`}>
-                        {weightChange > 0 ? "+" : ""}{weightChange.toFixed(1)}kg
-                      </span>
-                    )}
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+            Today's Workout
+          </h2>
+          {isRestDay ? (
+            <Card className="overflow-hidden">
+              <CardContent className="p-6 text-center">
+                <Dumbbell className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-lg font-semibold">Rest Day</p>
+                <p className="text-sm text-muted-foreground">No workouts scheduled for today. Enjoy your rest!</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card
+              className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => navigate("/client/workouts")}
+            >
+              {/* Workout Cover Image */}
+              <div className="relative h-44 bg-gradient-to-br from-primary/20 to-primary/5">
+                {todaysWorkout.workout_plan.image_url ? (
+                  <img
+                    src={todaysWorkout.workout_plan.image_url}
+                    alt={todaysWorkout.workout_plan.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Dumbbell className="h-16 w-16 text-primary/20" />
                   </div>
+                )}
+                {/* Overlay with workout name */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Today's Workout</p>
+                  <p className="text-lg font-bold text-white">{todaysWorkout.workout_plan.name}</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-500/10 rounded-lg">
-                  <Apple className="h-5 w-5 text-orange-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Today's Calories</p>
-                  <p className="text-2xl font-bold">{todayCalories}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Upcoming Workouts */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Upcoming Workouts
-                </CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => navigate("/client/workouts")}>
-                  View All
+              <CardContent className="p-3">
+                <Button className="w-full" size="lg" onClick={(e) => {
+                  e.stopPropagation();
+                  navigate("/client/workouts");
+                }}>
+                  Start Workout
                 </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {nextWorkouts.length > 0 ? (
-                nextWorkouts.map((workout) => (
-                  <div
-                    key={workout.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                    onClick={() => navigate("/client/workouts")}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{workout.workout_plan.name}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge
-                          variant="secondary"
-                          className={difficultyColors[workout.workout_plan.difficulty as keyof typeof difficultyColors]}
-                        >
-                          {workout.workout_plan.difficulty}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5" />
-                          {workout.workout_plan.duration_minutes}min
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right ml-3">
-                      <span className="text-sm font-medium text-primary">
-                        {workout.scheduled_date && getDateLabel(workout.scheduled_date)}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Tasks */}
+        {tasks && tasks.length > 0 && (
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+              Tasks ({completedTaskCount}/{totalTaskCount})
+            </h2>
+            <Card>
+              <CardContent className="p-0 divide-y divide-border">
+                {tasks.slice(0, 5).map((task) => {
+                  const isCompleted = !!task.completed_at;
+                  return (
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={() => {
+                        if (!isCompleted) completeMutation.mutate(task.id);
+                      }}
+                    >
+                      {isCompleted ? (
+                        <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                      ) : (
+                        <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
+                      )}
+                      <span className={`text-sm flex-1 ${isCompleted ? "line-through text-muted-foreground" : "font-medium"}`}>
+                        {task.name}
                       </span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                     </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No upcoming workouts scheduled</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  );
+                })}
+              </CardContent>
+            </Card>
+            {tasks.length > 5 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full mt-1 text-xs"
+                onClick={() => navigate("/client/tasks")}
+              >
+                View all tasks
+              </Button>
+            )}
+          </div>
+        )}
 
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5" />
-                Recent Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {completedWorkouts > 0 && (
-                <div className="flex items-start gap-3 p-3 border rounded-lg">
-                  <div className="p-2 bg-success/10 rounded-lg">
-                    <CheckCircle2 className="h-4 w-4 text-success" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">Workout Completed</p>
-                    <p className="text-sm text-muted-foreground">
-                      You've completed {completedWorkouts} workout{completedWorkouts > 1 ? "s" : ""}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {progressEntries && progressEntries.length > 0 && (
-                <div className="flex items-start gap-3 p-3 border rounded-lg">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <TrendingUp className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">Progress Updated</p>
-                    <p className="text-sm text-muted-foreground">
-                      Last logged on {format(parseISO(progressEntries[0].entry_date), "MMM d")}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {todayNutrition && todayNutrition.length > 0 && (
-                <div className="flex items-start gap-3 p-3 border rounded-lg">
-                  <div className="p-2 bg-orange-500/10 rounded-lg">
-                    <Apple className="h-4 w-4 text-orange-500" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">Nutrition Logged</p>
-                    <p className="text-sm text-muted-foreground">
-                      {todayNutrition.length} meal{todayNutrition.length > 1 ? "s" : ""} logged today
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {completedWorkouts === 0 && (!progressEntries || progressEntries.length === 0) && (!todayNutrition || todayNutrition.length === 0) && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No recent activity</p>
-                </div>
-              )}
+        {/* Food Journal */}
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+            Food Journal
+          </h2>
+          <Card
+            className="cursor-pointer hover:shadow-sm transition-shadow"
+            onClick={() => navigate("/client/nutrition")}
+          >
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-3 bg-orange-500/10 rounded-xl">
+                <UtensilsCrossed className="h-6 w-6 text-orange-500" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-sm">
+                  {todayMealCount > 0
+                    ? `${todayMealCount} meal${todayMealCount > 1 ? "s" : ""} logged • ${todayCalories} cal`
+                    : "What did you eat today?"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {todayMealCount > 0 ? "Tap to add more" : "Track your meals and macros"}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate("/client/nutrition");
+                }}
+              >
+                Add meal
+              </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 md:grid-cols-3">
-              <Button className="w-full gap-2" onClick={() => navigate("/client/workouts")}>
-                <Dumbbell className="h-4 w-4" />
-                Start Workout
-              </Button>
-              <Button variant="outline" className="w-full gap-2" onClick={() => navigate("/client/progress")}>
-                <TrendingUp className="h-4 w-4" />
-                Log Progress
-              </Button>
-              <Button variant="outline" className="w-full gap-2" onClick={() => navigate("/client/nutrition")}>
-                <Apple className="h-4 w-4" />
-                Log Meal
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Step Tracker / Health */}
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+            Step Tracker
+          </h2>
+          <Card
+            className="cursor-pointer hover:shadow-sm transition-shadow"
+            onClick={() => navigate("/client/health-connect")}
+          >
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-3 bg-blue-500/10 rounded-xl">
+                <Footprints className="h-6 w-6 text-blue-500" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-sm">Connect Health App</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Track your daily steps and activity
+                </p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </ClientLayout>
   );
