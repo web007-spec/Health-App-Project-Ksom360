@@ -2,7 +2,7 @@ import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle2, Circle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -46,6 +46,39 @@ export default function ClientCalendar() {
 
       if (error) throw error;
       return data;
+    },
+    enabled: !!clientId,
+  });
+
+  // Fetch tasks for the month
+  const { data: tasks } = useQuery({
+    queryKey: ["calendar-tasks", clientId, format(monthStart, "yyyy-MM")],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_tasks")
+        .select("*")
+        .eq("client_id", clientId)
+        .gte("due_date", format(monthStart, "yyyy-MM-dd"))
+        .lte("due_date", format(monthEnd, "yyyy-MM-dd"))
+        .order("due_date", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clientId,
+  });
+
+  // Fetch habits for the month
+  const { data: habits } = useQuery({
+    queryKey: ["calendar-habits", clientId, format(monthStart, "yyyy-MM")],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_habits")
+        .select("*")
+        .eq("client_id", clientId)
+        .eq("is_active", true)
+        .lte("start_date", format(monthEnd, "yyyy-MM-dd"));
+      if (error) throw error;
+      return data as any[];
     },
     enabled: !!clientId,
   });
@@ -127,6 +160,23 @@ export default function ClientCalendar() {
 
   const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
+  const getTasksForDay = (day: Date) => {
+    if (!tasks) return [];
+    return tasks.filter((t) => t.due_date && isSameDay(parseISO(t.due_date), day));
+  };
+
+  const getHabitsForDay = (day: Date) => {
+    if (!habits) return [];
+    const dateStr = format(day, "yyyy-MM-dd");
+    return habits.filter((h: any) => {
+      if (h.start_date > dateStr) return false;
+      if (h.end_date && h.end_date < dateStr) return false;
+      if (h.frequency === "daily") return true;
+      const startDay = new Date(h.start_date + "T00:00:00").getDay();
+      return day.getDay() === startDay;
+    });
+  };
+
   const getWorkoutsForDay = (day: Date) => {
     if (!workouts) return [];
     return workouts.filter((w) => w.scheduled_date && isSameDay(parseISO(w.scheduled_date), day));
@@ -154,8 +204,8 @@ export default function ClientCalendar() {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Workout Calendar</h1>
-            <p className="text-muted-foreground mt-1">View your scheduled workouts</p>
+            <h1 className="text-3xl font-bold text-foreground">Calendar</h1>
+            <p className="text-muted-foreground mt-1">View your scheduled workouts, tasks & habits</p>
           </div>
           <Button variant="outline" onClick={handleToday}>
             <CalendarIcon className="h-4 w-4 mr-2" />
@@ -190,6 +240,8 @@ export default function ClientCalendar() {
               {/* Calendar days */}
               {calendarDays.map((day) => {
                 const dayWorkouts = getWorkoutsForDay(day);
+                const dayTasks = getTasksForDay(day);
+                const dayHabits = getHabitsForDay(day);
                 const isCurrentMonth = isSameMonth(day, currentDate);
                 const isToday = isSameDay(day, new Date());
 
@@ -228,6 +280,37 @@ export default function ClientCalendar() {
                           </button>
                         );
                       })}
+                      {dayTasks.map((task) => {
+                        const isCompleted = !!task.completed_at;
+                        return (
+                          <div
+                            key={task.id}
+                            className={`w-full text-left text-xs p-1.5 rounded ${
+                              isCompleted
+                                ? "bg-success/20 text-success-foreground"
+                                : "bg-amber-500/20 text-amber-900 dark:text-amber-200"
+                            }`}
+                          >
+                            <div className="font-medium truncate flex items-center gap-1">
+                              {isCompleted ? <CheckCircle2 className="h-3 w-3 shrink-0" /> : <Circle className="h-3 w-3 shrink-0" />}
+                              {task.name}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {dayHabits.map((habit: any) => {
+                        const icon = habit.icon_url?.startsWith("emoji:") ? habit.icon_url.replace("emoji:", "") : "🎯";
+                        return (
+                          <div
+                            key={habit.id}
+                            className="w-full text-left text-xs p-1.5 rounded bg-violet-500/20 text-violet-900 dark:text-violet-200"
+                          >
+                            <div className="font-medium truncate">
+                              {icon} {habit.name}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -235,10 +318,18 @@ export default function ClientCalendar() {
             </div>
 
             {/* Legend */}
-            <div className="flex items-center gap-4 mt-6 pt-4 border-t border-border">
+            <div className="flex flex-wrap items-center gap-4 mt-6 pt-4 border-t border-border">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded bg-primary/20"></div>
-                <span className="text-sm text-muted-foreground">Scheduled</span>
+                <span className="text-sm text-muted-foreground">Workout</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-amber-500/20"></div>
+                <span className="text-sm text-muted-foreground">Task</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-violet-500/20"></div>
+                <span className="text-sm text-muted-foreground">Habit</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded bg-success/20"></div>
