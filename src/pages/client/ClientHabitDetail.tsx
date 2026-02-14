@@ -309,9 +309,13 @@ export default function ClientHabitDetail() {
                         className="w-14 h-14 rounded-xl flex items-center justify-center transition-all active:scale-95"
                         disabled={addCompletionMutation.isPending || removeCompletionMutation.isPending}
                       >
-                        <span className={`text-3xl transition-opacity ${isFilled ? "opacity-100" : "opacity-25 grayscale"}`}>
-                          💧
-                        </span>
+                        <svg width="32" height="32" viewBox="0 0 24 24" className="transition-all">
+                          <path d="M12 2C12 2 5 10 5 15a7 7 0 0 0 14 0c0-5-7-13-7-13z" 
+                            fill={isFilled ? "hsl(var(--primary))" : "hsl(var(--muted))"} 
+                            stroke={isFilled ? "hsl(var(--primary))" : "hsl(var(--muted-foreground)/0.3)"}
+                            strokeWidth="1"
+                          />
+                        </svg>
                       </button>
                     );
                   })}
