@@ -238,7 +238,9 @@ export function IngredientSearch({ ingredients, onIngredientsChange }: Ingredien
                       <p className="text-xs text-muted-foreground">by {food.brandOwner}</p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      per {food.servingSize || 100}{food.servingSizeUnit || "g"}
+                      {food.portions.length > 0
+                        ? `portions: ${food.portions.map(p => p.unit).slice(0, 2).join(', ')}`
+                        : `per ${food.servingSize || 100}${food.servingSizeUnit || "g"}`}
                     </p>
                   </div>
                   <div className="text-right ml-4 shrink-0">
