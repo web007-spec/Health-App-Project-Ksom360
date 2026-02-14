@@ -20,6 +20,7 @@ interface CreateClientTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onChooseFromLibrary: () => void;
+  onCreateHabit?: () => void;
 }
 
 const taskTypes = [
@@ -36,6 +37,7 @@ export function CreateClientTaskDialog({
   open,
   onOpenChange,
   onChooseFromLibrary,
+  onCreateHabit,
 }: CreateClientTaskDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -71,6 +73,11 @@ export function CreateClientTaskDialog({
   };
 
   const handleSelectType = (type: string) => {
+    if (type === "habit" && onCreateHabit) {
+      handleOpenChange(false);
+      onCreateHabit();
+      return;
+    }
     setSelectedType(type);
     setStep("form");
   };
