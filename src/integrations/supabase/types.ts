@@ -486,6 +486,64 @@ export type Database = {
           },
         ]
       }
+      client_metrics: {
+        Row: {
+          client_id: string
+          created_at: string
+          goal_value: number | null
+          id: string
+          is_pinned: boolean
+          metric_definition_id: string
+          order_index: number
+          starting_value: number | null
+          trainer_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          goal_value?: number | null
+          id?: string
+          is_pinned?: boolean
+          metric_definition_id: string
+          order_index?: number
+          starting_value?: number | null
+          trainer_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          goal_value?: number | null
+          id?: string
+          is_pinned?: boolean
+          metric_definition_id?: string
+          order_index?: number
+          starting_value?: number | null
+          trainer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_metrics_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_metrics_metric_definition_id_fkey"
+            columns: ["metric_definition_id"]
+            isOneToOne: false
+            referencedRelation: "metric_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_metrics_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_notes: {
         Row: {
           client_id: string
@@ -1632,6 +1690,89 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      metric_definitions: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          trainer_id: string | null
+          unit: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          trainer_id?: string | null
+          unit?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          trainer_id?: string | null
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metric_definitions_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      metric_entries: {
+        Row: {
+          client_id: string
+          client_metric_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          recorded_at: string
+          value: number
+        }
+        Insert: {
+          client_id: string
+          client_metric_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          recorded_at?: string
+          value: number
+        }
+        Update: {
+          client_id?: string
+          client_metric_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          recorded_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metric_entries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metric_entries_client_metric_id_fkey"
+            columns: ["client_metric_id"]
+            isOneToOne: false
+            referencedRelation: "client_metrics"
             referencedColumns: ["id"]
           },
         ]
