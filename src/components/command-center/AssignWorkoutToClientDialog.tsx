@@ -41,7 +41,7 @@ export function AssignWorkoutToClientDialog({ clientId, trainerId, open, onOpenC
   });
 
   const filteredWorkouts = workouts?.filter(w =>
-    w.name.toLowerCase().includes(search.toLowerCase())
+    w.name?.toLowerCase().includes(search.toLowerCase())
   ) || [];
 
   const assignMutation = useMutation({
