@@ -1,7 +1,7 @@
 import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight } from "lucide-react";
+import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,24 @@ export default function ClientDashboard() {
   // Carousel state
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+
+  // Install banner state
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  const [showInstallBanner, setShowInstallBanner] = useState(() => {
+    if (isStandalone) return false;
+    const dismissed = localStorage.getItem('installBannerDismissed');
+    if (dismissed) {
+      const days3 = 3 * 24 * 60 * 60 * 1000;
+      if (Date.now() - parseInt(dismissed, 10) < days3) return false;
+    }
+    return true;
+  });
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  const dismissInstallBanner = () => {
+    setShowInstallBanner(false);
+    localStorage.setItem('installBannerDismissed', Date.now().toString());
+  };
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;
@@ -161,6 +179,45 @@ export default function ClientDashboard() {
             <Bell className="h-5 w-5" />
           </Button>
         </div>
+
+        {/* Install App Banner */}
+        {showInstallBanner && (
+          <Card className="border-primary/30 bg-primary/5 overflow-hidden">
+            <CardContent className="p-4 relative">
+              <button
+                onClick={dismissInstallBanner}
+                className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 bg-primary/10 rounded-xl shrink-0">
+                  <Smartphone className="h-6 w-6 text-primary" />
+                </div>
+                <div className="pr-4">
+                  <p className="font-bold text-sm">📲 Install the app to get notifications</p>
+                  {isIOS ? (
+                    <div className="mt-1.5 space-y-1">
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Get workout reminders on your lock screen:
+                      </p>
+                      <ol className="text-xs text-muted-foreground list-decimal pl-4 space-y-0.5 leading-relaxed">
+                        <li>Tap the <span className="font-semibold text-foreground">Share</span> button <span className="inline-block">⬆️</span> in Safari</li>
+                        <li>Scroll down and tap <span className="font-semibold text-foreground">"Add to Home Screen"</span></li>
+                        <li>Open the app from your home screen</li>
+                        <li>Enable notifications in Settings</li>
+                      </ol>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      Add to your home screen for workout reminders, quick access, and offline use.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Today's Workouts */}
         <div>
