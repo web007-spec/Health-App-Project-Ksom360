@@ -45,7 +45,7 @@ export function ClientTasksTab({ clientId, trainerId }: Props) {
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
   const { data: tasks } = useQuery({
-    queryKey: ["client-tasks-all", clientId, format(weekStart, "yyyy-MM-dd"), format(weekEnd, "yyyy-MM-dd")],
+    queryKey: ["client-tasks-all", clientId, trainerId, format(weekStart, "yyyy-MM-dd"), format(weekEnd, "yyyy-MM-dd")],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_tasks")
@@ -58,10 +58,11 @@ export function ClientTasksTab({ clientId, trainerId }: Props) {
       if (error) throw error;
       return data;
     },
+    enabled: !!trainerId && !!clientId,
   });
 
   const { data: habits } = useQuery({
-    queryKey: ["client-habits", clientId],
+    queryKey: ["client-habits", clientId, trainerId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_habits" as any)
@@ -73,6 +74,7 @@ export function ClientTasksTab({ clientId, trainerId }: Props) {
       if (error) throw error;
       return data as any[];
     },
+    enabled: !!trainerId && !!clientId,
   });
 
   const { data: habitCompletions } = useQuery({
@@ -90,7 +92,7 @@ export function ClientTasksTab({ clientId, trainerId }: Props) {
   });
 
   const { data: unscheduledTasks } = useQuery({
-    queryKey: ["client-tasks-unscheduled", clientId],
+    queryKey: ["client-tasks-unscheduled", clientId, trainerId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_tasks")
@@ -102,6 +104,7 @@ export function ClientTasksTab({ clientId, trainerId }: Props) {
       if (error) throw error;
       return data;
     },
+    enabled: !!trainerId && !!clientId,
   });
 
   const endHabitMutation = useMutation({
