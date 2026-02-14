@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Send, Search, Plus, Image, Paperclip, Users, ArrowLeft, X, Pin, SearchIcon, Mic, Square, Reply } from "lucide-react";
+import { EmojiGifPicker } from "@/components/messaging/EmojiGifPicker";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -917,6 +918,10 @@ export default function Messages() {
               if (file) handleFileUpload(file, "file");
               e.target.value = "";
             }}
+          />
+          <EmojiGifPicker
+            onSelectEmoji={(emoji) => setMessageText((prev) => prev + emoji)}
+            onSelectGif={(gifUrl) => sendMutation.mutate({ image_url: gifUrl })}
           />
           <Button type="button" variant="ghost" size="icon" className="shrink-0 h-9 w-9" onClick={() => imageInputRef.current?.click()}>
             <Image className="h-4 w-4" />
