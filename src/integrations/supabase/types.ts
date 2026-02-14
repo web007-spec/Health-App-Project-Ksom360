@@ -840,8 +840,38 @@ export type Database = {
           },
         ]
       }
+      meal_plan_categories: {
+        Row: {
+          id: string
+          meal_plan_id: string
+          name: string
+          order_index: number
+        }
+        Insert: {
+          id?: string
+          meal_plan_id: string
+          name: string
+          order_index?: number
+        }
+        Update: {
+          id?: string
+          meal_plan_id?: string
+          name?: string
+          order_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_plan_categories_meal_plan_id_fkey"
+            columns: ["meal_plan_id"]
+            isOneToOne: false
+            referencedRelation: "meal_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meal_plan_days: {
         Row: {
+          day_of_week: number
           id: string
           meal_plan_id: string
           meal_type: Database["public"]["Enums"]["meal_type"]
@@ -850,8 +880,10 @@ export type Database = {
           plan_date: string
           recipe_id: string
           servings: number | null
+          week_number: number
         }
         Insert: {
+          day_of_week?: number
           id?: string
           meal_plan_id: string
           meal_type: Database["public"]["Enums"]["meal_type"]
@@ -860,8 +892,10 @@ export type Database = {
           plan_date: string
           recipe_id: string
           servings?: number | null
+          week_number?: number
         }
         Update: {
+          day_of_week?: number
           id?: string
           meal_plan_id?: string
           meal_type?: Database["public"]["Enums"]["meal_type"]
@@ -870,6 +904,7 @@ export type Database = {
           plan_date?: string
           recipe_id?: string
           servings?: number | null
+          week_number?: number
         }
         Relationships: [
           {
@@ -895,6 +930,7 @@ export type Database = {
           meal_type: Database["public"]["Enums"]["meal_type"]
           order_index: number | null
           recipe_id: string
+          week_number: number
         }
         Insert: {
           id?: string
@@ -902,6 +938,7 @@ export type Database = {
           meal_type: Database["public"]["Enums"]["meal_type"]
           order_index?: number | null
           recipe_id: string
+          week_number?: number
         }
         Update: {
           id?: string
@@ -909,6 +946,7 @@ export type Database = {
           meal_type?: Database["public"]["Enums"]["meal_type"]
           order_index?: number | null
           recipe_id?: string
+          week_number?: number
         }
         Relationships: [
           {
@@ -927,13 +965,56 @@ export type Database = {
           },
         ]
       }
+      meal_plan_notes: {
+        Row: {
+          content: string
+          created_at: string
+          day_of_week: number | null
+          id: string
+          meal_plan_id: string
+          note_type: string
+          updated_at: string
+          week_number: number
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          day_of_week?: number | null
+          id?: string
+          meal_plan_id: string
+          note_type: string
+          updated_at?: string
+          week_number?: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          day_of_week?: number | null
+          id?: string
+          meal_plan_id?: string
+          note_type?: string
+          updated_at?: string
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_plan_notes_meal_plan_id_fkey"
+            columns: ["meal_plan_id"]
+            isOneToOne: false
+            referencedRelation: "meal_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meal_plans: {
         Row: {
           created_at: string
           description: string | null
           id: string
           name: string
+          num_weeks: number
           plan_type: Database["public"]["Enums"]["meal_plan_type"]
+          status: string
           target_calories: number | null
           target_carbs: number | null
           target_fats: number | null
@@ -946,7 +1027,9 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          num_weeks?: number
           plan_type: Database["public"]["Enums"]["meal_plan_type"]
+          status?: string
           target_calories?: number | null
           target_carbs?: number | null
           target_fats?: number | null
@@ -959,7 +1042,9 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          num_weeks?: number
           plan_type?: Database["public"]["Enums"]["meal_plan_type"]
+          status?: string
           target_calories?: number | null
           target_carbs?: number | null
           target_fats?: number | null

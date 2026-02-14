@@ -20,6 +20,7 @@ const mainItems = [
   { title: "Tasks", url: "/client/tasks", icon: CheckSquare },
   { title: "Progress", url: "/client/progress", icon: TrendingUp },
   { title: "Health", url: "/client/health", icon: Heart },
+  { title: "Meal Plan", url: "/client/meal-plan", icon: Utensils },
   { title: "Nutrition", url: "/client/nutrition", icon: Utensils },
   { title: "Nutrition Dashboard", url: "/client/nutrition-dashboard", icon: Activity },
   { title: "Messages", url: "/messages", icon: MessageSquare },
