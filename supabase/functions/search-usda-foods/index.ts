@@ -157,13 +157,17 @@ serve(async (req) => {
       // Extract food portions/measures from search results
       const usdaPortions = (food.foodMeasures || food.foodPortions || []).map((p: any) => ({
         amount: p.amount || p.measureUnitNumber || 1,
-        unit: p.disseminationText || p.measureUnitName || p.modifier || 'serving',
+        unit: (p.disseminationText || p.measureUnitName || p.modifier || 'serving').trim(),
         gramWeight: p.gramWeight || 100,
-      })).filter((p: any) => p.gramWeight > 0 && p.unit !== 'Quantity not specified');
+      })).filter((p: any) => p.gramWeight > 0 && p.unit !== 'Quantity not specified' && p.unit !== 'serving');
 
-      // If no USDA portions, use smart common portions based on food name
+      // Use USDA portions first, then supplement with common portions
       const foodName = food.description || food.lowercaseDescription || '';
-      const portions = usdaPortions.length > 0 ? usdaPortions : getCommonPortions(foodName);
+      const commonPortions = getCommonPortions(foodName);
+      // Merge: USDA portions take priority, add common ones that don't duplicate
+      const existingUnits = new Set(usdaPortions.map((p: any) => p.unit.toLowerCase()));
+      const extraPortions = commonPortions.filter(cp => !existingUnits.has(cp.unit.toLowerCase()));
+      const portions = [...usdaPortions, ...extraPortions];
 
       let servingSizeUnit = food.servingSizeUnit || 'g';
       servingSizeUnit = servingSizeUnit.replace(/GRM/i, 'g').replace(/MLT/i, 'ml').replace(/UNT/i, 'unit');
@@ -187,8 +191,28 @@ serve(async (req) => {
     });
 
     // Sort: Foundation & SR Legacy first, then Branded
+    // Within same type, prefer "whole" and deprioritize parts like "white", "yolk", "dried"
     const dataTypePriority: Record<string, number> = { 'Foundation': 0, 'SR Legacy': 1, 'Branded': 2 };
-    foods.sort((a: any, b: any) => (dataTypePriority[a.dataType] ?? 2) - (dataTypePriority[b.dataType] ?? 2));
+    const queryLower = sanitizedQuery.toLowerCase();
+    foods.sort((a: any, b: any) => {
+      const typeDiff = (dataTypePriority[a.dataType] ?? 2) - (dataTypePriority[b.dataType] ?? 2);
+      if (typeDiff !== 0) return typeDiff;
+      // Within same data type, score by relevance
+      const scoreItem = (name: string) => {
+        const lower = name.toLowerCase();
+        const isDried = lower.includes('dried') || lower.includes('powder');
+        const isPart = lower.includes('white') || lower.includes('yolk');
+        // Penalize dried/powder forms heavily
+        if (isDried) return 4;
+        // Penalize parts (white, yolk) 
+        if (isPart) return 3;
+        // Prefer "whole" items
+        if (lower.includes('whole')) return 0;
+        // Normal items
+        return 1;
+      };
+      return scoreItem(a.name) - scoreItem(b.name);
+    });
     foods = foods.slice(0, clampedPageSize);
 
     return new Response(
