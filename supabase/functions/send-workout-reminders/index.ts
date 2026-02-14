@@ -114,21 +114,42 @@ serve(async (req) => {
 
     console.log(`Found ${remindersToSend.length} workout reminders to send`);
 
-    // Here you would integrate with your email service (Resend, SendGrid, etc.)
-    // For now, we'll just log the reminders that would be sent
+    // Send push notifications for each reminder
+    const pushResults = [];
+    for (const reminder of remindersToSend) {
+      try {
+        // Call the send-push-notification function
+        const pushResponse = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push-notification`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              user_ids: [reminder.client_id],
+              title: "🏋️ Workout Reminder",
+              body: `${reminder.workout_name} is coming up! ${reminder.duration_minutes} min ${reminder.category} workout`,
+              url: "/client/workouts",
+            }),
+          }
+        );
+        const pushResult = await pushResponse.json();
+        pushResults.push({ client: reminder.client_id, push: pushResult });
+      } catch (err) {
+        console.error(`Failed to send push for ${reminder.client_id}:`, err);
+      }
+    }
+
     const results = remindersToSend.map((reminder) => ({
       to: reminder.client_email,
       workout: reminder.workout_name,
       scheduled: reminder.scheduled_date,
-      status: "Email service not configured - would send here",
+      status: "processed",
     }));
 
     console.log("Reminder results:", JSON.stringify(results, null, 2));
-
-    // To actually send emails, you would need to:
-    // 1. Add RESEND_API_KEY secret
-    // 2. Import and use Resend library
-    // 3. Send emails using resend.emails.send()
 
     return new Response(
       JSON.stringify({
