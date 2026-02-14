@@ -1,13 +1,17 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquare } from "lucide-react";
+import { ArrowLeft, MessageSquare, Key, Trash2, Copy, Check, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ClientOverviewTab } from "@/components/command-center/ClientOverviewTab";
 import { ClientTrainingTab } from "@/components/command-center/ClientTrainingTab";
 import { ClientTasksTab } from "@/components/command-center/ClientTasksTab";
@@ -21,6 +25,12 @@ export default function ClientCommandCenter() {
   const { clientId } = useParams<{ clientId: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [credentialsOpen, setCredentialsOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const { data: clientData, isLoading } = useQuery({
     queryKey: ["client-detail", clientId],
@@ -45,6 +55,52 @@ export default function ClientCommandCenter() {
     active: "bg-green-500/10 text-green-700 dark:text-green-400",
     paused: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
     pending: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
+  };
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async () => {
+      const newPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
+      const { data, error } = await supabase.functions.invoke("delete-users", {
+        body: { action: "reset-password", userId: clientId, newPassword },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error("Failed to reset password");
+      return newPassword;
+    },
+    onSuccess: (password) => {
+      setGeneratedPassword(password);
+      setCredentialsOpen(true);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteClientMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("delete-users", {
+        body: { action: "delete", userId: clientId },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error("Failed to delete client");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      toast({ title: "Client deleted", description: "All client data has been removed." });
+      navigate("/clients");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleCopyCredentials = async () => {
+    if (!clientData?.client?.email || !generatedPassword) return;
+    const text = `Login URL: ${window.location.origin}/auth\nEmail: ${clientData.client.email}\nPassword: ${generatedPassword}`;
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   if (isLoading) {
@@ -107,15 +163,36 @@ export default function ClientCommandCenter() {
             </div>
             <p className="text-sm text-muted-foreground">{client?.email}</p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => navigate("/messages")}
-          >
-            <MessageSquare className="h-4 w-4" />
-            Message
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => resetPasswordMutation.mutate()}
+              disabled={resetPasswordMutation.isPending}
+            >
+              {resetPasswordMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Key className="h-4 w-4" />}
+              Credentials
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => navigate("/messages")}
+            >
+              <MessageSquare className="h-4 w-4" />
+              Message
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-2"
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </Button>
+          </div>
         </div>
 
         {/* Tabbed Command Center */}
@@ -153,6 +230,52 @@ export default function ClientCommandCenter() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Credentials Dialog */}
+      <Dialog open={credentialsOpen} onOpenChange={(open) => { setCredentialsOpen(open); if (!open) { setGeneratedPassword(null); setCopied(false); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Client Login Credentials</DialogTitle>
+            <DialogDescription>
+              A new password has been generated for <strong>{clientName}</strong>. Share these with your client.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-2 text-sm font-mono">
+            <div><span className="text-muted-foreground">Login URL:</span> {window.location.origin}/auth</div>
+            <div><span className="text-muted-foreground">Email:</span> {clientData?.client?.email}</div>
+            <div><span className="text-muted-foreground">Password:</span> {generatedPassword}</div>
+          </div>
+          <DialogFooter className="flex gap-2 sm:gap-0">
+            <Button variant="outline" onClick={handleCopyCredentials} className="gap-2 flex-1">
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied ? "Copied!" : "Copy Credentials"}
+            </Button>
+            <Button onClick={() => setCredentialsOpen(false)} className="flex-1">Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {clientName}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this client and all their data (workouts, tasks, nutrition logs, messages, etc.) from the system. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteClientMutation.mutate()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteClientMutation.isPending}
+            >
+              {deleteClientMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Deleting...</> : "Delete Client"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
