@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Dumbbell, MessageSquare, Camera, CheckSquare, Utensils, Activity, Target, Scale } from "lucide-react";
+import { RestDayCardEditor } from "./RestDayCardEditor";
 
 interface ClientSettingsTabProps {
   clientId: string;
@@ -137,6 +138,7 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
 
   return (
     <div className="space-y-6">
+      <RestDayCardEditor clientId={clientId} trainerId={trainerId} />
       <Card>
         <CardHeader>
           <CardTitle>Feature Settings</CardTitle>

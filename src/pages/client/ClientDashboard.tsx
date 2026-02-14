@@ -194,6 +194,21 @@ export default function ClientDashboard() {
   const firstName = profile?.full_name?.split(" ")[0] || "there";
   const todayDate = format(new Date(), "EEEE, MMM d").toUpperCase();
 
+  // Fetch custom rest day card
+  const { data: restDayCard } = useQuery({
+    queryKey: ["rest-day-card", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_rest_day_cards" as any)
+        .select("*")
+        .eq("client_id", clientId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+    enabled: !!clientId && settings.training_enabled,
+  });
+
   // Today's workouts
   const todaysWorkouts = clientWorkouts?.filter((w) => {
     if (w.completed_at) return false;
@@ -277,11 +292,26 @@ export default function ClientDashboard() {
             </h2>
             {isRestDay ? (
               <Card className="overflow-hidden">
-                <CardContent className="p-6 text-center">
-                  <Dumbbell className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-lg font-semibold">Rest Day</p>
-                  <p className="text-sm text-muted-foreground">No workouts scheduled for today. Enjoy your rest!</p>
-                </CardContent>
+                {restDayCard?.image_url ? (
+                  <div className="relative h-44">
+                    <img src={restDayCard.image_url} alt="Rest day" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Rest Day</p>
+                      <p className="text-base font-bold text-white">
+                        {restDayCard?.message || "No workouts scheduled for today. Enjoy your rest!"}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <CardContent className="p-6 text-center">
+                    <Dumbbell className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-lg font-semibold">Rest Day</p>
+                    <p className="text-sm text-muted-foreground">
+                      {restDayCard?.message || "No workouts scheduled for today. Enjoy your rest!"}
+                    </p>
+                  </CardContent>
+                )}
               </Card>
             ) : (
               <div>
