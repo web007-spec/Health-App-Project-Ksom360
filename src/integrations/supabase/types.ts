@@ -542,6 +542,36 @@ export type Database = {
           },
         ]
       }
+      client_rest_day_cards: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          image_url: string | null
+          message: string | null
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          message?: string | null
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          message?: string | null
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_tasks: {
         Row: {
           assigned_at: string
