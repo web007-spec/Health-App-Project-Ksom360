@@ -694,6 +694,8 @@ export type Database = {
           file_url: string | null
           id: string
           image_url: string | null
+          is_pinned: boolean
+          reply_to_id: string | null
           sender_id: string
         }
         Insert: {
@@ -704,6 +706,8 @@ export type Database = {
           file_url?: string | null
           id?: string
           image_url?: string | null
+          is_pinned?: boolean
+          reply_to_id?: string | null
           sender_id: string
         }
         Update: {
@@ -714,6 +718,8 @@ export type Database = {
           file_url?: string | null
           id?: string
           image_url?: string | null
+          is_pinned?: boolean
+          reply_to_id?: string | null
           sender_id?: string
         }
         Relationships: [
@@ -722,6 +728,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_messages"
             referencedColumns: ["id"]
           },
         ]
@@ -1374,6 +1387,38 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {
