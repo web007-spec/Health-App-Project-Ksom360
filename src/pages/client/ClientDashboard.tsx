@@ -96,6 +96,70 @@ export default function ClientDashboard() {
     enabled: !!user?.id && settings.tasks_enabled,
   });
 
+  // Fetch today's habits
+  const { data: habits } = useQuery({
+    queryKey: ["client-habits-today", user?.id],
+    queryFn: async () => {
+      const today = format(new Date(), "yyyy-MM-dd");
+      const { data, error } = await supabase
+        .from("client_habits")
+        .select("*")
+        .eq("client_id", user?.id)
+        .eq("is_active", true)
+        .lte("start_date", today);
+      if (error) throw error;
+      return (data as any[]).filter((h: any) => {
+        if (h.end_date && h.end_date < today) return false;
+        if (h.frequency === "daily") return true;
+        const startDay = new Date(h.start_date + "T00:00:00").getDay();
+        return new Date().getDay() === startDay;
+      });
+    },
+    enabled: !!user?.id && settings.tasks_enabled,
+  });
+
+  // Fetch today's habit completions
+  const { data: habitCompletions } = useQuery({
+    queryKey: ["client-habit-completions-today", user?.id],
+    queryFn: async () => {
+      const today = format(new Date(), "yyyy-MM-dd");
+      const { data, error } = await supabase
+        .from("habit_completions")
+        .select("*")
+        .eq("client_id", user?.id)
+        .eq("completion_date", today);
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!user?.id && settings.tasks_enabled,
+  });
+
+  // Toggle habit completion
+  const toggleHabitMutation = useMutation({
+    mutationFn: async ({ habitId, completed }: { habitId: string; completed: boolean }) => {
+      const today = format(new Date(), "yyyy-MM-dd");
+      if (completed) {
+        // Remove completion
+        const { error } = await supabase
+          .from("habit_completions")
+          .delete()
+          .eq("habit_id", habitId)
+          .eq("client_id", user?.id)
+          .eq("completion_date", today);
+        if (error) throw error;
+      } else {
+        // Add completion
+        const { error } = await supabase
+          .from("habit_completions")
+          .insert({ habit_id: habitId, client_id: user?.id!, completion_date: today });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client-habit-completions-today"] });
+    },
+  });
+
   // Fetch nutrition logs for today
   const { data: todayNutrition } = useQuery({
     queryKey: ["nutrition-today", user?.id],
@@ -306,6 +370,43 @@ export default function ClientDashboard() {
                 View all tasks
               </Button>
             )}
+          </div>
+        )}
+
+        {/* Habits - only if tasks enabled */}
+        {settings.tasks_enabled && habits && habits.length > 0 && (
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+              Today's Habits ({habits.filter((h: any) => habitCompletions?.some((c: any) => c.habit_id === h.id)).length}/{habits.length})
+            </h2>
+            <Card>
+              <CardContent className="p-0 divide-y divide-border">
+                {habits.map((habit: any) => {
+                  const isCompleted = habitCompletions?.some((c: any) => c.habit_id === habit.id);
+                  const icon = habit.icon_url?.startsWith("emoji:") ? habit.icon_url.replace("emoji:", "") : "🎯";
+                  return (
+                    <div
+                      key={habit.id}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={() => toggleHabitMutation.mutate({ habitId: habit.id, completed: !!isCompleted })}
+                    >
+                      {isCompleted ? (
+                        <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                      ) : (
+                        <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
+                      )}
+                      <span className="text-base shrink-0">{icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <span className={`text-sm ${isCompleted ? "line-through text-muted-foreground" : "font-medium"}`}>
+                          {habit.name}
+                        </span>
+                        <p className="text-xs text-muted-foreground">{habit.goal_value} {habit.goal_unit}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
           </div>
         )}
 
