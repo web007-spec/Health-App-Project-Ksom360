@@ -1,293 +1,280 @@
 import { ClientLayout } from "@/components/ClientLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Apple, Flame, TrendingUp, ScanBarcode } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, ChevronLeft, ChevronRight, Plus, UtensilsCrossed } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { format, subDays, addDays, parseISO } from "date-fns";
 import { useState } from "react";
-import { LogMealDialog } from "@/components/LogMealDialog";
-import { BarcodeScannerDialog } from "@/components/BarcodeScannerDialog";
-import { FoodPhotoAnalyzerDialog } from "@/components/FoodPhotoAnalyzerDialog";
-import { format, parseISO, subDays, startOfDay } from "date-fns";
-import { Progress } from "@/components/ui/progress";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 export default function ClientNutrition() {
   const { user } = useAuth();
-  const [logDialogOpen, setLogDialogOpen] = useState(false);
-  const [scannerOpen, setScannerOpen] = useState(false);
-  const [photoAnalyzerOpen, setPhotoAnalyzerOpen] = useState(false);
-  const [scannedProduct, setScannedProduct] = useState<{
-    name: string;
-    calories: number;
-    protein: number;
-    carbs: number;
-    fats: number;
-  } | null>(null);
+  const navigate = useNavigate();
+  const [viewDate, setViewDate] = useState(new Date());
+  const dateStr = format(viewDate, "yyyy-MM-dd");
+  const isToday = dateStr === format(new Date(), "yyyy-MM-dd");
 
-  const handleProductScanned = (productData: {
-    name: string;
-    calories: number;
-    protein: number;
-    carbs: number;
-    fats: number;
-  }) => {
-    setScannedProduct(productData);
-    setScannerOpen(false);
-    setLogDialogOpen(true);
-  };
-
-  const handlePhotoAnalyzed = (data: {
-    name: string;
-    calories: number;
-    protein: number;
-    carbs: number;
-    fats: number;
-  }) => {
-    setScannedProduct(data);
-    setPhotoAnalyzerOpen(false);
-    setLogDialogOpen(true);
-  };
-
-  // Fetch nutrition logs for last 7 days
-  const { data: nutritionLogs, isLoading } = useQuery({
-    queryKey: ["nutrition-logs", user?.id],
+  // Fetch nutrition logs for the selected date
+  const { data: dayLogs } = useQuery({
+    queryKey: ["nutrition-logs-day", user?.id, dateStr],
     queryFn: async () => {
-      const sevenDaysAgo = format(subDays(new Date(), 7), "yyyy-MM-dd");
-      const { data, error} = await supabase
+      const { data, error } = await supabase
         .from("nutrition_logs")
         .select("*")
         .eq("client_id", user?.id)
-        .gte("log_date", sevenDaysAgo)
-        .order("log_date", { ascending: false });
-
+        .eq("log_date", dateStr)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
     enabled: !!user?.id,
   });
 
-  // Get today's logs
-  const today = format(new Date(), "yyyy-MM-dd");
-  const todayLogs = nutritionLogs?.filter((log) => log.log_date === today) || [];
+  // Fetch macro targets
+  const { data: macroTargets } = useQuery({
+    queryKey: ["client-macro-targets", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_macro_targets")
+        .select("*")
+        .eq("client_id", user?.id!)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
-  // Calculate today's totals
-  const todayTotals = {
-    calories: todayLogs.reduce((sum, log) => sum + (log.calories || 0), 0),
-    protein: todayLogs.reduce((sum, log) => sum + (Number(log.protein) || 0), 0),
-    carbs: todayLogs.reduce((sum, log) => sum + (Number(log.carbs) || 0), 0),
-    fats: todayLogs.reduce((sum, log) => sum + (Number(log.fats) || 0), 0),
+  const totals = {
+    calories: dayLogs?.reduce((s, l) => s + (l.calories || 0), 0) || 0,
+    protein: dayLogs?.reduce((s, l) => s + (Number(l.protein) || 0), 0) || 0,
+    carbs: dayLogs?.reduce((s, l) => s + (Number(l.carbs) || 0), 0) || 0,
+    fats: dayLogs?.reduce((s, l) => s + (Number(l.fats) || 0), 0) || 0,
   };
 
-  // Goals (these could come from user settings in a real app)
   const goals = {
-    calories: 2000,
-    protein: 150,
-    carbs: 200,
-    fats: 65,
+    calories: macroTargets?.target_calories || 2000,
+    protein: Number(macroTargets?.target_protein) || 150,
+    carbs: Number(macroTargets?.target_carbs) || 200,
+    fats: Number(macroTargets?.target_fats) || 65,
   };
 
-  // Group logs by date
-  const logsByDate = nutritionLogs?.reduce((acc, log) => {
-    const date = log.log_date;
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(log);
-    return acc;
-  }, {} as Record<string, typeof nutritionLogs>);
+  const pctOfGoal = goals.calories > 0 ? Math.round((totals.calories / goals.calories) * 100) : 0;
 
-  if (isLoading) {
-    return (
-      <ClientLayout>
-        <div className="p-6 flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading nutrition data...</p>
-          </div>
-        </div>
-      </ClientLayout>
-    );
-  }
+  // Macro distribution (actual % of total calories)
+  const totalMacroCals = totals.protein * 4 + totals.carbs * 4 + totals.fats * 9;
+  const goalMacroCals = goals.protein * 4 + goals.carbs * 4 + goals.fats * 9;
+  const actualDist = {
+    protein: totalMacroCals > 0 ? Math.round((totals.protein * 4 / totalMacroCals) * 100) : 0,
+    carbs: totalMacroCals > 0 ? Math.round((totals.carbs * 4 / totalMacroCals) * 100) : 0,
+    fats: totalMacroCals > 0 ? Math.round((totals.fats * 9 / totalMacroCals) * 100) : 0,
+  };
+  const goalDist = {
+    protein: goalMacroCals > 0 ? Math.round((goals.protein * 4 / goalMacroCals) * 100) : 0,
+    carbs: goalMacroCals > 0 ? Math.round((goals.carbs * 4 / goalMacroCals) * 100) : 0,
+    fats: goalMacroCals > 0 ? Math.round((goals.fats * 9 / goalMacroCals) * 100) : 0,
+  };
+
+  const macroColors = { protein: "#6366f1", carbs: "#22c55e", fats: "#eab308" };
+
+  const donutData = [
+    { value: Math.min(totals.protein * 4, goals.protein * 4), color: macroColors.protein },
+    { value: Math.min(totals.carbs * 4, goals.carbs * 4), color: macroColors.carbs },
+    { value: Math.min(totals.fats * 9, goals.fats * 9), color: macroColors.fats },
+    { value: Math.max(goals.calories - totals.calories, 0), color: "hsl(var(--muted))" },
+  ];
 
   return (
     <ClientLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Nutrition Tracking</h1>
-            <p className="text-muted-foreground mt-1">Monitor your daily nutrition</p>
+      <div className="flex flex-col min-h-screen">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b bg-background sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-xl font-bold">Nutrition</h1>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="gap-2" onClick={() => setScannerOpen(true)}>
-              <ScanBarcode className="h-4 w-4" />
-              Scan Barcode
-            </Button>
-            <Button variant="outline" className="gap-2" onClick={() => setPhotoAnalyzerOpen(true)}>
-              📸 Photo Analysis
-            </Button>
-            <Button className="gap-2" onClick={() => setLogDialogOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Log Meal
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" className="gap-1" onClick={() => navigate("/client/log-meal")}>
+            <Plus className="h-3.5 w-3.5" /> Log meal
+          </Button>
         </div>
 
-        {/* Today's Summary */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground flex items-center gap-2">
-                    <Flame className="h-4 w-4 text-orange-500" />
-                    Calories
-                  </p>
-                  <p className="text-sm font-medium">
-                    {todayTotals.calories} / {goals.calories}
-                  </p>
-                </div>
-                <Progress value={(todayTotals.calories / goals.calories) * 100} className="h-2" />
-                <p className="text-2xl font-bold">{todayTotals.calories}</p>
-              </div>
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="summary" className="flex-1">
+          <TabsList className="mx-4 mt-3 grid grid-cols-2 w-auto">
+            <TabsTrigger value="summary">📊 Summary</TabsTrigger>
+            <TabsTrigger value="journal">🍴 Journal</TabsTrigger>
+          </TabsList>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">Protein (g)</p>
-                  <p className="text-sm font-medium">
-                    {todayTotals.protein.toFixed(1)} / {goals.protein}
-                  </p>
-                </div>
-                <Progress value={(todayTotals.protein / goals.protein) * 100} className="h-2" />
-                <p className="text-2xl font-bold">{todayTotals.protein.toFixed(1)}g</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">Carbs (g)</p>
-                  <p className="text-sm font-medium">
-                    {todayTotals.carbs.toFixed(1)} / {goals.carbs}
-                  </p>
-                </div>
-                <Progress value={(todayTotals.carbs / goals.carbs) * 100} className="h-2" />
-                <p className="text-2xl font-bold">{todayTotals.carbs.toFixed(1)}g</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">Fats (g)</p>
-                  <p className="text-sm font-medium">
-                    {todayTotals.fats.toFixed(1)} / {goals.fats}
-                  </p>
-                </div>
-                <Progress value={(todayTotals.fats / goals.fats) * 100} className="h-2" />
-                <p className="text-2xl font-bold">{todayTotals.fats.toFixed(1)}g</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Meal Log */}
-        {logsByDate && Object.keys(logsByDate).length > 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Meals</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {Object.entries(logsByDate).map(([date, logs]) => (
-                <div key={date} className="space-y-3">
-                  <h3 className="font-semibold text-sm text-muted-foreground">
-                    {date === today ? "Today" : format(parseISO(date), "EEEE, MMM d")}
-                  </h3>
-                  <div className="space-y-2">
-                    {logs.map((log) => (
-                      <div key={log.id} className="p-4 border rounded-lg">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="font-medium">{log.meal_name}</p>
-                            {log.notes && (
-                              <p className="text-sm text-muted-foreground mt-1">{log.notes}</p>
-                            )}
-                          </div>
-                          {log.calories && (
-                            <div className="flex items-center gap-1 text-sm font-medium text-orange-500">
-                              <Flame className="h-4 w-4" />
-                              {log.calories}
-                            </div>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-3 gap-3 text-sm">
-                          {log.protein && (
-                            <div>
-                              <p className="text-muted-foreground">Protein</p>
-                              <p className="font-medium">{log.protein}g</p>
-                            </div>
-                          )}
-                          {log.carbs && (
-                            <div>
-                              <p className="text-muted-foreground">Carbs</p>
-                              <p className="font-medium">{log.carbs}g</p>
-                            </div>
-                          )}
-                          {log.fats && (
-                            <div>
-                              <p className="text-muted-foreground">Fats</p>
-                              <p className="font-medium">{log.fats}g</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Apple className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No meals logged yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Start tracking your nutrition to reach your fitness goals
-              </p>
-              <Button onClick={() => setLogDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Log Your First Meal
+          {/* Summary Tab */}
+          <TabsContent value="summary" className="px-4 mt-3 space-y-6 pb-8">
+            {/* Date nav */}
+            <div className="flex items-center justify-between">
+              <Button variant="ghost" size="icon" onClick={() => setViewDate(subDays(viewDate, 1))}>
+                <ChevronLeft className="h-5 w-5" />
               </Button>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+              <div className="text-center">
+                <p className="font-semibold">Daily View</p>
+                <p className="text-xs text-muted-foreground">{isToday ? "Today" : format(viewDate, "MMM d, yyyy")}</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setViewDate(addDays(viewDate, 1))} disabled={isToday}>
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
 
-      <BarcodeScannerDialog
-        open={scannerOpen}
-        onOpenChange={setScannerOpen}
-        onProductScanned={handleProductScanned}
-      />
-      <FoodPhotoAnalyzerDialog
-        open={photoAnalyzerOpen}
-        onOpenChange={setPhotoAnalyzerOpen}
-        onAnalysisComplete={handlePhotoAnalyzed}
-      />
-      <LogMealDialog
-        open={logDialogOpen}
-        onOpenChange={(open) => {
-          setLogDialogOpen(open);
-          if (!open) setScannedProduct(null);
-        }}
-        prefilledData={scannedProduct || undefined}
-      />
+            {/* Donut chart */}
+            <div className="flex justify-center">
+              <div className="relative w-48 h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={donutData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={85}
+                      startAngle={90}
+                      endAngle={-270}
+                      paddingAngle={2}
+                      dataKey="value"
+                      strokeWidth={0}
+                    >
+                      {donutData.map((d, i) => (
+                        <Cell key={i} fill={d.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-3xl font-bold">{pctOfGoal}%</span>
+                  <span className="text-xs text-muted-foreground">of daily goals</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Consumed summary */}
+            <div className="text-center">
+              <p className="font-semibold">You have consumed</p>
+              <p className="text-lg">
+                <span className="font-bold text-primary">{totals.calories} Cal</span>
+                <span className="text-muted-foreground"> / {goals.calories.toLocaleString()} Cal</span>
+              </p>
+            </div>
+
+            {/* Macro table */}
+            <Card>
+              <CardContent className="p-0">
+                <div className="grid grid-cols-4 gap-0 text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-2 border-b">
+                  <span>Macro</span>
+                  <span className="text-center">Consumed</span>
+                  <span className="text-center font-bold">Remaining</span>
+                  <span className="text-right">Goal</span>
+                </div>
+                {[
+                  { name: "Protein", consumed: totals.protein, goal: goals.protein, color: macroColors.protein },
+                  { name: "Carbs", consumed: totals.carbs, goal: goals.carbs, color: macroColors.carbs },
+                  { name: "Fat", consumed: totals.fats, goal: goals.fats, color: macroColors.fats },
+                ].map((m) => (
+                  <div key={m.name} className="grid grid-cols-4 gap-0 px-4 py-3 border-b last:border-b-0 items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: m.color }} />
+                      <span className="text-sm font-medium">{m.name}</span>
+                    </div>
+                    <span className="text-sm text-center">{Math.round(m.consumed)} g</span>
+                    <span className="text-sm text-center font-bold">{Math.max(Math.round(m.goal - m.consumed), 0)} g</span>
+                    <span className="text-sm text-right text-muted-foreground">{Math.round(m.goal)} g</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Macro distribution */}
+            <div>
+              <h3 className="font-bold mb-3">Macro distribution</h3>
+              <Card>
+                <CardContent className="p-0">
+                  <div className="grid grid-cols-3 gap-0 text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 py-2 border-b">
+                    <span>Macro</span>
+                    <span className="text-center">Actual</span>
+                    <span className="text-right">Goal</span>
+                  </div>
+                  {[
+                    { name: "Protein", actual: actualDist.protein, goal: goalDist.protein, color: macroColors.protein },
+                    { name: "Carbs", actual: actualDist.carbs, goal: goalDist.carbs, color: macroColors.carbs },
+                    { name: "Fat", actual: actualDist.fats, goal: goalDist.fats, color: macroColors.fats },
+                  ].map((m) => (
+                    <div key={m.name} className="grid grid-cols-3 gap-0 px-4 py-3 border-b last:border-b-0 items-center">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: m.color }} />
+                        <span className="text-sm font-medium">{m.name}</span>
+                      </div>
+                      <span className="text-sm text-center font-bold">{m.actual}%</span>
+                      <span className="text-sm text-right text-muted-foreground">{m.goal}%</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Journal Tab */}
+          <TabsContent value="journal" className="px-4 mt-3 space-y-4 pb-8">
+            {/* Date nav */}
+            <div className="flex items-center justify-between">
+              <Button variant="ghost" size="icon" onClick={() => setViewDate(subDays(viewDate, 1))}>
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <div className="text-center">
+                <p className="font-semibold">Daily View</p>
+                <p className="text-xs text-muted-foreground">{isToday ? "Today" : format(viewDate, "MMM d, yyyy")}</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setViewDate(addDays(viewDate, 1))} disabled={isToday}>
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+
+            <h3 className="font-bold flex items-center gap-2">
+              Your meals <span className="text-sm text-muted-foreground font-normal">🍴 {dayLogs?.length || 0}</span>
+            </h3>
+
+            {dayLogs && dayLogs.length > 0 ? (
+              <div className="space-y-3">
+                {dayLogs.map((log) => (
+                  <div key={log.id}>
+                    <p className="text-xs text-muted-foreground mb-1">{format(parseISO(log.created_at), "h:mm a")}</p>
+                    <Card>
+                      <CardContent className="p-3">
+                        <p className="font-semibold text-sm">{log.meal_name}</p>
+                        <div className="flex items-center gap-2 mt-1 text-xs">
+                          <span>🔥 {log.calories || 0} Cal</span>
+                          {log.protein && <><span className="text-muted-foreground">|</span><span><span className="font-bold" style={{ color: "#6366f1" }}>P</span> {log.protein} g</span></>}
+                          {log.carbs && <><span><span className="font-bold" style={{ color: "#22c55e" }}>C</span> {log.carbs} g</span></>}
+                          {log.fats && <><span><span className="font-bold" style={{ color: "#eab308" }}>F</span> {log.fats} g</span></>}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="py-8 text-center">
+                  <UtensilsCrossed className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No meals logged for this day</p>
+                  <Button className="mt-3" size="sm" onClick={() => navigate("/client/log-meal")}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Log Meal
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
     </ClientLayout>
   );
 }

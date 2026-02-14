@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { format, isToday, parseISO } from "date-fns";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useClientFeatureSettings } from "@/hooks/useClientFeatureSettings";
-import { LogMealDialog } from "@/components/LogMealDialog";
+
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 export default function ClientDashboard() {
@@ -194,7 +194,7 @@ export default function ClientDashboard() {
     enabled: !!clientId && settings.macros_enabled,
   });
 
-  const [logMealOpen, setLogMealOpen] = useState(false);
+  
 
   // Complete task mutation
   const completeMutation = useMutation({
@@ -490,7 +490,7 @@ export default function ClientDashboard() {
                 <Pencil className="h-3 w-3" /> Edit
               </Button>
             </div>
-            <Card>
+            <Card className="cursor-pointer hover:shadow-sm transition-shadow" onClick={() => navigate("/client/nutrition")}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                   {/* Mini donut chart */}
@@ -560,7 +560,7 @@ export default function ClientDashboard() {
                 <Button
                   variant="outline"
                   className="w-full mt-3 gap-1"
-                  onClick={(e) => { e.stopPropagation(); setLogMealOpen(true); }}
+                  onClick={(e) => { e.stopPropagation(); navigate("/client/log-meal"); }}
                 >
                   <Plus className="h-3.5 w-3.5" /> Log meal
                 </Button>
@@ -616,7 +616,7 @@ export default function ClientDashboard() {
         )}
       </div>
 
-      <LogMealDialog open={logMealOpen} onOpenChange={setLogMealOpen} />
+      
     </ClientLayout>
   );
 }
