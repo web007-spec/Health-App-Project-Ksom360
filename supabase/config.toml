@@ -2,3 +2,9 @@ project_id = "eexxmfuknqttujecbcho"
 
 [functions.send-health-notification]
 verify_jwt = false
+
+[functions.search-usda-foods]
+verify_jwt = false
+
+[functions.analyze-food-photo]
+verify_jwt = false
