@@ -1,0 +1,54 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+
+export interface ClientFeatureSettings {
+  training_enabled: boolean;
+  workout_comments_enabled: boolean;
+  activity_logging_enabled: boolean;
+  progress_photos_enabled: boolean;
+  tasks_enabled: boolean;
+  messages_enabled: boolean;
+  food_journal_enabled: boolean;
+  macros_enabled: boolean;
+  body_metrics_enabled: boolean;
+  goals_enabled: boolean;
+}
+
+const DEFAULT_SETTINGS: ClientFeatureSettings = {
+  training_enabled: true,
+  workout_comments_enabled: true,
+  activity_logging_enabled: true,
+  progress_photos_enabled: true,
+  tasks_enabled: true,
+  messages_enabled: true,
+  food_journal_enabled: true,
+  macros_enabled: true,
+  body_metrics_enabled: true,
+  goals_enabled: true,
+};
+
+export function useClientFeatureSettings() {
+  const { user } = useAuth();
+
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ["my-feature-settings", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_feature_settings")
+        .select("*")
+        .eq("client_id", user?.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as ClientFeatureSettings | null;
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  return {
+    settings: settings || DEFAULT_SETTINGS,
+    isLoading,
+  };
+}

@@ -8,11 +8,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { format, isToday, parseISO } from "date-fns";
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useClientFeatureSettings } from "@/hooks/useClientFeatureSettings";
 
 export default function ClientDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { settings } = useClientFeatureSettings();
 
   // Carousel state
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -68,17 +70,13 @@ export default function ClientDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_workouts")
-        .select(`
-          *,
-          workout_plan:workout_plans(*)
-        `)
+        .select(`*, workout_plan:workout_plans(*)`)
         .eq("client_id", user?.id)
         .order("scheduled_date", { ascending: true });
-
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && settings.training_enabled,
   });
 
   // Fetch today's tasks
@@ -92,11 +90,10 @@ export default function ClientDashboard() {
         .eq("client_id", user?.id)
         .or(`due_date.eq.${today},due_date.is.null`)
         .order("assigned_at", { ascending: false });
-
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && settings.tasks_enabled,
   });
 
   // Fetch nutrition logs for today
@@ -109,11 +106,10 @@ export default function ClientDashboard() {
         .select("*")
         .eq("client_id", user?.id)
         .eq("log_date", today);
-
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && settings.food_journal_enabled,
   });
 
   // Complete task mutation
@@ -134,7 +130,7 @@ export default function ClientDashboard() {
   const firstName = profile?.full_name?.split(" ")[0] || "there";
   const todayDate = format(new Date(), "EEEE, MMM d").toUpperCase();
 
-  // Today's workouts (all uncompleted scheduled for today)
+  // Today's workouts
   const todaysWorkouts = clientWorkouts?.filter((w) => {
     if (w.completed_at) return false;
     if (w.scheduled_date && isToday(parseISO(w.scheduled_date))) return true;
@@ -170,12 +166,7 @@ export default function ClientDashboard() {
             <h1 className="text-2xl font-bold mt-0.5">Hello, {firstName}! 👋</h1>
             <p className="text-sm text-muted-foreground font-medium mt-0.5">Let's do this</p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative"
-            onClick={() => navigate("/client/settings")}
-          >
+          <Button variant="ghost" size="icon" className="relative" onClick={() => navigate("/client/settings")}>
             <Bell className="h-5 w-5" />
           </Button>
         </div>
@@ -184,10 +175,7 @@ export default function ClientDashboard() {
         {showInstallBanner && (
           <Card className="border-primary/30 bg-primary/5 overflow-hidden">
             <CardContent className="p-4 relative">
-              <button
-                onClick={dismissInstallBanner}
-                className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
-              >
+              <button onClick={dismissInstallBanner} className="absolute top-2 right-2 text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />
               </button>
               <div className="flex items-start gap-3">
@@ -198,9 +186,7 @@ export default function ClientDashboard() {
                   <p className="font-bold text-sm">📲 Install the app to get notifications</p>
                   {isIOS ? (
                     <div className="mt-1.5 space-y-1">
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        Get workout reminders on your lock screen:
-                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">Get workout reminders on your lock screen:</p>
                       <ol className="text-xs text-muted-foreground list-decimal pl-4 space-y-0.5 leading-relaxed">
                         <li>Tap the <span className="font-semibold text-foreground">Share</span> button <span className="inline-block">⬆️</span> in Safari</li>
                         <li>Scroll down and tap <span className="font-semibold text-foreground">"Add to Home Screen"</span></li>
@@ -219,86 +205,74 @@ export default function ClientDashboard() {
           </Card>
         )}
 
-        {/* Today's Workouts */}
-        <div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-            Today's Workout{hasMultiple ? "s" : ""}
-          </h2>
-          {isRestDay ? (
-            <Card className="overflow-hidden">
-              <CardContent className="p-6 text-center">
-                <Dumbbell className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-lg font-semibold">Rest Day</p>
-                <p className="text-sm text-muted-foreground">No workouts scheduled for today. Enjoy your rest!</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div>
-              <div
-                ref={scrollRef}
-                className={hasMultiple ? "flex overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-hide" : ""}
-              >
-                {todaysWorkouts.map((workout) => (
-                  <Card
-                    key={workout.id}
-                    className={`overflow-hidden cursor-pointer hover:shadow-md transition-all duration-300 shrink-0 snap-center ${hasMultiple ? "w-full min-w-full" : "w-full"}`}
-                    onClick={() => navigate(`/client/workouts/${workout.workout_plan_id}`)}
-                  >
-                    <div className="relative h-44 bg-gradient-to-br from-primary/20 to-primary/5">
-                      {workout.workout_plan?.image_url ? (
-                        <img
-                          src={workout.workout_plan.image_url}
-                          alt={workout.workout_plan.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Dumbbell className="h-16 w-16 text-primary/20" />
+        {/* Today's Workouts - only if training enabled */}
+        {settings.training_enabled && (
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+              Today's Workout{hasMultiple ? "s" : ""}
+            </h2>
+            {isRestDay ? (
+              <Card className="overflow-hidden">
+                <CardContent className="p-6 text-center">
+                  <Dumbbell className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-lg font-semibold">Rest Day</p>
+                  <p className="text-sm text-muted-foreground">No workouts scheduled for today. Enjoy your rest!</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div>
+                <div ref={scrollRef} className={hasMultiple ? "flex overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-hide" : ""}>
+                  {todaysWorkouts.map((workout) => (
+                    <Card
+                      key={workout.id}
+                      className={`overflow-hidden cursor-pointer hover:shadow-md transition-all duration-300 shrink-0 snap-center ${hasMultiple ? "w-full min-w-full" : "w-full"}`}
+                      onClick={() => navigate(`/client/workouts/${workout.workout_plan_id}`)}
+                    >
+                      <div className="relative h-44 bg-gradient-to-br from-primary/20 to-primary/5">
+                        {workout.workout_plan?.image_url ? (
+                          <img src={workout.workout_plan.image_url} alt={workout.workout_plan.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Dumbbell className="h-16 w-16 text-primary/20" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                          <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Today's Workout</p>
+                          <p className="text-lg font-bold text-white">{workout.workout_plan?.name}</p>
                         </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Today's Workout</p>
-                        <p className="text-lg font-bold text-white">{workout.workout_plan?.name}</p>
                       </div>
-                    </div>
-                    <CardContent className="p-3">
-                      <Button className="w-full" size="lg" variant="outline" onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/client/workouts/${workout.workout_plan_id}`);
-                      }}>
-                        View Workout
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {/* Dot indicators */}
-              {hasMultiple && (
-                <div className="flex justify-center gap-1.5 mt-3">
-                  {todaysWorkouts.map((_, i) => (
-                    <button
-                      key={i}
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        i === activeIndex ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30"
-                      }`}
-                      onClick={() => {
-                        scrollRef.current?.scrollTo({
-                          left: i * (scrollRef.current?.clientWidth || 0),
-                          behavior: "smooth",
-                        });
-                      }}
-                    />
+                      <CardContent className="p-3">
+                        <Button className="w-full" size="lg" variant="outline" onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/client/workouts/${workout.workout_plan_id}`);
+                        }}>
+                          View Workout
+                        </Button>
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+                {hasMultiple && (
+                  <div className="flex justify-center gap-1.5 mt-3">
+                    {todaysWorkouts.map((_, i) => (
+                      <button
+                        key={i}
+                        className={`h-2 rounded-full transition-all duration-300 ${i === activeIndex ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30"}`}
+                        onClick={() => {
+                          scrollRef.current?.scrollTo({ left: i * (scrollRef.current?.clientWidth || 0), behavior: "smooth" });
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Tasks */}
-        {tasks && tasks.length > 0 && (
+        {/* Tasks - only if tasks enabled */}
+        {settings.tasks_enabled && tasks && tasks.length > 0 && (
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
               Tasks ({completedTaskCount}/{totalTaskCount})
@@ -311,9 +285,7 @@ export default function ClientDashboard() {
                     <div
                       key={task.id}
                       className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
-                      onClick={() => {
-                        if (!isCompleted) completeMutation.mutate(task.id);
-                      }}
+                      onClick={() => { if (!isCompleted) completeMutation.mutate(task.id); }}
                     >
                       {isCompleted ? (
                         <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
@@ -330,78 +302,58 @@ export default function ClientDashboard() {
               </CardContent>
             </Card>
             {tasks.length > 5 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full mt-1 text-xs"
-                onClick={() => navigate("/client/tasks")}
-              >
+              <Button variant="ghost" size="sm" className="w-full mt-1 text-xs" onClick={() => navigate("/client/tasks")}>
                 View all tasks
               </Button>
             )}
           </div>
         )}
 
-        {/* Food Journal */}
-        <div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-            Food Journal
-          </h2>
-          <Card
-            className="cursor-pointer hover:shadow-sm transition-shadow"
-            onClick={() => navigate("/client/nutrition")}
-          >
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-accent/10 rounded-xl">
-                <UtensilsCrossed className="h-6 w-6 text-accent" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-sm">
-                  {todayMealCount > 0
-                    ? `${todayMealCount} meal${todayMealCount > 1 ? "s" : ""} logged • ${todayCalories} cal`
-                    : "What did you eat today?"}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {todayMealCount > 0 ? "Tap to add more" : "Track your meals and macros"}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate("/client/nutrition");
-                }}
-              >
-                Add meal
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Food Journal - only if food journal enabled */}
+        {settings.food_journal_enabled && (
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Food Journal</h2>
+            <Card className="cursor-pointer hover:shadow-sm transition-shadow" onClick={() => navigate("/client/nutrition")}>
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="p-3 bg-accent/10 rounded-xl">
+                  <UtensilsCrossed className="h-6 w-6 text-accent" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-sm">
+                    {todayMealCount > 0
+                      ? `${todayMealCount} meal${todayMealCount > 1 ? "s" : ""} logged • ${todayCalories} cal`
+                      : "What did you eat today?"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {todayMealCount > 0 ? "Tap to add more" : "Track your meals and macros"}
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate("/client/nutrition"); }}>
+                  Add meal
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-        {/* Step Tracker / Health */}
-        <div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-            Step Tracker
-          </h2>
-          <Card
-            className="cursor-pointer hover:shadow-sm transition-shadow"
-            onClick={() => navigate("/client/health-connect")}
-          >
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 bg-primary/10 rounded-xl">
-                <Footprints className="h-6 w-6 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-sm">Connect Health App</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Track your daily steps and activity
-                </p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            </CardContent>
-          </Card>
-        </div>
+        {/* Step Tracker / Health - only if activity logging enabled */}
+        {settings.activity_logging_enabled && (
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Step Tracker</h2>
+            <Card className="cursor-pointer hover:shadow-sm transition-shadow" onClick={() => navigate("/client/health-connect")}>
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="p-3 bg-primary/10 rounded-xl">
+                  <Footprints className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-sm">Connect Health App</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Track your daily steps and activity</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </ClientLayout>
   );
