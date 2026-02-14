@@ -4,12 +4,22 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell, Mail, TestTube } from "lucide-react";
+import { Bell, Mail, TestTube, Smartphone, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { showBrowserNotification } from "@/lib/notifications";
+import {
+  isPushSupported,
+  getPushPermissionStatus,
+  getVapidPublicKey,
+  subscribeToPush,
+  savePushSubscription,
+  unsubscribeFromPush,
+  removePushSubscription,
+} from "@/lib/pushNotifications";
+import { Badge } from "@/components/ui/badge";
 
 export function NotificationSettings() {
   const { user } = useAuth();
@@ -18,6 +28,9 @@ export function NotificationSettings() {
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [reminderHours, setReminderHours] = useState("24");
+  const [subscribing, setSubscribing] = useState(false);
+  const pushSupported = isPushSupported();
+  const permissionStatus = getPushPermissionStatus();
 
   // Fetch notification preferences
   const { data: preferences, isLoading } = useQuery({
@@ -38,9 +51,9 @@ export function NotificationSettings() {
   // Update local state when preferences are loaded
   useEffect(() => {
     if (preferences) {
-      setEmailEnabled(preferences.email_enabled);
-      setPushEnabled(preferences.push_enabled);
-      setReminderHours(preferences.reminder_hours_before.toString());
+      setEmailEnabled(preferences.email_enabled ?? true);
+      setPushEnabled(preferences.push_enabled ?? false);
+      setReminderHours((preferences.reminder_hours_before ?? 24).toString());
     }
   }, [preferences]);
 
@@ -84,28 +97,81 @@ export function NotificationSettings() {
     },
   });
 
-  const requestPushPermission = async () => {
-    if (!("Notification" in window)) {
+  const handleEnablePush = async () => {
+    if (!user?.id) return;
+    setSubscribing(true);
+
+    try {
+      // Request notification permission
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        toast({
+          title: "Permission denied",
+          description: "Please allow notifications in your browser settings to receive push alerts",
+          variant: "destructive",
+        });
+        setSubscribing(false);
+        return;
+      }
+
+      // Get VAPID public key
+      const vapidKey = await getVapidPublicKey();
+      if (!vapidKey) {
+        toast({
+          title: "Setup required",
+          description: "Push notification keys need to be configured. Please contact support.",
+          variant: "destructive",
+        });
+        setSubscribing(false);
+        return;
+      }
+
+      // Subscribe to push
+      const subscription = await subscribeToPush(vapidKey);
+      if (!subscription) {
+        toast({
+          title: "Subscription failed",
+          description: "Could not subscribe to push notifications. Please try again.",
+          variant: "destructive",
+        });
+        setSubscribing(false);
+        return;
+      }
+
+      // Save subscription to DB
+      await savePushSubscription(user.id, subscription);
+      setPushEnabled(true);
+
       toast({
-        title: "Not supported",
-        description: "Push notifications are not supported in your browser",
+        title: "Push notifications enabled! 🔔",
+        description: "You'll now receive notifications even when the app is closed",
+      });
+    } catch (err) {
+      console.error("Error enabling push:", err);
+      toast({
+        title: "Error",
+        description: "Failed to enable push notifications",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setSubscribing(false);
     }
+  };
 
-    const permission = await Notification.requestPermission();
-    if (permission === "granted") {
-      setPushEnabled(true);
-      toast({
-        title: "Permission granted",
-        description: "You will now receive push notifications",
-      });
-    } else {
+  const handleDisablePush = async () => {
+    if (!user?.id) return;
+    try {
+      await unsubscribeFromPush();
+      await removePushSubscription(user.id);
       setPushEnabled(false);
       toast({
-        title: "Permission denied",
-        description: "Push notifications have been disabled",
+        title: "Push notifications disabled",
+        description: "You will no longer receive push notifications",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to disable push notifications",
         variant: "destructive",
       });
     }
@@ -116,20 +182,22 @@ export function NotificationSettings() {
   };
 
   const handleTestNotification = async () => {
-    const success = await showBrowserNotification("Test Notification", {
-      body: "Your workout reminders will look like this!",
-      icon: "/favicon.ico",
+    const success = await showBrowserNotification("🏋️ Workout Reminder", {
+      body: "You have an Upper Body workout scheduled in 1 hour!",
+      icon: "/pwa-192x192.png",
+      badge: "/pwa-192x192.png",
+      tag: "test-notification",
     });
 
     if (success) {
       toast({
-        title: "Test successful",
-        description: "Check your notification!",
+        title: "Test sent!",
+        description: "Check your notifications — that's how reminders will appear",
       });
     } else {
       toast({
         title: "Test failed",
-        description: "Please enable notifications in your browser settings",
+        description: "Please enable notifications in your browser settings first",
         variant: "destructive",
       });
     }
@@ -150,13 +218,71 @@ export function NotificationSettings() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bell className="h-5 w-5" />
-          Workout Reminders
+          Notification Settings
         </CardTitle>
         <CardDescription>
-          Get notified about your upcoming scheduled workouts
+          Get notified about workouts, health alerts, and more — even on your lock screen
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Push Notifications */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label className="flex items-center gap-2">
+                <Smartphone className="h-4 w-4" />
+                Push Notifications
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Receive alerts on your lock screen, even when the app is closed
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {pushEnabled && permissionStatus === "granted" ? (
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-green-600 border-green-600">
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Active
+                  </Badge>
+                  <Switch
+                    checked={pushEnabled}
+                    onCheckedChange={(checked) => {
+                      if (!checked) handleDisablePush();
+                    }}
+                  />
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEnablePush}
+                  disabled={subscribing || !pushSupported}
+                >
+                  {subscribing ? "Setting up..." : !pushSupported ? "Not supported" : "Enable"}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {!pushSupported && (
+            <p className="text-xs text-muted-foreground">
+              Push notifications are not supported in this browser. Try Chrome or Edge on desktop, or install the app on your phone.
+            </p>
+          )}
+
+          {pushEnabled && permissionStatus === "granted" && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleTestNotification}
+              className="w-full"
+            >
+              <TestTube className="h-4 w-4 mr-2" />
+              Send Test Notification
+            </Button>
+          )}
+        </div>
+
         {/* Email Notifications */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
@@ -165,56 +291,13 @@ export function NotificationSettings() {
               Email Notifications
             </Label>
             <p className="text-sm text-muted-foreground">
-              Receive workout reminders via email
+              Receive workout reminders and health reports via email
             </p>
           </div>
           <Switch
             checked={emailEnabled}
             onCheckedChange={setEmailEnabled}
           />
-        </div>
-
-        {/* Push Notifications */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label className="flex items-center gap-2">
-                <Bell className="h-4 w-4" />
-                Push Notifications
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Receive browser push notifications
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {pushEnabled && Notification.permission === "granted" ? (
-                <Switch
-                  checked={pushEnabled}
-                  onCheckedChange={setPushEnabled}
-                />
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={requestPushPermission}
-                >
-                  Enable
-                </Button>
-              )}
-            </div>
-          </div>
-          
-          {pushEnabled && Notification.permission === "granted" && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleTestNotification}
-              className="w-full"
-            >
-              <TestTube className="h-4 w-4 mr-2" />
-              Test Notification
-            </Button>
-          )}
         </div>
 
         {/* Reminder Timing */}
@@ -238,8 +321,8 @@ export function NotificationSettings() {
           </p>
         </div>
 
-        <Button 
-          onClick={handleSave} 
+        <Button
+          onClick={handleSave}
           disabled={savePreferencesMutation.isPending}
           className="w-full"
         >
