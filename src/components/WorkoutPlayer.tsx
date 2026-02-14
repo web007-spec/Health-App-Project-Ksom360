@@ -60,8 +60,8 @@ interface SetLog {
 
 interface WorkoutPlayerProps {
   sections: Section[];
-  onComplete: () => void;
-  onEndEarly: () => void;
+  onComplete: (data: { setLogs: Record<string, SetLog>; elapsedSeconds: number; startedAt: string }) => void;
+  onEndEarly: (data: { setLogs: Record<string, SetLog>; elapsedSeconds: number; startedAt: string }) => void;
   onDiscard: () => void;
   onExit: () => void;
 }
@@ -69,6 +69,7 @@ interface WorkoutPlayerProps {
 export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onExit }: WorkoutPlayerProps) {
   const { toast } = useToast();
   const [modifiedSections, setModifiedSections] = useState<Section[]>(sections);
+  const startedAtRef = useRef(new Date().toISOString());
   const [swapDialogOpen, setSwapDialogOpen] = useState(false);
   const [swapTarget, setSwapTarget] = useState<{ sectionIdx: number; exerciseIdx: number } | null>(null);
   const [setLogs, setSetLogs] = useState<Record<string, SetLog>>({});
@@ -271,8 +272,9 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
             variant="ghost"
             size="sm"
             onClick={() => {
+              if (elapsedRef.current) clearInterval(elapsedRef.current);
               toast({ title: "Workout Saved", description: "Your progress has been saved." });
-              onComplete();
+              onComplete({ setLogs, elapsedSeconds, startedAt: startedAtRef.current });
             }}
             className="text-primary font-semibold text-sm"
           >
@@ -534,7 +536,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
           onClick={() => {
             if (elapsedRef.current) clearInterval(elapsedRef.current);
             toast({ title: "Workout Complete!", description: `Great job! Duration: ${formatTime(elapsedSeconds)}` });
-            onComplete();
+            onComplete({ setLogs, elapsedSeconds, startedAt: startedAtRef.current });
           }}
         >
           Finish Workout
@@ -555,7 +557,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
             <AlertDialogAction onClick={() => {
               if (elapsedRef.current) clearInterval(elapsedRef.current);
               toast({ title: "Workout Ended Early", description: `Duration: ${formatTime(elapsedSeconds)}. Progress saved.` });
-              onEndEarly();
+              onEndEarly({ setLogs, elapsedSeconds, startedAt: startedAtRef.current });
             }}>
               End & Save
             </AlertDialogAction>
