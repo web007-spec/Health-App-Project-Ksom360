@@ -5,6 +5,99 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+// Common portion estimates for food categories (gramWeight per 1 unit)
+const COMMON_PORTIONS: Record<string, { unit: string; gramWeight: number }[]> = {
+  egg: [
+    { unit: '1 large egg', gramWeight: 50 },
+    { unit: '1 medium egg', gramWeight: 44 },
+    { unit: '1 small egg', gramWeight: 38 },
+  ],
+  chicken: [
+    { unit: '1 breast (6 oz)', gramWeight: 170 },
+    { unit: '1 thigh', gramWeight: 116 },
+    { unit: '1 drumstick', gramWeight: 96 },
+  ],
+  rice: [
+    { unit: '1 cup cooked', gramWeight: 186 },
+    { unit: '1 cup dry', gramWeight: 185 },
+  ],
+  milk: [
+    { unit: '1 cup (8 fl oz)', gramWeight: 244 },
+    { unit: '1 tbsp', gramWeight: 15 },
+  ],
+  butter: [
+    { unit: '1 tbsp', gramWeight: 14 },
+    { unit: '1 pat', gramWeight: 5 },
+    { unit: '1 stick', gramWeight: 113 },
+  ],
+  cheese: [
+    { unit: '1 slice', gramWeight: 28 },
+    { unit: '1 cup shredded', gramWeight: 113 },
+  ],
+  bread: [
+    { unit: '1 slice', gramWeight: 30 },
+  ],
+  oil: [
+    { unit: '1 tbsp', gramWeight: 14 },
+    { unit: '1 tsp', gramWeight: 5 },
+  ],
+  sugar: [
+    { unit: '1 tbsp', gramWeight: 12.5 },
+    { unit: '1 tsp', gramWeight: 4 },
+    { unit: '1 cup', gramWeight: 200 },
+  ],
+  flour: [
+    { unit: '1 cup', gramWeight: 125 },
+    { unit: '1 tbsp', gramWeight: 8 },
+  ],
+  banana: [
+    { unit: '1 medium', gramWeight: 118 },
+    { unit: '1 large', gramWeight: 136 },
+  ],
+  apple: [
+    { unit: '1 medium', gramWeight: 182 },
+    { unit: '1 large', gramWeight: 223 },
+  ],
+  potato: [
+    { unit: '1 medium', gramWeight: 150 },
+    { unit: '1 large', gramWeight: 299 },
+  ],
+  oat: [
+    { unit: '1 cup dry', gramWeight: 81 },
+    { unit: '1 cup cooked', gramWeight: 234 },
+  ],
+  yogurt: [
+    { unit: '1 cup', gramWeight: 245 },
+    { unit: '1 container (6 oz)', gramWeight: 170 },
+  ],
+  salmon: [
+    { unit: '1 fillet (6 oz)', gramWeight: 170 },
+  ],
+  beef: [
+    { unit: '1 patty (4 oz)', gramWeight: 113 },
+    { unit: '3 oz serving', gramWeight: 85 },
+  ],
+  avocado: [
+    { unit: '1 whole', gramWeight: 150 },
+    { unit: '1/2 avocado', gramWeight: 75 },
+  ],
+};
+
+function getCommonPortions(foodName: string): { unit: string; gramWeight: number; amount: number }[] {
+  const lower = foodName.toLowerCase();
+  for (const [keyword, portions] of Object.entries(COMMON_PORTIONS)) {
+    if (lower.includes(keyword)) {
+      return portions.map(p => ({ ...p, amount: 1 }));
+    }
+  }
+  // Default common portions for any food
+  return [
+    { amount: 1, unit: '1 cup', gramWeight: 240 },
+    { amount: 1, unit: '1 tbsp', gramWeight: 15 },
+    { amount: 1, unit: '1 tsp', gramWeight: 5 },
+  ];
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -49,8 +142,8 @@ serve(async (req) => {
 
     const data = await response.json();
 
-    // Transform results into a clean format
-    const foods = (data.foods || []).map((food: any) => {
+    // Transform search results
+    let foods = (data.foods || []).map((food: any) => {
       const nutrients = food.foodNutrients || [];
 
       const getNutrient = (ids: number[]) => {
@@ -61,21 +154,24 @@ serve(async (req) => {
         return 0;
       };
 
-      // Extract food portions/measures
-      const portions = (food.foodMeasures || food.foodPortions || []).map((p: any) => ({
+      // Extract food portions/measures from search results
+      const usdaPortions = (food.foodMeasures || food.foodPortions || []).map((p: any) => ({
         amount: p.amount || p.measureUnitNumber || 1,
         unit: p.disseminationText || p.measureUnitName || p.modifier || 'serving',
         gramWeight: p.gramWeight || 100,
-      })).filter((p: any) => p.gramWeight > 0);
+      })).filter((p: any) => p.gramWeight > 0 && p.unit !== 'Quantity not specified');
 
-      // Clean up serving size unit
+      // If no USDA portions, use smart common portions based on food name
+      const foodName = food.description || food.lowercaseDescription || '';
+      const portions = usdaPortions.length > 0 ? usdaPortions : getCommonPortions(foodName);
+
       let servingSizeUnit = food.servingSizeUnit || 'g';
       servingSizeUnit = servingSizeUnit.replace(/GRM/i, 'g').replace(/MLT/i, 'ml').replace(/UNT/i, 'unit');
       const servingSize = food.servingSize ? Math.round(food.servingSize * 10) / 10 : 100;
 
       return {
         fdcId: food.fdcId,
-        name: food.description || food.lowercaseDescription || 'Unknown',
+        name: foodName || 'Unknown',
         brandOwner: food.brandOwner || null,
         servingSize,
         servingSizeUnit,
@@ -93,12 +189,10 @@ serve(async (req) => {
     // Sort: Foundation & SR Legacy first, then Branded
     const dataTypePriority: Record<string, number> = { 'Foundation': 0, 'SR Legacy': 1, 'Branded': 2 };
     foods.sort((a: any, b: any) => (dataTypePriority[a.dataType] ?? 2) - (dataTypePriority[b.dataType] ?? 2));
-
-    // Return only requested page size
-    const trimmedFoods = foods.slice(0, clampedPageSize);
+    foods = foods.slice(0, clampedPageSize);
 
     return new Response(
-      JSON.stringify({ foods: trimmedFoods }),
+      JSON.stringify({ foods }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
