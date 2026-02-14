@@ -218,7 +218,7 @@ export default function ClientCommandCenter() {
             <ClientTasksTab clientId={clientId!} trainerId={user?.id!} />
           </TabsContent>
           <TabsContent value="metrics">
-            <ClientMetricsTab clientId={clientId!} />
+            <ClientMetricsTab clientId={clientId!} trainerId={user?.id!} />
           </TabsContent>
           <TabsContent value="food-journal">
             <ClientFoodJournalTab clientId={clientId!} />
