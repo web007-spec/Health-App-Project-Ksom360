@@ -28,17 +28,16 @@ serve(async (req) => {
     const sanitizedQuery = query.trim().slice(0, 200);
     const clampedPageSize = Math.min(Math.max(1, pageSize), 25);
 
-    // Search USDA FoodData Central
+    // Search USDA FoodData Central - fetch more to allow resorting
+    const fetchSize = Math.min(clampedPageSize * 3, 50);
     const searchUrl = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${USDA_API_KEY}`;
     const response = await fetch(searchUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         query: sanitizedQuery,
-        pageSize: clampedPageSize,
+        pageSize: fetchSize,
         dataType: ['Foundation', 'SR Legacy', 'Branded'],
-        sortBy: 'dataType.keyword',
-        sortOrder: 'asc',
       }),
     });
 
@@ -69,12 +68,17 @@ serve(async (req) => {
         gramWeight: p.gramWeight || 100,
       })).filter((p: any) => p.gramWeight > 0);
 
+      // Clean up serving size unit
+      let servingSizeUnit = food.servingSizeUnit || 'g';
+      servingSizeUnit = servingSizeUnit.replace(/GRM/i, 'g').replace(/MLT/i, 'ml').replace(/UNT/i, 'unit');
+      const servingSize = food.servingSize ? Math.round(food.servingSize * 10) / 10 : 100;
+
       return {
         fdcId: food.fdcId,
         name: food.description || food.lowercaseDescription || 'Unknown',
         brandOwner: food.brandOwner || null,
-        servingSize: food.servingSize || 100,
-        servingSizeUnit: food.servingSizeUnit || 'g',
+        servingSize,
+        servingSizeUnit,
         calories: getNutrient([1008, 2048]),
         protein: getNutrient([1003]),
         carbs: getNutrient([1005]),
@@ -86,8 +90,15 @@ serve(async (req) => {
       };
     });
 
+    // Sort: Foundation & SR Legacy first, then Branded
+    const dataTypePriority: Record<string, number> = { 'Foundation': 0, 'SR Legacy': 1, 'Branded': 2 };
+    foods.sort((a: any, b: any) => (dataTypePriority[a.dataType] ?? 2) - (dataTypePriority[b.dataType] ?? 2));
+
+    // Return only requested page size
+    const trimmedFoods = foods.slice(0, clampedPageSize);
+
     return new Response(
-      JSON.stringify({ foods }),
+      JSON.stringify({ foods: trimmedFoods }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
