@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Dumbbell, MessageCircle, Send, Trophy, X } from "lucide-react";
+import { Clock, Dumbbell, MessageCircle, Send, Trophy, X, Flame, Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +53,9 @@ export function WorkoutSummary({
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [showComments, setShowComments] = useState(false);
+  const [caloriesBurned, setCaloriesBurned] = useState("");
+  const [avgHeartRate, setAvgHeartRate] = useState("");
+  const [healthStatsSaved, setHealthStatsSaved] = useState(false);
 
   // Fetch current session to check if rating already set
   const { data: session } = useQuery({
@@ -130,6 +133,45 @@ export function WorkoutSummary({
     onSuccess: () => {
       setCommentText("");
       queryClient.invalidateQueries({ queryKey: ["workout-comments", sessionId] });
+    },
+  });
+
+  // Save health stats
+  const healthStatsMutation = useMutation({
+    mutationFn: async () => {
+      if (!user?.id) throw new Error("Not authenticated");
+      const now = new Date().toISOString();
+      const records: any[] = [];
+      if (caloriesBurned && Number(caloriesBurned) > 0) {
+        records.push({
+          client_id: user.id,
+          data_type: "calories_burned",
+          value: Number(caloriesBurned),
+          unit: "kcal",
+          recorded_at: now,
+          source: "manual",
+        });
+      }
+      if (avgHeartRate && Number(avgHeartRate) > 0) {
+        records.push({
+          client_id: user.id,
+          data_type: "heart_rate",
+          value: Number(avgHeartRate),
+          unit: "bpm",
+          recorded_at: now,
+          source: "manual",
+        });
+      }
+      if (records.length === 0) throw new Error("No data to save");
+      const { error } = await supabase.from("health_data").insert(records);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setHealthStatsSaved(true);
+      toast({ title: "Health stats saved!" });
+    },
+    onError: () => {
+      toast({ title: "Failed to save health stats", variant: "destructive" });
     },
   });
 
@@ -228,6 +270,63 @@ export function WorkoutSummary({
                 {completedSets}/{totalSets} sets
               </Badge>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Health Stats - Manual Entry */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Flame className="h-5 w-5 text-orange-500" />
+              <span className="font-semibold">Log Health Stats</span>
+              {healthStatsSaved && (
+                <Badge variant="secondary" className="ml-auto text-xs">Saved ✓</Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              Add data from your Apple Watch or wearable device.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground font-medium mb-1 block">Calories Burned</label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={caloriesBurned}
+                    onChange={(e) => setCaloriesBurned(e.target.value)}
+                    disabled={healthStatsSaved}
+                    className="pr-10"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">kcal</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground font-medium mb-1 block">Avg Heart Rate</label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={avgHeartRate}
+                    onChange={(e) => setAvgHeartRate(e.target.value)}
+                    disabled={healthStatsSaved}
+                    className="pr-10"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">bpm</span>
+                </div>
+              </div>
+            </div>
+            {!healthStatsSaved && (caloriesBurned || avgHeartRate) && (
+              <Button
+                className="w-full mt-4"
+                variant="outline"
+                onClick={() => healthStatsMutation.mutate()}
+                disabled={healthStatsMutation.isPending}
+              >
+                <Heart className="h-4 w-4 mr-2" />
+                {healthStatsMutation.isPending ? "Saving..." : "Save Health Stats"}
+              </Button>
+            )}
           </CardContent>
         </Card>
 
