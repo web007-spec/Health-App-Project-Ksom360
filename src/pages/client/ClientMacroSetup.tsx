@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
-type Step = "form" | "activity" | "goal" | "results" | "manual";
+type Step = "form" | "activity" | "goal" | "diet" | "results" | "manual";
 
 const ACTIVITY_LEVELS = [
   { value: "sedentary", label: "Sedentary", desc: "Little or no exercise", multiplier: 1.2 },
@@ -28,6 +28,36 @@ const GOALS = [
   { value: "recomp", label: "Improve body composition (build muscle & lose fat)", icon: "💪", factor: 0.9 },
   { value: "gain", label: "Gain weight and build muscle", icon: "⬆️", factor: 1.15 },
   { value: "maintain", label: "Maintain weight and body composition", icon: "⚖️", factor: 1.0 },
+];
+
+const DIET_STYLES = [
+  {
+    value: "standard_keto",
+    label: "Standard Keto",
+    split: "75F / 20P / 5C",
+    icon: "🥑",
+    fatPct: 0.75, proteinPct: 0.20, carbsPct: 0.05,
+    desc: "The classic ketogenic ratio — maximum fat adaptation",
+    bestFor: "Best for: Weight loss, metabolic health, epilepsy management, and those new to keto",
+  },
+  {
+    value: "high_protein_keto",
+    label: "High Protein Keto",
+    split: "60F / 35P / 5C",
+    icon: "💪",
+    fatPct: 0.60, proteinPct: 0.35, carbsPct: 0.05,
+    desc: "Higher protein for muscle preservation while staying in ketosis",
+    bestFor: "Best for: Athletes, bodybuilders, those wanting to build/maintain muscle on keto",
+  },
+  {
+    value: "modified_keto",
+    label: "Modified Keto",
+    split: "70F / 25P / 5C",
+    icon: "⚖️",
+    fatPct: 0.70, proteinPct: 0.25, carbsPct: 0.05,
+    desc: "A balanced middle ground — sustainable long-term approach",
+    bestFor: "Best for: Active individuals seeking a sustainable keto lifestyle with moderate protein",
+  },
 ];
 
 const FIELD_ICONS = [
@@ -58,6 +88,8 @@ export default function ClientMacroSetup() {
   const [goal, setGoal] = useState("");
   const [activitySheetOpen, setActivitySheetOpen] = useState(false);
   const [goalSheetOpen, setGoalSheetOpen] = useState(false);
+  const [dietSheetOpen, setDietSheetOpen] = useState(false);
+  const [dietStyle, setDietStyle] = useState("");
 
   // Manual mode
   const [manualCalories, setManualCalories] = useState("");
@@ -102,11 +134,11 @@ export default function ClientMacroSetup() {
     const goalFactor = GOALS.find(g => g.value === goal)?.factor || 1.0;
     tdee *= goalFactor;
 
+    const selectedDiet = DIET_STYLES.find(d => d.value === dietStyle) || DIET_STYLES[1];
     const calories = Math.round(tdee);
-    // High Protein Keto split: 60% fat, 35% protein, 5% carbs
-    const protein = Math.round((calories * 0.35) / 4);
-    const fats = Math.round((calories * 0.60) / 9);
-    const carbs = Math.round((calories * 0.05) / 4);
+    const protein = Math.round((calories * selectedDiet.proteinPct) / 4);
+    const fats = Math.round((calories * selectedDiet.fatPct) / 9);
+    const carbs = Math.round((calories * selectedDiet.carbsPct) / 4);
 
     setCalcResults({ calories, protein: Math.max(protein, 0), carbs: Math.max(carbs, 0), fats: Math.max(fats, 0) });
     setStep("results");
@@ -167,10 +199,16 @@ export default function ClientMacroSetup() {
   const handleGoalSelect = (value: string) => {
     setGoal(value);
     setGoalSheetOpen(false);
-    setTimeout(() => handleCalculateWithGoal(value), 300);
+    setTimeout(() => setDietSheetOpen(true), 300);
   };
 
-  const handleCalculateWithGoal = (selectedGoal: string) => {
+  const handleDietSelect = (value: string) => {
+    setDietStyle(value);
+    setDietSheetOpen(false);
+    setTimeout(() => handleCalculateWithGoalAndDiet(goal, value), 300);
+  };
+
+  const handleCalculateWithGoalAndDiet = (selectedGoal: string, selectedDietValue: string) => {
     const w = parseFloat(weightLbs) * 0.453592;
     const h = (parseFloat(heightFt) * 12 + parseFloat(heightIn || "0")) * 2.54;
     const a = parseInt(age);
@@ -187,11 +225,11 @@ export default function ClientMacroSetup() {
     const goalFactor = GOALS.find(g => g.value === selectedGoal)?.factor || 1.0;
     tdee *= goalFactor;
 
+    const selectedDiet = DIET_STYLES.find(d => d.value === selectedDietValue) || DIET_STYLES[1];
     const calories = Math.round(tdee);
-    // High Protein Keto split: 60% fat, 35% protein, 5% carbs
-    const protein = Math.round((calories * 0.35) / 4);
-    const fats = Math.round((calories * 0.60) / 9);
-    const carbs = Math.round((calories * 0.05) / 4);
+    const protein = Math.round((calories * selectedDiet.proteinPct) / 4);
+    const fats = Math.round((calories * selectedDiet.fatPct) / 9);
+    const carbs = Math.round((calories * selectedDiet.carbsPct) / 4);
 
     setCalcResults({ calories, protein: Math.max(protein, 0), carbs: Math.max(carbs, 0), fats: Math.max(fats, 0) });
     setStep("results");
@@ -529,6 +567,7 @@ export default function ClientMacroSetup() {
               <div className="flex gap-1 mb-4">
                 <div className="h-1 flex-1 rounded-full bg-primary" />
                 <div className="h-1 flex-1 rounded-full bg-muted" />
+                <div className="h-1 flex-1 rounded-full bg-muted" />
               </div>
               <h2 className="text-xl font-bold">Activity level</h2>
               <p className="text-sm text-muted-foreground">Choose the option that reflects your usual activity</p>
@@ -574,6 +613,7 @@ export default function ClientMacroSetup() {
               <div className="flex gap-1 mb-4">
                 <div className="h-1 flex-1 rounded-full bg-muted" />
                 <div className="h-1 flex-1 rounded-full bg-primary" />
+                <div className="h-1 flex-1 rounded-full bg-muted" />
               </div>
               <h2 className="text-xl font-bold">Primary goal</h2>
               <p className="text-sm text-muted-foreground">Share what you want to achieve</p>
@@ -600,7 +640,55 @@ export default function ClientMacroSetup() {
               <Button variant="outline" size="icon" className="rounded-full" onClick={() => { setGoalSheetOpen(false); setTimeout(() => setActivitySheetOpen(true), 300); }}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button className="flex-1 h-12 rounded-xl text-base font-semibold gap-2" onClick={() => { if (goal) { setGoalSheetOpen(false); handleCalculateWithGoal(goal); } }}>
+              <Button className="flex-1 h-12 rounded-xl text-base font-semibold gap-2" onClick={() => { if (goal) { setGoalSheetOpen(false); setTimeout(() => setDietSheetOpen(true), 300); } }}>
+                Next <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* Diet Style Sheet */}
+        <Sheet open={dietSheetOpen} onOpenChange={setDietSheetOpen}>
+          <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto">
+            <div className="space-y-1 mb-6">
+              <div className="flex gap-1 mb-4">
+                <div className="h-1 flex-1 rounded-full bg-muted" />
+                <div className="h-1 flex-1 rounded-full bg-muted" />
+                <div className="h-1 flex-1 rounded-full bg-primary" />
+              </div>
+              <h2 className="text-xl font-bold">Choose Your Keto Style</h2>
+              <p className="text-sm text-muted-foreground">Pick the approach that fits your lifestyle</p>
+            </div>
+            <div className="space-y-3">
+              {DIET_STYLES.map(d => (
+                <button
+                  key={d.value}
+                  className={`w-full text-left p-4 rounded-xl border transition-all ${
+                    dietStyle === d.value
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                  onClick={() => setDietStyle(d.value)}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl mt-0.5">{d.icon}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <p className="font-semibold text-sm">{d.label}</p>
+                        <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{d.split}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{d.desc}</p>
+                      <p className="text-xs text-primary font-medium mt-1.5">{d.bestFor}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-3 mt-6">
+              <Button variant="outline" size="icon" className="rounded-full" onClick={() => { setDietSheetOpen(false); setTimeout(() => setGoalSheetOpen(true), 300); }}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button className="flex-1 h-12 rounded-xl text-base font-semibold gap-2" onClick={() => { if (dietStyle) handleDietSelect(dietStyle); }} disabled={!dietStyle}>
                 Calculate your Macro Goal <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
