@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquare, Key, Trash2, Copy, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, MessageSquare, Key, Trash2, Copy, Check, Loader2, Share2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -245,10 +245,21 @@ export default function ClientCommandCenter() {
             <div><span className="text-muted-foreground">Email:</span> {clientData?.client?.email}</div>
             <div><span className="text-muted-foreground">Password:</span> {generatedPassword}</div>
           </div>
-          <DialogFooter className="flex gap-2 sm:gap-0">
+          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
             <Button variant="outline" onClick={handleCopyCredentials} className="gap-2 flex-1">
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              {copied ? "Copied!" : "Copy Credentials"}
+              {copied ? "Copied!" : "Copy"}
+            </Button>
+            <Button variant="outline" onClick={async () => {
+              const text = `Here are your login details:\n\nLogin URL: ${window.location.origin}/auth\nEmail: ${clientData?.client?.email}\nPassword: ${generatedPassword}`;
+              if (navigator.share) {
+                try { await navigator.share({ title: "Login Credentials", text }); } catch {}
+              } else {
+                window.open(`sms:?body=${encodeURIComponent(text)}`);
+              }
+            }} className="gap-2 flex-1">
+              <Share2 className="h-4 w-4" />
+              Share via Text
             </Button>
             <Button onClick={() => setCredentialsOpen(false)} className="flex-1">Done</Button>
           </DialogFooter>
