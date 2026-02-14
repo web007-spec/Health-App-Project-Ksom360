@@ -192,14 +192,34 @@ export default function ClientLogMeal() {
             </Button>
             <h1 className="text-xl font-bold">Log Meal</h1>
           </div>
-          <div className="flex gap-1">
-            <Button variant="ghost" size="icon" onClick={() => setPhotoAnalyzerOpen(true)}>
-              <Camera className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={() => setScannerOpen(true)}>
-              <ScanBarcode className="h-5 w-5" />
-            </Button>
-          </div>
+        </div>
+
+        {/* Feature Cards */}
+        <div className="grid grid-cols-2 gap-3 px-4 pt-3">
+          <button
+            onClick={() => setPhotoAnalyzerOpen(true)}
+            className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-4 transition-colors hover:bg-primary/10 hover:border-primary/50 active:scale-[0.98]"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15">
+              <Camera className="h-5 w-5 text-primary" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold">Snap & Track</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">AI-powered photo analysis</p>
+            </div>
+          </button>
+          <button
+            onClick={() => setScannerOpen(true)}
+            className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-4 transition-colors hover:bg-primary/10 hover:border-primary/50 active:scale-[0.98]"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15">
+              <ScanBarcode className="h-5 w-5 text-primary" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold">Scan Barcode</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">Instant product lookup</p>
+            </div>
+          </button>
         </div>
 
         {/* Tabs */}
