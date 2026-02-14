@@ -103,7 +103,10 @@ export default function Clients() {
   };
 
   const ClientCard = ({ client }: any) => (
-    <Card className="hover:shadow-lg transition-all group border-border/60">
+    <Card 
+      className="hover:shadow-lg transition-all group border-border/60 cursor-pointer"
+      onClick={() => navigate(`/clients/${client.client_id}`)}
+    >
       <CardContent className="p-0">
         {/* Header with avatar and status */}
         <div className="flex items-center gap-4 p-5 pb-4">
@@ -135,7 +138,7 @@ export default function Clients() {
         <div className="border-t border-border/60 mx-5" />
 
         {/* Actions row */}
-        <div className="p-4 flex items-center justify-between">
+        <div className="p-4 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center gap-1">
             <Button 
               size="icon" 

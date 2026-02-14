@@ -155,6 +155,171 @@ export type Database = {
           },
         ]
       }
+      client_feature_settings: {
+        Row: {
+          activity_logging_enabled: boolean
+          body_metrics_enabled: boolean
+          client_id: string
+          created_at: string
+          food_journal_enabled: boolean
+          goals_enabled: boolean
+          id: string
+          macros_enabled: boolean
+          messages_enabled: boolean
+          progress_photos_enabled: boolean
+          tasks_enabled: boolean
+          trainer_id: string
+          training_enabled: boolean
+          updated_at: string
+          workout_comments_enabled: boolean
+        }
+        Insert: {
+          activity_logging_enabled?: boolean
+          body_metrics_enabled?: boolean
+          client_id: string
+          created_at?: string
+          food_journal_enabled?: boolean
+          goals_enabled?: boolean
+          id?: string
+          macros_enabled?: boolean
+          messages_enabled?: boolean
+          progress_photos_enabled?: boolean
+          tasks_enabled?: boolean
+          trainer_id: string
+          training_enabled?: boolean
+          updated_at?: string
+          workout_comments_enabled?: boolean
+        }
+        Update: {
+          activity_logging_enabled?: boolean
+          body_metrics_enabled?: boolean
+          client_id?: string
+          created_at?: string
+          food_journal_enabled?: boolean
+          goals_enabled?: boolean
+          id?: string
+          macros_enabled?: boolean
+          messages_enabled?: boolean
+          progress_photos_enabled?: boolean
+          tasks_enabled?: boolean
+          trainer_id?: string
+          training_enabled?: boolean
+          updated_at?: string
+          workout_comments_enabled?: boolean
+        }
+        Relationships: []
+      }
+      client_goal_countdowns: {
+        Row: {
+          background_color: string | null
+          client_id: string
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          end_date: string | null
+          icon: string | null
+          id: string
+          is_completed: boolean | null
+          notify_day_before: boolean | null
+          notify_on_end: boolean | null
+          notify_week_before: boolean | null
+          title: string
+          trainer_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          background_color?: string | null
+          client_id: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          icon?: string | null
+          id?: string
+          is_completed?: boolean | null
+          notify_day_before?: boolean | null
+          notify_on_end?: boolean | null
+          notify_week_before?: boolean | null
+          title: string
+          trainer_id: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          background_color?: string | null
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          icon?: string | null
+          id?: string
+          is_completed?: boolean | null
+          notify_day_before?: boolean | null
+          notify_on_end?: boolean | null
+          notify_week_before?: boolean | null
+          title?: string
+          trainer_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      client_macro_targets: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          rest_day_calories: number | null
+          rest_day_carbs: number | null
+          rest_day_fats: number | null
+          rest_day_protein: number | null
+          target_calories: number | null
+          target_carbs: number | null
+          target_fats: number | null
+          target_protein: number | null
+          tracking_option: string
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          rest_day_calories?: number | null
+          rest_day_carbs?: number | null
+          rest_day_fats?: number | null
+          rest_day_protein?: number | null
+          target_calories?: number | null
+          target_carbs?: number | null
+          target_fats?: number | null
+          target_protein?: number | null
+          tracking_option?: string
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          rest_day_calories?: number | null
+          rest_day_carbs?: number | null
+          rest_day_fats?: number | null
+          rest_day_protein?: number | null
+          target_calories?: number | null
+          target_carbs?: number | null
+          target_fats?: number | null
+          target_protein?: number | null
+          tracking_option?: string
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_meal_plan_assignments: {
         Row: {
           assigned_at: string
@@ -246,6 +411,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      client_notes: {
+        Row: {
+          client_id: string
+          content: string
+          created_at: string
+          id: string
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          content: string
+          created_at?: string
+          id?: string
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       client_recipe_book_assignments: {
         Row: {
