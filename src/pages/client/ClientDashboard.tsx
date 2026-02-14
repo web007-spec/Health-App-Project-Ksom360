@@ -286,6 +286,18 @@ export default function ClientDashboard() {
     const found = DIET_STYLES.find(d => d.value === style);
     if (found) return found.label;
     if (style === "custom") return "Custom";
+    // Infer from current macro ratios if diet_style not yet saved
+    if (macroTargets && macroTargets.target_calories) {
+      const cals = macroTargets.target_calories;
+      const pPct = Math.round(((Number(macroTargets.target_protein) || 0) * 4 / cals) * 100);
+      const fPct = Math.round(((Number(macroTargets.target_fats) || 0) * 9 / cals) * 100);
+      for (const d of DIET_STYLES) {
+        if (Math.abs(pPct - d.proteinPct * 100) <= 3 && Math.abs(fPct - d.fatPct * 100) <= 3) {
+          return d.label;
+        }
+      }
+      return "Custom";
+    }
     return null;
   };
 
