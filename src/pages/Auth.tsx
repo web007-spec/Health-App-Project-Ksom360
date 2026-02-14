@@ -4,89 +4,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dumbbell } from "lucide-react";
+import { Dumbbell, Shield, Loader2, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 export default function Auth() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [mode, setMode] = useState<"main" | "signin" | "admin">("main");
 
-  const [signUpData, setSignUpData] = useState({
-    email: "",
-    password: "",
-    fullName: "",
-    role: "trainer" as "trainer" | "client",
-  });
-
-  const [signInData, setSignInData] = useState({
-    email: "",
-    password: "",
-  });
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: signUpData.email,
-        password: signUpData.password,
-        options: {
-          data: {
-            full_name: signUpData.fullName,
-          },
-          emailRedirectTo: `${window.location.origin}/`,
-        },
-      });
-
-      if (error) throw error;
-
-      if (data.user) {
-        toast.success("Account created successfully!");
-        
-        // Redirect based on role
-        if (signUpData.role === 'client') {
-          // New clients go to onboarding
-          navigate("/client/onboarding");
-        } else {
-          navigate("/");
-        }
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Failed to create account");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [signInData, setSignInData] = useState({ email: "", password: "" });
+  const [adminPin, setAdminPin] = useState("");
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: signInData.email,
         password: signInData.password,
       });
-
       if (error) throw error;
 
       if (data.user) {
-        // Fetch user profile to get role
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('role, full_name')
-          .eq('id', data.user.id)
+          .from("profiles")
+          .select("role, full_name")
+          .eq("id", data.user.id)
           .single();
 
         toast.success("Signed in successfully!");
-        
-        // Redirect based on role
-        if (profile?.role === 'client') {
-          // Check if client needs onboarding (no full_name set)
-          if (!profile.full_name || profile.full_name.trim() === '') {
+        if (profile?.role === "client") {
+          if (!profile.full_name || profile.full_name.trim() === "") {
             navigate("/client/onboarding");
           } else {
             navigate("/client/dashboard");
@@ -102,9 +51,44 @@ export default function Auth() {
     }
   };
 
+  const handleAdminPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminPin.trim()) {
+      toast.error("Please enter your PIN");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-pin-login", {
+        body: { pin: adminPin.trim() },
+      });
+
+      if (error) throw error;
+      if (!data?.token_hash) {
+        throw new Error(data?.error || "Invalid PIN");
+      }
+
+      // Use the token to verify OTP and sign in
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        token_hash: data.token_hash,
+        type: "magiclink",
+      });
+
+      if (verifyError) throw verifyError;
+
+      toast.success("Welcome back!");
+      navigate("/");
+    } catch (error: any) {
+      toast.error(error.message || "Invalid PIN");
+    } finally {
+      setIsLoading(false);
+      setAdminPin("");
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-primary mb-4">
             <Dumbbell className="h-8 w-8 text-primary-foreground" />
@@ -113,130 +97,144 @@ export default function Auth() {
           <p className="text-muted-foreground mt-2">Your complete fitness coaching platform</p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Welcome</CardTitle>
-            <CardDescription>Sign in to your account or create a new one</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
+        {mode === "main" && (
+          <div className="space-y-3">
+            <Button
+              className="w-full h-14 text-lg gap-3"
+              onClick={() => setMode("admin")}
+            >
+              <Shield className="h-5 w-5" />
+              Admin Access
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full h-12"
+              onClick={() => setMode("signin")}
+            >
+              Sign In with Email
+            </Button>
+          </div>
+        )}
 
-              <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
-                    <Input
-                      id="signin-email"
-                      type="email"
-                      placeholder="trainer@example.com"
-                      value={signInData.email}
-                      onChange={(e) => setSignInData({ ...signInData, email: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
-                    <Input
-                      id="signin-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={signInData.password}
-                      onChange={(e) => setSignInData({ ...signInData, password: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Signing in..." : "Sign In"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="w-full text-sm text-muted-foreground"
-                    onClick={async () => {
-                      if (!signInData.email) {
-                        toast.error("Please enter your email address first");
-                        return;
-                      }
-                      setIsLoading(true);
-                      try {
-                        const { error } = await supabase.auth.resetPasswordForEmail(signInData.email, {
-                          redirectTo: `${window.location.origin}/auth`,
-                        });
-                        if (error) throw error;
-                        toast.success("Password reset link sent! Check your email.");
-                      } catch (error: any) {
-                        toast.error(error.message || "Failed to send reset link");
-                      } finally {
-                        setIsLoading(false);
-                      }
-                    }}
-                    disabled={isLoading}
-                  >
-                    Forgot Password?
-                  </Button>
-                </form>
-              </TabsContent>
+        {mode === "admin" && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={() => setMode("main")}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div>
+                  <CardTitle className="text-lg">Admin Access</CardTitle>
+                  <CardDescription>Enter your PIN to sign in</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleAdminPin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="admin-pin">PIN Code</Label>
+                  <Input
+                    id="admin-pin"
+                    type="password"
+                    placeholder="Enter your PIN"
+                    value={adminPin}
+                    onChange={(e) => setAdminPin(e.target.value)}
+                    autoFocus
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    "Enter"
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        )}
 
-              <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="John Doe"
-                      value={signUpData.fullName}
-                      onChange={(e) => setSignUpData({ ...signUpData, fullName: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="trainer@example.com"
-                      value={signUpData.email}
-                      onChange={(e) => setSignUpData({ ...signUpData, email: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={signUpData.password}
-                      onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
-                      required
-                      minLength={6}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="role">I am a</Label>
-                    <select
-                      id="role"
-                      className="w-full h-10 px-3 rounded-md border border-input bg-background"
-                      value={signUpData.role}
-                      onChange={(e) => setSignUpData({ ...signUpData, role: e.target.value as "trainer" | "client" })}
-                    >
-                      <option value="trainer">Trainer / Coach</option>
-                      <option value="client">Client</option>
-                    </select>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Creating account..." : "Create Account"}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+        {mode === "signin" && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={() => setMode("main")}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div>
+                  <CardTitle className="text-lg">Sign In</CardTitle>
+                  <CardDescription>Enter your email and password</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSignIn} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signin-email">Email</Label>
+                  <Input
+                    id="signin-email"
+                    type="email"
+                    placeholder="your@email.com"
+                    value={signInData.email}
+                    onChange={(e) => setSignInData({ ...signInData, email: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signin-password">Password</Label>
+                  <Input
+                    id="signin-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={signInData.password}
+                    onChange={(e) => setSignInData({ ...signInData, password: e.target.value })}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    "Sign In"
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="link"
+                  className="w-full text-sm text-muted-foreground"
+                  onClick={async () => {
+                    if (!signInData.email) {
+                      toast.error("Please enter your email address first");
+                      return;
+                    }
+                    setIsLoading(true);
+                    try {
+                      const { error } = await supabase.auth.resetPasswordForEmail(signInData.email, {
+                        redirectTo: `${window.location.origin}/auth`,
+                      });
+                      if (error) throw error;
+                      toast.success("Password reset link sent! Check your email.");
+                    } catch (error: any) {
+                      toast.error(error.message || "Failed to send reset link");
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  disabled={isLoading}
+                >
+                  Forgot Password?
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
