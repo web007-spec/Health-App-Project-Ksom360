@@ -207,10 +207,23 @@ export default function Messages() {
       if (!selectedConversation) return [];
       const { data, error } = await supabase
         .from("conversation_messages")
-        .select("*, sender:sender_id(id, full_name, avatar_url)")
+        .select("*")
         .eq("conversation_id", selectedConversation.id)
         .order("created_at", { ascending: true });
       if (error) throw error;
+
+      // Fetch sender profiles separately (FK goes to auth.users, not profiles)
+      const senderIds = [...new Set((data || []).map((m) => m.sender_id))];
+      const { data: senderProfiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url")
+        .in("id", senderIds);
+      const senderMap = new Map((senderProfiles || []).map((p) => [p.id, p]));
+
+      const messagesWithSender = (data || []).map((m) => ({
+        ...m,
+        sender: senderMap.get(m.sender_id) || null,
+      }));
 
       // Update read receipt
       await supabase.from("conversation_read_receipts").upsert(
@@ -218,7 +231,7 @@ export default function Messages() {
         { onConflict: "conversation_id,user_id" }
       );
 
-      return data;
+      return messagesWithSender;
     },
     enabled: !!selectedConversation?.id && !!user?.id,
     refetchInterval: 3000,
