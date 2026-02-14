@@ -254,6 +254,9 @@ export default function ClientDashboard() {
   // Nutrition stats
   const todayMealCount = todayNutrition?.length || 0;
   const todayCalories = todayNutrition?.reduce((sum, log) => sum + (log.calories || 0), 0) || 0;
+  const todayProtein = todayNutrition?.reduce((sum, log) => sum + (log.protein || 0), 0) || 0;
+  const todayCarbs = todayNutrition?.reduce((sum, log) => sum + (log.carbs || 0), 0) || 0;
+  const todayFats = todayNutrition?.reduce((sum, log) => sum + (log.fats || 0), 0) || 0;
 
   return (
     <ClientLayout>
@@ -529,10 +532,38 @@ export default function ClientDashboard() {
                         : "No meals logged yet"}
                     </p>
                   </div>
-                  <Button size="sm" className="shrink-0 gap-1" onClick={(e) => { e.stopPropagation(); setLogMealOpen(true); }}>
-                    <Plus className="h-3.5 w-3.5" /> Log Meal
-                  </Button>
                 </div>
+                {/* Macro breakdown bars */}
+                <div className="grid grid-cols-3 gap-3 mt-3">
+                  {[
+                    { label: "P", current: Math.round(todayProtein), target: Math.round(Number(macroTargets.target_protein) || 0), color: "#6366f1" },
+                    { label: "C", current: Math.round(todayCarbs), target: Math.round(Number(macroTargets.target_carbs) || 0), color: "#22c55e" },
+                    { label: "F", current: Math.round(todayFats), target: Math.round(Number(macroTargets.target_fats) || 0), color: "#eab308" },
+                  ].map((macro) => (
+                    <div key={macro.label} className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold" style={{ color: macro.color }}>{macro.label}</span>
+                        <span className="text-xs text-muted-foreground">{macro.current}/{macro.target}</span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${macro.target > 0 ? Math.min((macro.current / macro.target) * 100, 100) : 0}%`,
+                            backgroundColor: macro.color,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full mt-3 gap-1"
+                  onClick={(e) => { e.stopPropagation(); setLogMealOpen(true); }}
+                >
+                  <Plus className="h-3.5 w-3.5" /> Log meal
+                </Button>
               </CardContent>
             </Card>
           </div>
