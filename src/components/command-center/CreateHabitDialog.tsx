@@ -175,6 +175,27 @@ export function CreateHabitDialog({ clientId, initialDate, open, onOpenChange }:
             </DialogHeader>
 
             <div className="space-y-4">
+              {/* Icon Picker */}
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold uppercase text-muted-foreground">Choose an Icon</Label>
+                <div className="grid grid-cols-8 gap-2">
+                  {["🎯","💧","🧘","🚶","😴","🥗","📖","💪","🤸","📝","🚫","💊","🙏","🏃","👟","🚴","🧗","🏊","⚽","🎾","🧠","🍎","☀️","🌙","❤️","🔥","⏰","🎵","✅","🧹","💤","🥤"].map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => setSelectedIcon(emoji)}
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl transition-all ${
+                        selectedIcon === emoji
+                          ? "bg-primary/20 ring-2 ring-primary scale-110"
+                          : "hover:bg-muted"
+                      }`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label className="text-xs font-semibold uppercase text-muted-foreground">Name your Habit</Label>
                 <div className="relative">
