@@ -113,14 +113,17 @@ export default function ClientMacroSetup() {
 
   const saveMutation = useMutation({
     mutationFn: async (macros: { calories: number; protein: number; carbs: number; fats: number }) => {
+      // When a trainer is impersonating, include trainer_id so the trainer's ALL policy matches
+      const isImpersonating = clientId !== user?.id;
       const payload = {
         client_id: clientId!,
-        tracking_option: "all_macros",
+        tracking_option: "all_macros" as const,
         target_calories: macros.calories,
         target_protein: macros.protein,
         target_carbs: macros.carbs,
         target_fats: macros.fats,
         is_active: true,
+        ...(isImpersonating ? { trainer_id: user?.id } : {}),
       };
 
       if (existingTargets) {
