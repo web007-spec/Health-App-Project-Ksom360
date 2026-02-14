@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
@@ -13,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function ClientCalendar() {
   const { user } = useAuth();
+  const clientId = useEffectiveClientId();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -23,7 +25,7 @@ export default function ClientCalendar() {
   const monthEnd = endOfMonth(currentDate);
 
   const { data: workouts, isLoading } = useQuery({
-    queryKey: ["calendar-workouts", user?.id, format(monthStart, "yyyy-MM")],
+    queryKey: ["calendar-workouts", clientId, format(monthStart, "yyyy-MM")],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_workouts")
@@ -37,7 +39,7 @@ export default function ClientCalendar() {
             difficulty
           )
         `)
-        .eq("client_id", user?.id)
+        .eq("client_id", clientId)
         .gte("scheduled_date", format(monthStart, "yyyy-MM-dd"))
         .lte("scheduled_date", format(monthEnd, "yyyy-MM-dd"))
         .order("scheduled_date", { ascending: true });
@@ -45,7 +47,7 @@ export default function ClientCalendar() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!clientId,
   });
 
   // Fetch selected workout details
