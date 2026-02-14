@@ -20,6 +20,7 @@ export default function ClientHabitDetail() {
   const [viewDate, setViewDate] = useState(new Date());
   const [viewMonth, setViewMonth] = useState(new Date());
   const [commentText, setCommentText] = useState("");
+  const [manualInput, setManualInput] = useState("");
 
   // Fetch habit
   const { data: habit } = useQuery({
@@ -270,23 +271,19 @@ export default function ClientHabitDetail() {
                   )}
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  {isWaterType ? (
+                {isWaterType ? (
                     <>
                       <span className="text-5xl font-bold">{currentCount}</span>
                       <span className="text-sm text-muted-foreground">of {goalValue} {habit.goal_unit}</span>
                     </>
                   ) : (
                     <>
-                      <span className="text-4xl mb-1">{icon}</span>
+                      <span className="text-6xl mb-1">👟</span>
+                      <span className="text-sm text-muted-foreground mt-1">{currentCount} of {goalValue} {habit.goal_unit}</span>
                     </>
                   )}
                 </div>
               </div>
-              {!isWaterType && (
-                <div className="text-center -mt-2">
-                  <span className="text-sm text-muted-foreground">{currentCount} of {goalValue} {habit.goal_unit}</span>
-                </div>
-              )}
             </div>
 
             {/* Increment controls */}
@@ -322,30 +319,66 @@ export default function ClientHabitDetail() {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-between px-8">
-                <Button
-                  variant="default"
-                  size="icon"
-                  className="h-14 w-14 rounded-full"
-                  onClick={() => removeCompletionMutation.mutate()}
-                  disabled={currentCount === 0 || removeCompletionMutation.isPending}
-                >
-                  <Minus className="h-6 w-6" />
-                </Button>
-                <div className="text-center">
-                  <p className="text-5xl font-bold">{currentCount}</p>
-                  <div className="h-0.5 w-full bg-primary/20 mt-2 mb-1 rounded-full" />
-                  <p className="text-sm text-muted-foreground">of {goalValue} {habit.goal_unit}</p>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between px-8">
+                  <Button
+                    variant="default"
+                    size="icon"
+                    className="h-14 w-14 rounded-full"
+                    onClick={() => removeCompletionMutation.mutate()}
+                    disabled={currentCount === 0 || removeCompletionMutation.isPending}
+                  >
+                    <Minus className="h-6 w-6" />
+                  </Button>
+                  <div className="text-center">
+                    <p className="text-5xl font-bold">{currentCount}</p>
+                    <div className="h-0.5 w-full bg-primary/20 mt-2 mb-1 rounded-full" />
+                    <p className="text-sm text-muted-foreground">of {goalValue} {habit.goal_unit}</p>
+                  </div>
+                  <Button
+                    variant="default"
+                    size="icon"
+                    className="h-14 w-14 rounded-full"
+                    onClick={() => addCompletionMutation.mutate()}
+                    disabled={addCompletionMutation.isPending}
+                  >
+                    <Plus className="h-6 w-6" />
+                  </Button>
                 </div>
-                <Button
-                  variant="default"
-                  size="icon"
-                  className="h-14 w-14 rounded-full"
-                  onClick={() => addCompletionMutation.mutate()}
-                  disabled={addCompletionMutation.isPending}
-                >
-                  <Plus className="h-6 w-6" />
-                </Button>
+                {/* Manual input */}
+                <div className="bg-background rounded-2xl p-4 shadow-sm">
+                  <p className="text-sm text-muted-foreground mb-3 text-center">Or enter manually</p>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder={`Enter ${habit.goal_unit || 'value'}...`}
+                      value={manualInput}
+                      onChange={(e) => setManualInput(e.target.value)}
+                      className="flex-1 text-center text-lg"
+                    />
+                    <Button
+                      disabled={!manualInput || Number(manualInput) <= 0 || addCompletionMutation.isPending}
+                      onClick={() => {
+                        const val = Number(manualInput);
+                        if (val > 0) {
+                          // Add 'val' completions
+                          const promises = Array.from({ length: val }).map(() =>
+                            supabase.from("habit_completions").insert({ habit_id: id!, client_id: clientId!, completion_date: dateStr })
+                          );
+                          Promise.all(promises).then(() => {
+                            setManualInput("");
+                            queryClient.invalidateQueries({ queryKey: ["habit-day-completions", id, dateStr] });
+                            queryClient.invalidateQueries({ queryKey: ["habit-all-completions", id] });
+                            queryClient.invalidateQueries({ queryKey: ["client-habit-completions-today"] });
+                          });
+                        }
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
