@@ -103,9 +103,10 @@ export default function ClientMacroSetup() {
     tdee *= goalFactor;
 
     const calories = Math.round(tdee);
-    const protein = Math.round(parseFloat(weightLbs)); // ~1g per lb bodyweight
-    const fats = Math.round((calories * 0.25) / 9);
-    const carbs = Math.round((calories - protein * 4 - fats * 9) / 4);
+    // High Protein Keto split: 60% fat, 35% protein, 5% carbs
+    const protein = Math.round((calories * 0.35) / 4);
+    const fats = Math.round((calories * 0.60) / 9);
+    const carbs = Math.round((calories * 0.05) / 4);
 
     setCalcResults({ calories, protein: Math.max(protein, 0), carbs: Math.max(carbs, 0), fats: Math.max(fats, 0) });
     setStep("results");
@@ -187,9 +188,10 @@ export default function ClientMacroSetup() {
     tdee *= goalFactor;
 
     const calories = Math.round(tdee);
-    const protein = Math.round(parseFloat(weightLbs));
-    const fats = Math.round((calories * 0.25) / 9);
-    const carbs = Math.round((calories - protein * 4 - fats * 9) / 4);
+    // High Protein Keto split: 60% fat, 35% protein, 5% carbs
+    const protein = Math.round((calories * 0.35) / 4);
+    const fats = Math.round((calories * 0.60) / 9);
+    const carbs = Math.round((calories * 0.05) / 4);
 
     setCalcResults({ calories, protein: Math.max(protein, 0), carbs: Math.max(carbs, 0), fats: Math.max(fats, 0) });
     setStep("results");
