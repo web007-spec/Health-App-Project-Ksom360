@@ -81,7 +81,16 @@ export function EmojiGifPicker({ onSelectEmoji, onSelectGif }: EmojiGifPickerPro
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button type="button" variant="ghost" size="icon" className="shrink-0 h-9 w-9">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="shrink-0 h-9 w-9"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+        >
           <Smile className="h-4 w-4" />
         </Button>
       </PopoverTrigger>
