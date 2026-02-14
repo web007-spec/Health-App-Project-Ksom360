@@ -49,6 +49,8 @@ import ClientsHealth from "./pages/ClientsHealth";
 import NotFound from "./pages/NotFound";
 import ClientHealth from "./pages/client/ClientHealth";
 import ClientHealthConnect from "./pages/client/ClientHealthConnect";
+import ClientBadges from "./pages/client/ClientBadges";
+import ClientWorkoutHistory from "./pages/ClientWorkoutHistory";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -92,6 +94,7 @@ const App = () => (
           <Route path="/macro-calculator" element={<ProtectedRoute allowedRoles={["trainer"]}><MacroCalculator /></ProtectedRoute>} />
           <Route path="/macro-tracking" element={<ProtectedRoute allowedRoles={["trainer"]}><MacroTracking /></ProtectedRoute>} />
           <Route path="/clients/:clientId/health" element={<ProtectedRoute allowedRoles={["trainer"]}><TrainerClientHealth /></ProtectedRoute>} />
+          <Route path="/clients/:clientId/workout-history" element={<ProtectedRoute allowedRoles={["trainer"]}><ClientWorkoutHistory /></ProtectedRoute>} />
           <Route path="/clients-health" element={<ProtectedRoute allowedRoles={["trainer"]}><ClientsHealth /></ProtectedRoute>} />
           
           {/* Client Routes */}
@@ -109,6 +112,7 @@ const App = () => (
           <Route path="/client/workout-hub" element={<ProtectedRoute allowedRoles={["client"]}><ClientWorkoutHub /></ProtectedRoute>} />
           <Route path="/client/health" element={<ProtectedRoute allowedRoles={["client"]}><ClientHealth /></ProtectedRoute>} />
           <Route path="/client/health-connect" element={<ProtectedRoute allowedRoles={["client"]}><ClientHealthConnect /></ProtectedRoute>} />
+          <Route path="/client/badges" element={<ProtectedRoute allowedRoles={["client"]}><ClientBadges /></ProtectedRoute>} />
           <Route path="/client/workouts/:id" element={<ProtectedRoute allowedRoles={["client"]}><WorkoutDetail /></ProtectedRoute>} />
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

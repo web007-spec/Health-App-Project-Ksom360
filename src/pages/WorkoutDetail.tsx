@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { ClientLayout } from "@/components/ClientLayout";
@@ -11,6 +11,14 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Play, Clock, Dumbbell } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { WorkoutPlayer } from "@/components/WorkoutPlayer";
+import { WorkoutSummary } from "@/components/WorkoutSummary";
+import { awardBadges } from "@/hooks/useBadgeAwarder";
+
+interface CompletionData {
+  setLogs: Record<string, { reps: string; weight: string; completed: boolean }>;
+  elapsedSeconds: number;
+  startedAt: string;
+}
 
 export default function WorkoutDetail() {
   const { id } = useParams();
@@ -18,7 +26,34 @@ export default function WorkoutDetail() {
   const [searchParams] = useSearchParams();
   const { user, userRole } = useAuth();
   const [isPlaying, setIsPlaying] = useState(searchParams.get("start") === "true");
+  const [summaryData, setSummaryData] = useState<{
+    sessionId: string;
+    setLogs: Record<string, any>;
+    durationSeconds: number;
+    startedAt: string;
+    completedAt: string;
+    isPartial: boolean;
+  } | null>(null);
   const isClient = userRole === "client";
+
+  // Fetch client_workout record for this workout plan
+  const { data: clientWorkout } = useQuery({
+    queryKey: ["client-workout-for-plan", id, user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_workouts")
+        .select("*")
+        .eq("workout_plan_id", id)
+        .eq("client_id", user?.id)
+        .is("completed_at", null)
+        .order("assigned_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id && !!user?.id && isClient,
+  });
 
   const { data: workout, isLoading } = useQuery({
     queryKey: ["workout-detail", id],
@@ -46,8 +81,8 @@ export default function WorkoutDetail() {
 
   // Transform data for WorkoutPlayer
   const transformedSections = workout?.workout_sections
-    ?.sort((a, b) => a.order_index - b.order_index)
-    .map((section) => ({
+    ?.sort((a: any, b: any) => a.order_index - b.order_index)
+    .map((section: any) => ({
       id: section.id,
       name: section.name,
       section_type: section.section_type,
@@ -57,8 +92,8 @@ export default function WorkoutDetail() {
       rest_between_rounds_seconds: section.rest_between_rounds_seconds,
       notes: section.notes || "",
       exercises: section.workout_plan_exercises
-        ?.sort((a, b) => a.order_index - b.order_index)
-        .map((wpe) => ({
+        ?.sort((a: any, b: any) => a.order_index - b.order_index)
+        .map((wpe: any) => ({
           id: wpe.id,
           exercise_id: wpe.exercise_id,
           exercise_name: wpe.exercise?.name,
@@ -75,18 +110,130 @@ export default function WorkoutDetail() {
     })) || [];
 
   const totalExercises = transformedSections.reduce(
-    (sum, section) => sum + section.exercises.length * section.rounds,
+    (sum: number, section: any) => sum + section.exercises.length * section.rounds,
     0
   );
 
-  const handleComplete = () => {
-    setIsPlaying(false);
-    navigate(isClient ? "/client/dashboard" : "/workouts");
+  const saveSession = async (data: CompletionData, isPartial: boolean) => {
+    const completedAt = new Date().toISOString();
+
+    // Create workout session
+    const { data: session, error: sessionError } = await supabase
+      .from("workout_sessions")
+      .insert({
+        client_workout_id: clientWorkout?.id || null,
+        client_id: user?.id,
+        workout_plan_id: id,
+        started_at: data.startedAt,
+        completed_at: completedAt,
+        duration_seconds: data.elapsedSeconds,
+        is_partial: isPartial,
+      })
+      .select()
+      .single();
+
+    if (sessionError) throw sessionError;
+
+    // Save exercise logs
+    const logs: any[] = [];
+    transformedSections.forEach((section: any, sIdx: number) => {
+      const isGrouped = ["superset", "circuit"].includes(section.section_type);
+      section.exercises.forEach((ex: any, eIdx: number) => {
+        if (isGrouped) {
+          for (let r = 1; r <= section.rounds; r++) {
+            const key = `${sIdx}-${eIdx}-${r}-1`;
+            const log = data.setLogs[key];
+            if (log) {
+              logs.push({
+                session_id: session.id,
+                exercise_id: ex.exercise_id,
+                set_number: r,
+                reps: log.reps ? parseInt(log.reps) : null,
+                weight: log.weight ? parseFloat(log.weight) : null,
+                completed: log.completed,
+              });
+            }
+          }
+        } else {
+          const totalSets = ex.sets || 1;
+          for (let s = 1; s <= totalSets; s++) {
+            const key = `${sIdx}-${eIdx}-1-${s}`;
+            const log = data.setLogs[key];
+            if (log) {
+              logs.push({
+                session_id: session.id,
+                exercise_id: ex.exercise_id,
+                set_number: s,
+                reps: log.reps ? parseInt(log.reps) : null,
+                weight: log.weight ? parseFloat(log.weight) : null,
+                completed: log.completed,
+              });
+            }
+          }
+        }
+      });
+    });
+
+    if (logs.length > 0) {
+      await supabase.from("workout_exercise_logs").insert(logs);
+    }
+
+    // Mark client_workout as completed
+    if (clientWorkout?.id && !isPartial) {
+      await supabase
+        .from("client_workouts")
+        .update({ completed_at: completedAt })
+        .eq("id", clientWorkout.id);
+    }
+
+    // Award badges
+    await awardBadges(user?.id!, session.id, workout?.difficulty);
+
+    return { sessionId: session.id, completedAt };
   };
 
-  const handleEndEarly = () => {
+  const handleComplete = async (data: CompletionData) => {
     setIsPlaying(false);
-    navigate(isClient ? "/client/dashboard" : "/workouts");
+    if (!isClient) {
+      navigate("/workouts");
+      return;
+    }
+    try {
+      const result = await saveSession(data, false);
+      setSummaryData({
+        sessionId: result.sessionId,
+        setLogs: data.setLogs,
+        durationSeconds: data.elapsedSeconds,
+        startedAt: data.startedAt,
+        completedAt: result.completedAt,
+        isPartial: false,
+      });
+    } catch (err) {
+      console.error("Failed to save session:", err);
+      navigate("/client/dashboard");
+    }
+  };
+
+  const handleEndEarly = async (data: CompletionData) => {
+    setIsPlaying(false);
+    if (!isClient) {
+      navigate("/workouts");
+      return;
+    }
+    try {
+      const result = await saveSession(data, true);
+      setSummaryData({
+        sessionId: result.sessionId,
+        setLogs: data.setLogs,
+        durationSeconds: data.elapsedSeconds,
+        startedAt: data.startedAt,
+        completedAt: result.completedAt,
+        isPartial: true,
+      });
+    } catch (err) {
+      console.error("Failed to save session:", err);
+      navigate("/client/dashboard");
+    }
   };
 
   const handleDiscard = () => {
@@ -121,6 +268,23 @@ export default function WorkoutDetail() {
           </Button>
         </div>
       </DashboardLayout>
+    );
+  }
+
+  // Show summary after completion
+  if (summaryData) {
+    return (
+      <WorkoutSummary
+        sessionId={summaryData.sessionId}
+        workoutName={workout.name}
+        durationSeconds={summaryData.durationSeconds}
+        startedAt={summaryData.startedAt}
+        completedAt={summaryData.completedAt}
+        isPartial={summaryData.isPartial}
+        setLogs={summaryData.setLogs}
+        sections={transformedSections}
+        onClose={() => navigate("/client/dashboard")}
+      />
     );
   }
 
@@ -191,7 +355,7 @@ export default function WorkoutDetail() {
 
         {/* Workout Preview */}
         <div className="space-y-6">
-          {transformedSections.map((section, sectionIdx) => (
+          {transformedSections.map((section: any) => (
             <Card key={section.id}>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -210,7 +374,7 @@ export default function WorkoutDetail() {
                 )}
               </CardHeader>
               <CardContent className="space-y-4">
-                {section.exercises.map((exercise, exIdx) => (
+                {section.exercises.map((exercise: any, exIdx: number) => (
                   <div key={exercise.id}>
                     {exIdx > 0 && <Separator />}
                     <div className="flex gap-4 pt-4">
