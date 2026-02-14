@@ -161,7 +161,8 @@ export default function Clients() {
               size="icon" 
               variant="ghost" 
               className="h-9 w-9 text-muted-foreground hover:text-primary"
-              title="Progress"
+              title="Workout History"
+              onClick={() => navigate(`/clients/${client.client_id}/workout-history`)}
             >
               <TrendingUp className="h-4 w-4" />
             </Button>
