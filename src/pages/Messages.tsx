@@ -246,8 +246,8 @@ export default function Messages() {
       });
       if (error) throw error;
 
-      // Update conversation timestamp
-      await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", selectedConversation.id);
+      // Update conversation timestamp (ignore errors for non-creators)
+      await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", selectedConversation.id).then(() => {});
     },
     onSuccess: () => {
       setMessageText("");
@@ -258,7 +258,7 @@ export default function Messages() {
 
   // Create or get direct conversation
   const getOrCreateDirectConversation = useCallback(async (contactId: string) => {
-    if (!user?.id) return null;
+    if (!user?.id) throw new Error("Not authenticated");
 
     // Check if direct conversation already exists
     const { data: myMemberships } = await supabase
