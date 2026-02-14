@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 
 export interface ClientFeatureSettings {
   training_enabled: boolean;
@@ -29,22 +29,22 @@ const DEFAULT_SETTINGS: ClientFeatureSettings = {
 };
 
 export function useClientFeatureSettings() {
-  const { user } = useAuth();
+  const clientId = useEffectiveClientId();
 
   const { data: settings, isLoading } = useQuery({
-    queryKey: ["my-feature-settings", user?.id],
+    queryKey: ["my-feature-settings", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_feature_settings")
         .select("*")
-        .eq("client_id", user?.id)
+        .eq("client_id", clientId)
         .maybeSingle();
 
       if (error) throw error;
       return data as ClientFeatureSettings | null;
     },
-    enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    enabled: !!clientId,
+    staleTime: 5 * 60 * 1000,
   });
 
   return {
