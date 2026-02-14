@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,51 +30,52 @@ const taskTypeLabels = {
 
 export default function ClientTasks() {
   const { user } = useAuth();
+  const clientId = useEffectiveClientId();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: tasks, isLoading } = useQuery({
-    queryKey: ["client-tasks", user?.id],
+    queryKey: ["client-tasks", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_tasks")
         .select("*")
-        .eq("client_id", user?.id)
+        .eq("client_id", clientId)
         .order("assigned_at", { ascending: false });
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!clientId,
   });
 
   const { data: habits } = useQuery({
-    queryKey: ["client-habits-active", user?.id],
+    queryKey: ["client-habits-active", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_habits")
         .select("*")
-        .eq("client_id", user?.id)
+        .eq("client_id", clientId)
         .eq("is_active", true)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
     },
-    enabled: !!user,
+    enabled: !!clientId,
   });
 
   const { data: todayCompletions } = useQuery({
-    queryKey: ["client-habit-completions-today", user?.id],
+    queryKey: ["client-habit-completions-today", clientId],
     queryFn: async () => {
       const today = format(new Date(), "yyyy-MM-dd");
       const { data, error } = await supabase
         .from("habit_completions")
         .select("*")
-        .eq("client_id", user?.id)
+        .eq("client_id", clientId)
         .eq("completion_date", today);
       if (error) throw error;
       return data as any[];
     },
-    enabled: !!user,
+    enabled: !!clientId,
   });
 
   const completeMutation = useMutation({
@@ -82,7 +84,7 @@ export default function ClientTasks() {
         .from("client_tasks")
         .update({ completed_at: new Date().toISOString() })
         .eq("id", taskId)
-        .eq("client_id", user?.id);
+        .eq("client_id", clientId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -102,13 +104,13 @@ export default function ClientTasks() {
           .from("habit_completions")
           .delete()
           .eq("habit_id", habitId)
-          .eq("client_id", user?.id)
+          .eq("client_id", clientId)
           .eq("completion_date", today);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("habit_completions")
-          .insert({ habit_id: habitId, client_id: user?.id!, completion_date: today });
+          .insert({ habit_id: habitId, client_id: clientId!, completion_date: today });
         if (error) throw error;
       }
     },

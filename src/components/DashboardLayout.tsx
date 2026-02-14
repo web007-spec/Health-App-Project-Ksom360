@@ -1,6 +1,6 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TrainerSidebar } from "./TrainerSidebar";
-import { Search, LogOut, RefreshCw } from "lucide-react";
+import { Search, LogOut, RefreshCw, Eye } from "lucide-react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
@@ -17,6 +17,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "./ui/dropdown-menu";
 
 interface DashboardLayoutProps {
@@ -36,12 +39,32 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         .select("avatar_url")
         .eq("id", user?.id)
         .single();
-      
       if (error) throw error;
       return data;
     },
     enabled: !!user?.id,
   });
+
+  // Fetch trainer's clients for impersonation
+  const { data: clients } = useQuery({
+    queryKey: ["trainer-clients-list", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trainer_clients")
+        .select("*, client:profiles!trainer_clients_client_id_fkey(id, full_name, email)")
+        .eq("trainer_id", user?.id)
+        .eq("status", "active")
+        .order("assigned_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const handleSwitchToClientView = (clientId: string) => {
+    localStorage.setItem("impersonatedClientId", clientId);
+    navigate("/client/dashboard");
+  };
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -81,10 +104,30 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate("/client/dashboard")} className="cursor-pointer">
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Switch to Client View
-                  </DropdownMenuItem>
+                  {clients && clients.length > 0 ? (
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Preview as Client
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        {clients.map((tc: any) => (
+                          <DropdownMenuItem
+                            key={tc.client.id}
+                            onClick={() => handleSwitchToClientView(tc.client.id)}
+                            className="cursor-pointer"
+                          >
+                            {tc.client.full_name || tc.client.email}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  ) : (
+                    <DropdownMenuItem onClick={() => navigate("/client/dashboard")} className="cursor-pointer">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Switch to Client View
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={signOut} className="text-destructive cursor-pointer">
                     <LogOut className="h-4 w-4 mr-2" />

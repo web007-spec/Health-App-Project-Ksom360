@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +13,7 @@ import { useClientFeatureSettings } from "@/hooks/useClientFeatureSettings";
 
 export default function ClientDashboard() {
   const { user } = useAuth();
+  const clientId = useEffectiveClientId();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { settings } = useClientFeatureSettings();
@@ -47,12 +49,12 @@ export default function ClientDashboard() {
 
   // Check if profile is complete, redirect to onboarding if not
   const { data: profile } = useQuery({
-    queryKey: ["profile-check", user?.id],
+    queryKey: ["profile-check", clientId],
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
         .select("full_name")
-        .eq("id", user?.id)
+        .eq("id", clientId)
         .single();
 
       if (!data?.full_name || data.full_name.trim() === '') {
@@ -61,50 +63,50 @@ export default function ClientDashboard() {
       
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!clientId,
   });
 
   // Fetch today's workouts
   const { data: clientWorkouts } = useQuery({
-    queryKey: ["client-workouts-today", user?.id],
+    queryKey: ["client-workouts-today", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_workouts")
         .select(`*, workout_plan:workout_plans(*)`)
-        .eq("client_id", user?.id)
+        .eq("client_id", clientId)
         .order("scheduled_date", { ascending: true });
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id && settings.training_enabled,
+    enabled: !!clientId && settings.training_enabled,
   });
 
   // Fetch today's tasks
   const { data: tasks } = useQuery({
-    queryKey: ["client-tasks-today", user?.id],
+    queryKey: ["client-tasks-today", clientId],
     queryFn: async () => {
       const today = format(new Date(), "yyyy-MM-dd");
       const { data, error } = await supabase
         .from("client_tasks")
         .select("*")
-        .eq("client_id", user?.id)
+        .eq("client_id", clientId)
         .or(`due_date.eq.${today},due_date.is.null`)
         .order("assigned_at", { ascending: false });
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id && settings.tasks_enabled,
+    enabled: !!clientId && settings.tasks_enabled,
   });
 
   // Fetch today's habits
   const { data: habits } = useQuery({
-    queryKey: ["client-habits-today", user?.id],
+    queryKey: ["client-habits-today", clientId],
     queryFn: async () => {
       const today = format(new Date(), "yyyy-MM-dd");
       const { data, error } = await supabase
         .from("client_habits")
         .select("*")
-        .eq("client_id", user?.id)
+        .eq("client_id", clientId)
         .eq("is_active", true)
         .lte("start_date", today);
       if (error) throw error;
@@ -115,23 +117,23 @@ export default function ClientDashboard() {
         return new Date().getDay() === startDay;
       });
     },
-    enabled: !!user?.id && settings.tasks_enabled,
+    enabled: !!clientId && settings.tasks_enabled,
   });
 
   // Fetch today's habit completions
   const { data: habitCompletions } = useQuery({
-    queryKey: ["client-habit-completions-today", user?.id],
+    queryKey: ["client-habit-completions-today", clientId],
     queryFn: async () => {
       const today = format(new Date(), "yyyy-MM-dd");
       const { data, error } = await supabase
         .from("habit_completions")
         .select("*")
-        .eq("client_id", user?.id)
+        .eq("client_id", clientId)
         .eq("completion_date", today);
       if (error) throw error;
       return data as any[];
     },
-    enabled: !!user?.id && settings.tasks_enabled,
+    enabled: !!clientId && settings.tasks_enabled,
   });
 
   // Toggle habit completion
@@ -139,19 +141,17 @@ export default function ClientDashboard() {
     mutationFn: async ({ habitId, completed }: { habitId: string; completed: boolean }) => {
       const today = format(new Date(), "yyyy-MM-dd");
       if (completed) {
-        // Remove completion
         const { error } = await supabase
           .from("habit_completions")
           .delete()
           .eq("habit_id", habitId)
-          .eq("client_id", user?.id)
+          .eq("client_id", clientId)
           .eq("completion_date", today);
         if (error) throw error;
       } else {
-        // Add completion
         const { error } = await supabase
           .from("habit_completions")
-          .insert({ habit_id: habitId, client_id: user?.id!, completion_date: today });
+          .insert({ habit_id: habitId, client_id: clientId!, completion_date: today });
         if (error) throw error;
       }
     },
@@ -162,18 +162,18 @@ export default function ClientDashboard() {
 
   // Fetch nutrition logs for today
   const { data: todayNutrition } = useQuery({
-    queryKey: ["nutrition-today", user?.id],
+    queryKey: ["nutrition-today", clientId],
     queryFn: async () => {
       const today = format(new Date(), "yyyy-MM-dd");
       const { data, error } = await supabase
         .from("nutrition_logs")
         .select("*")
-        .eq("client_id", user?.id)
+        .eq("client_id", clientId)
         .eq("log_date", today);
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id && settings.food_journal_enabled,
+    enabled: !!clientId && settings.food_journal_enabled,
   });
 
   // Complete task mutation
@@ -183,7 +183,7 @@ export default function ClientDashboard() {
         .from("client_tasks")
         .update({ completed_at: new Date().toISOString() })
         .eq("id", taskId)
-        .eq("client_id", user?.id);
+        .eq("client_id", clientId);
       if (error) throw error;
     },
     onSuccess: () => {
