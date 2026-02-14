@@ -6,16 +6,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useHealthConnections, useSyncHealth, isNativePlatform } from '@/hooks/useHealthData';
 import { useAuth } from '@/hooks/useAuth';
-import { RefreshCw, Settings, Watch, AlertCircle } from 'lucide-react';
+import { RefreshCw, Settings, Watch, AlertCircle, Database } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatDistanceToNow } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 
 export default function ClientHealth() {
   const { user } = useAuth();
   const { data: connections, isLoading: connectionsLoading } = useHealthConnections();
   const syncMutation = useSyncHealth();
+  const queryClient = useQueryClient();
+  const [seeding, setSeeding] = useState(false);
   
   const isConnected = connections?.some(c => c.is_connected);
   const lastSync = connections?.find(c => c.is_connected)?.last_sync_at;
@@ -27,6 +32,27 @@ export default function ClientHealth() {
       toast.success(`Synced ${result.count} health records`);
     } catch (error) {
       toast.error('Failed to sync health data');
+    }
+  };
+
+  const handleSeedDemoData = async () => {
+    setSeeding(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await supabase.functions.invoke('seed-health-data', {
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+      if (response.error) throw response.error;
+      toast.success(`Generated ${response.data.count} demo health records!`);
+      queryClient.invalidateQueries({ queryKey: ['health-data'] });
+      queryClient.invalidateQueries({ queryKey: ['health-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['health-connections'] });
+    } catch (error) {
+      toast.error('Failed to generate demo data');
+    } finally {
+      setSeeding(false);
     }
   };
   
@@ -65,12 +91,21 @@ export default function ClientHealth() {
           </div>
         </div>
         
-        {!isNative && (
+        {!isNative && !isConnected && (
           <Alert>
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Mobile App Required</AlertTitle>
-            <AlertDescription>
-              Health data sync requires the mobile app. Download the app to connect your Apple Watch or Samsung Galaxy Watch.
+            <AlertTitle>Web Preview Mode</AlertTitle>
+            <AlertDescription className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <span>Apple Health sync requires the native mobile app. For now, generate demo data to preview the dashboard.</span>
+              <Button 
+                size="sm" 
+                onClick={handleSeedDemoData} 
+                disabled={seeding}
+                className="shrink-0"
+              >
+                <Database className={`h-4 w-4 mr-2 ${seeding ? 'animate-spin' : ''}`} />
+                {seeding ? 'Generating...' : 'Generate Demo Data'}
+              </Button>
             </AlertDescription>
           </Alert>
         )}
