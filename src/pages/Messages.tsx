@@ -288,18 +288,25 @@ export default function Messages() {
     }
 
     // Create new direct conversation
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log("Creating conversation - user.id:", user.id, "session user:", session?.user?.id);
+    
     const { data: newConvo, error: convoErr } = await supabase
       .from("conversations")
       .insert({ type: "direct", created_by: user.id })
       .select()
       .single();
-    if (convoErr) throw convoErr;
+    if (convoErr) {
+      console.error("Conversation insert error:", convoErr);
+      throw convoErr;
+    }
 
     // Add both members
-    await supabase.from("conversation_members").insert([
+    const { error: memberErr } = await supabase.from("conversation_members").insert([
       { conversation_id: newConvo.id, user_id: user.id },
       { conversation_id: newConvo.id, user_id: contactId },
     ]);
+    if (memberErr) console.error("Member insert error:", memberErr);
 
     return newConvo.id;
   }, [user?.id]);
@@ -328,7 +335,8 @@ export default function Messages() {
         });
         setShowMobileChat(true);
       }
-    } catch {
+    } catch (err) {
+      console.error("startDirectChat error:", err);
       toast({ title: "Error", description: "Failed to start conversation", variant: "destructive" });
     }
   };
