@@ -71,6 +71,24 @@ export function AssignTaskDialog({ clientId, open, onOpenChange }: AssignTaskDia
     mutationFn: async () => {
       if (!selectedTemplate) return;
 
+      // If habit template, create a client_habit instead
+      if (selectedTemplate.task_type === "habit") {
+        const { error } = await supabase.from("client_habits" as any).insert([{
+          client_id: clientId,
+          trainer_id: user?.id,
+          template_id: selectedTemplate.id,
+          name: selectedTemplate.name,
+          description: selectedTemplate.description,
+          icon_url: selectedTemplate.icon_url,
+          goal_value: selectedTemplate.goal_value || 1,
+          goal_unit: selectedTemplate.goal_unit || "times",
+          frequency: selectedTemplate.frequency || "daily",
+          start_date: dueDate ? format(dueDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+        }]);
+        if (error) throw error;
+        return;
+      }
+
       const { error } = await supabase.from("client_tasks").insert([{
         client_id: clientId,
         trainer_id: user?.id,
@@ -88,9 +106,10 @@ export function AssignTaskDialog({ clientId, open, onOpenChange }: AssignTaskDia
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["client-habits"] });
       toast({
         title: "Success",
-        description: "Task assigned successfully",
+        description: selectedTemplate?.task_type === "habit" ? "Habit assigned successfully" : "Task assigned successfully",
       });
       setSelectedTemplate(null);
       setDueDate(undefined);

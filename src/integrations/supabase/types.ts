@@ -266,6 +266,77 @@ export type Database = {
         }
         Relationships: []
       }
+      client_habits: {
+        Row: {
+          client_id: string
+          comments_enabled: boolean | null
+          created_at: string
+          description: string | null
+          end_date: string | null
+          frequency: string
+          goal_unit: string
+          goal_value: number
+          icon_url: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          reminder_enabled: boolean | null
+          reminder_time: string | null
+          start_date: string
+          template_id: string | null
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          comments_enabled?: boolean | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          frequency?: string
+          goal_unit?: string
+          goal_value?: number
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          reminder_enabled?: boolean | null
+          reminder_time?: string | null
+          start_date?: string
+          template_id?: string | null
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          comments_enabled?: boolean | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          frequency?: string
+          goal_unit?: string
+          goal_value?: number
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          reminder_enabled?: boolean | null
+          reminder_time?: string | null
+          start_date?: string
+          template_id?: string | null
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_habits_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "task_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_macro_targets: {
         Row: {
           client_id: string
@@ -1034,6 +1105,41 @@ export type Database = {
             columns: ["goal_id"]
             isOneToOne: false
             referencedRelation: "fitness_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      habit_completions: {
+        Row: {
+          client_id: string
+          completed_at: string
+          completion_date: string
+          habit_id: string
+          id: string
+          notes: string | null
+        }
+        Insert: {
+          client_id: string
+          completed_at?: string
+          completion_date: string
+          habit_id: string
+          id?: string
+          notes?: string | null
+        }
+        Update: {
+          client_id?: string
+          completed_at?: string
+          completion_date?: string
+          habit_id?: string
+          id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "habit_completions_habit_id_fkey"
+            columns: ["habit_id"]
+            isOneToOne: false
+            referencedRelation: "client_habits"
             referencedColumns: ["id"]
           },
         ]
@@ -1934,6 +2040,9 @@ export type Database = {
           attachments: Json | null
           created_at: string
           description: string | null
+          frequency: string | null
+          goal_unit: string | null
+          goal_value: number | null
           icon_url: string | null
           id: string
           is_shared: boolean | null
@@ -1948,6 +2057,9 @@ export type Database = {
           attachments?: Json | null
           created_at?: string
           description?: string | null
+          frequency?: string | null
+          goal_unit?: string | null
+          goal_value?: number | null
           icon_url?: string | null
           id?: string
           is_shared?: boolean | null
@@ -1962,6 +2074,9 @@ export type Database = {
           attachments?: Json | null
           created_at?: string
           description?: string | null
+          frequency?: string | null
+          goal_unit?: string | null
+          goal_value?: number | null
           icon_url?: string | null
           id?: string
           is_shared?: boolean | null

@@ -25,6 +25,9 @@ const taskTemplateSchema = z.object({
   description: z.string().trim().max(1000).optional(),
   reminder_enabled: z.boolean(),
   reminder_hours_before: z.number().min(1).max(168).optional(),
+  goal_value: z.number().min(1).optional(),
+  goal_unit: z.string().optional(),
+  frequency: z.string().optional(),
 });
 
 type TaskTemplateForm = z.infer<typeof taskTemplateSchema>;
@@ -53,6 +56,9 @@ export function CreateTaskTemplateDialog({ open, onOpenChange }: CreateTaskTempl
       description: "",
       reminder_enabled: false,
       reminder_hours_before: 24,
+      goal_value: 1,
+      goal_unit: "times",
+      frequency: "daily",
     },
   });
 
@@ -136,6 +142,9 @@ export function CreateTaskTemplateDialog({ open, onOpenChange }: CreateTaskTempl
         reminder_enabled: values.reminder_enabled,
         reminder_hours_before: values.reminder_enabled ? values.reminder_hours_before : 24,
         icon_url: iconUrl,
+        goal_value: values.task_type === "habit" ? values.goal_value : null,
+        goal_unit: values.task_type === "habit" ? values.goal_unit : null,
+        frequency: values.task_type === "habit" ? values.frequency : null,
       }]);
       if (error) throw error;
     },
@@ -296,6 +305,62 @@ export function CreateTaskTemplateDialog({ open, onOpenChange }: CreateTaskTempl
                 </FormItem>
               )}
             />
+
+            {form.watch("task_type") === "habit" && (
+              <div className="space-y-4 rounded-lg border p-4">
+                <FormLabel className="text-base">Habit Settings</FormLabel>
+                <div className="grid grid-cols-3 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="goal_value"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Goal Value</FormLabel>
+                        <FormControl>
+                          <Input type="number" min={1} {...field} onChange={(e) => field.onChange(parseInt(e.target.value) || 1)} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="goal_unit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Unit</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="times">Times</SelectItem>
+                            <SelectItem value="cups">Cups</SelectItem>
+                            <SelectItem value="minutes">Minutes</SelectItem>
+                            <SelectItem value="hours">Hours</SelectItem>
+                            <SelectItem value="servings">Servings</SelectItem>
+                            <SelectItem value="steps">Steps</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="frequency"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Frequency</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            )}
 
             <FormField
               control={form.control}
