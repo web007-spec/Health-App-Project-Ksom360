@@ -25,6 +25,7 @@ export function CreateMealPlanDialog({ open, onOpenChange, initialType }: Create
     name: "",
     description: "",
     plan_type: initialType || "flexible",
+    num_weeks: "1",
     target_calories: "",
     target_protein: "",
     target_carbs: "",
@@ -46,6 +47,7 @@ export function CreateMealPlanDialog({ open, onOpenChange, initialType }: Create
           name: formData.name,
           description: formData.description || null,
           plan_type: formData.plan_type as any,
+          num_weeks: Number(formData.num_weeks) || 1,
           target_calories: formData.target_calories ? Number(formData.target_calories) : null,
           target_protein: formData.target_protein ? Number(formData.target_protein) : null,
           target_carbs: formData.target_carbs ? Number(formData.target_carbs) : null,
@@ -53,7 +55,6 @@ export function CreateMealPlanDialog({ open, onOpenChange, initialType }: Create
         }])
         .select()
         .single();
-
       if (error) throw error;
       return data;
     },
@@ -88,7 +89,7 @@ export function CreateMealPlanDialog({ open, onOpenChange, initialType }: Create
                 <Label htmlFor="flexible" className="flex-1 cursor-pointer">
                   <div className="font-semibold">Flexible Meal Plan</div>
                   <div className="text-sm text-muted-foreground">
-                    Clients choose from meal options you provide
+                    Clients choose from meal options you provide. Tracks weekly nutrition averages.
                   </div>
                 </Label>
               </div>
@@ -97,21 +98,34 @@ export function CreateMealPlanDialog({ open, onOpenChange, initialType }: Create
                 <Label htmlFor="structured" className="flex-1 cursor-pointer">
                   <div className="font-semibold">Structured Meal Plan</div>
                   <div className="text-sm text-muted-foreground">
-                    Assign specific meals to specific dates
+                    Assign specific meals to specific days. Tracks daily nutrition totals.
                   </div>
                 </Label>
               </div>
             </RadioGroup>
           </div>
 
-          <div>
-            <Label htmlFor="name">Plan Name</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="e.g., 2000 Cal High Protein Plan"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="name">Plan Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g., 2000 Cal High Protein Plan"
+              />
+            </div>
+            <div>
+              <Label htmlFor="weeks">Number of Weeks</Label>
+              <Input
+                id="weeks"
+                type="number"
+                min="1"
+                max="52"
+                value={formData.num_weeks}
+                onChange={(e) => setFormData({ ...formData, num_weeks: e.target.value })}
+              />
+            </div>
           </div>
 
           <div>
@@ -173,9 +187,7 @@ export function CreateMealPlanDialog({ open, onOpenChange, initialType }: Create
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button
             onClick={() => createMutation.mutate()}
             disabled={createMutation.isPending || !formData.name}

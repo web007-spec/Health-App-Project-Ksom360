@@ -10,7 +10,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
-import { format } from "date-fns";
 
 interface SelectRecipesDialogProps {
   open: boolean;
@@ -19,6 +18,8 @@ interface SelectRecipesDialogProps {
   mealType: string;
   mode: "flexible" | "structured";
   selectedDate?: Date;
+  weekNumber?: number;
+  dayOfWeek?: number;
 }
 
 export function SelectRecipesDialog({
@@ -28,6 +29,8 @@ export function SelectRecipesDialog({
   mealType,
   mode,
   selectedDate,
+  weekNumber = 1,
+  dayOfWeek = 0,
 }: SelectRecipesDialogProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -43,7 +46,6 @@ export function SelectRecipesDialog({
         .select("*")
         .eq("trainer_id", user?.id)
         .order("name");
-
       if (error) throw error;
       return data;
     },
@@ -62,31 +64,31 @@ export function SelectRecipesDialog({
           meal_type: mealType as any,
           recipe_id: recipeId,
           order_index: index,
+          week_number: weekNumber,
         }));
-
-        const { error } = await supabase
-          .from("meal_plan_flexible_options")
-          .insert(inserts);
-
+        const { error } = await supabase.from("meal_plan_flexible_options").insert(inserts);
         if (error) throw error;
       } else {
+        const planDate = selectedDate
+          ? selectedDate.toISOString().split("T")[0]
+          : new Date().toISOString().split("T")[0];
         const inserts = selectedRecipes.map((recipeId, index) => ({
           meal_plan_id: mealPlanId,
-          plan_date: format(selectedDate!, "yyyy-MM-dd"),
+          plan_date: planDate,
           meal_type: mealType as any,
           recipe_id: recipeId,
           servings: servings[recipeId] || 1,
           order_index: index,
+          week_number: weekNumber,
+          day_of_week: dayOfWeek,
         }));
-
-        const { error } = await supabase
-          .from("meal_plan_days")
-          .insert(inserts);
-
+        const { error } = await supabase.from("meal_plan_days").insert(inserts);
         if (error) throw error;
       }
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["flexible-week-options"] });
+      queryClient.invalidateQueries({ queryKey: ["structured-week-meals"] });
       queryClient.invalidateQueries({ queryKey: ["meal-plan-flexible-options"] });
       queryClient.invalidateQueries({ queryKey: ["meal-plan-days"] });
       toast.success(`Added ${selectedRecipes.length} recipe(s)`);
@@ -122,17 +124,12 @@ export function SelectRecipesDialog({
         <div className="flex-1 overflow-y-auto space-y-2">
           {filteredRecipes && filteredRecipes.length > 0 ? (
             filteredRecipes.map((recipe) => (
-              <div
-                key={recipe.id}
-                className="flex items-start gap-3 p-3 border rounded-lg hover:bg-accent"
-              >
+              <div key={recipe.id} className="flex items-start gap-3 p-3 border rounded-lg hover:bg-accent">
                 <Checkbox
                   checked={selectedRecipes.includes(recipe.id)}
                   onCheckedChange={(checked) => {
                     setSelectedRecipes(prev =>
-                      checked
-                        ? [...prev, recipe.id]
-                        : prev.filter(id => id !== recipe.id)
+                      checked ? [...prev, recipe.id] : prev.filter(id => id !== recipe.id)
                     );
                     if (!checked) {
                       const newServings = { ...servings };
@@ -149,9 +146,7 @@ export function SelectRecipesDialog({
                   {recipe.tags && recipe.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {recipe.tags.slice(0, 3).map((tag: string) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
+                        <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
                       ))}
                     </div>
                   )}
@@ -165,10 +160,7 @@ export function SelectRecipesDialog({
                       min="0.5"
                       step="0.5"
                       value={servings[recipe.id] || 1}
-                      onChange={(e) => setServings({
-                        ...servings,
-                        [recipe.id]: Number(e.target.value)
-                      })}
+                      onChange={(e) => setServings({ ...servings, [recipe.id]: Number(e.target.value) })}
                       className="h-8"
                     />
                   </div>
@@ -176,24 +168,17 @@ export function SelectRecipesDialog({
               </div>
             ))
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No recipes found
-            </div>
+            <div className="text-center py-8 text-muted-foreground">No recipes found</div>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button
             onClick={() => addRecipesMutation.mutate()}
             disabled={selectedRecipes.length === 0 || addRecipesMutation.isPending}
           >
-            {addRecipesMutation.isPending
-              ? "Adding..."
-              : `Add ${selectedRecipes.length} Recipe(s)`
-            }
+            {addRecipesMutation.isPending ? "Adding..." : `Add ${selectedRecipes.length} Recipe(s)`}
           </Button>
         </DialogFooter>
       </DialogContent>
