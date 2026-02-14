@@ -105,11 +105,25 @@ export default function Messages() {
       if (convoErr) throw convoErr;
 
       // Get all members for these conversations
-      const { data: allMembers, error: allMemErr } = await supabase
+      const { data: rawMembers, error: allMemErr } = await supabase
         .from("conversation_members")
-        .select("conversation_id, user_id, profile:user_id(id, full_name, avatar_url, email)")
+        .select("conversation_id, user_id")
         .in("conversation_id", convoIds);
       if (allMemErr) throw allMemErr;
+
+      // Fetch profiles separately (FK goes to auth.users, not profiles)
+      const memberUserIds = [...new Set((rawMembers || []).map((m) => m.user_id))];
+      const { data: memberProfiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, email")
+        .in("id", memberUserIds);
+      const profileMap = new Map((memberProfiles || []).map((p) => [p.id, p]));
+
+      const allMembers = (rawMembers || []).map((m) => ({
+        conversation_id: m.conversation_id,
+        user_id: m.user_id,
+        profile: profileMap.get(m.user_id) || null,
+      }));
 
       // Get last message per conversation
       const { data: lastMessages, error: msgErr } = await supabase
