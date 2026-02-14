@@ -406,32 +406,29 @@ export default function ClientDashboard() {
         {/* Habits - only if tasks enabled */}
         {settings.tasks_enabled && habits && habits.length > 0 && (
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-              Today's Habits ({habits.filter((h: any) => habitCompletions?.some((c: any) => c.habit_id === h.id)).length}/{habits.length})
-            </h2>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-bold">Habits</h2>
+              <button onClick={() => navigate("/client/habits")} className="text-sm font-semibold text-primary">View all</button>
+            </div>
             <Card>
               <CardContent className="p-0 divide-y divide-border">
                 {habits.map((habit: any) => {
-                  const isCompleted = habitCompletions?.some((c: any) => c.habit_id === habit.id);
+                  const todayCompletionCount = habitCompletions?.filter((c: any) => c.habit_id === habit.id).length || 0;
                   const icon = habit.icon_url?.startsWith("emoji:") ? habit.icon_url.replace("emoji:", "") : "🎯";
                   return (
                     <div
                       key={habit.id}
                       className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
-                      onClick={() => toggleHabitMutation.mutate({ habitId: habit.id, completed: !!isCompleted })}
+                      onClick={() => navigate(`/client/habits/${habit.id}`)}
                     >
-                      {isCompleted ? (
-                        <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                      ) : (
-                        <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
-                      )}
-                      <span className="text-base shrink-0">{icon}</span>
-                      <div className="flex-1 min-w-0">
-                        <span className={`text-sm ${isCompleted ? "line-through text-muted-foreground" : "font-medium"}`}>
-                          {habit.name}
-                        </span>
-                        <p className="text-xs text-muted-foreground">{habit.goal_value} {habit.goal_unit}</p>
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-lg shrink-0">
+                        {icon}
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium">{habit.name}</span>
+                        <p className="text-xs text-muted-foreground">{todayCompletionCount} of {habit.goal_value} {habit.goal_unit} today</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                     </div>
                   );
                 })}
