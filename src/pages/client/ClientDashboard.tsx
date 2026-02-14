@@ -10,6 +10,11 @@ import { useNavigate } from "react-router-dom";
 import { format, isToday, parseISO } from "date-fns";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useClientFeatureSettings } from "@/hooks/useClientFeatureSettings";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
@@ -19,6 +24,21 @@ export default function ClientDashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { settings } = useClientFeatureSettings();
+  const { toast } = useToast();
+
+  const DIET_STYLES = [
+    { value: "standard_keto", label: "Standard Keto", split: "75F / 20P / 5C", icon: "🥑", fatPct: 0.75, proteinPct: 0.20, carbsPct: 0.05 },
+    { value: "high_protein_keto", label: "High Protein Keto", split: "60F / 35P / 5C", icon: "💪", fatPct: 0.60, proteinPct: 0.35, carbsPct: 0.05 },
+    { value: "modified_keto", label: "Modified Keto", split: "70F / 25P / 5C", icon: "⚖️", fatPct: 0.70, proteinPct: 0.25, carbsPct: 0.05 },
+  ];
+
+  // Quick-edit macro sheet state
+  const [macroEditOpen, setMacroEditOpen] = useState(false);
+  const [editMode, setEditMode] = useState<"grams" | "percent">("grams");
+  const [customCalories, setCustomCalories] = useState("");
+  const [customProtein, setCustomProtein] = useState("");
+  const [customCarbs, setCustomCarbs] = useState("");
+  const [customFats, setCustomFats] = useState("");
 
   // Carousel state
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -194,7 +214,80 @@ export default function ClientDashboard() {
     enabled: !!clientId && settings.macros_enabled,
   });
 
-  
+  // Quick macro edit mutation
+  const saveMacrosMutation = useMutation({
+    mutationFn: async (payload: { calories: number; protein: number; carbs: number; fats: number; diet_style: string }) => {
+      const isImpersonating = clientId !== user?.id;
+      const updateData = {
+        target_calories: payload.calories,
+        target_protein: payload.protein,
+        target_carbs: payload.carbs,
+        target_fats: payload.fats,
+        diet_style: payload.diet_style,
+        ...(isImpersonating ? { trainer_id: user?.id } : {}),
+      };
+      if (macroTargets) {
+        const { error } = await supabase.from("client_macro_targets").update(updateData).eq("id", macroTargets.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client-macro-targets"] });
+      setMacroEditOpen(false);
+      toast({ title: "Macro goals updated!" });
+    },
+  });
+
+  const handleDietPresetSelect = (preset: typeof DIET_STYLES[0]) => {
+    const cals = macroTargets?.target_calories || 2000;
+    const protein = Math.round((cals * preset.proteinPct) / 4);
+    const carbs = Math.round((cals * preset.carbsPct) / 4);
+    const fats = Math.round((cals * preset.fatPct) / 9);
+    saveMacrosMutation.mutate({ calories: cals, protein, carbs, fats, diet_style: preset.value });
+  };
+
+  const handleCustomSave = () => {
+    const cals = parseInt(customCalories) || macroTargets?.target_calories || 2000;
+    if (editMode === "percent") {
+      const pPct = parseFloat(customProtein) || 0;
+      const cPct = parseFloat(customCarbs) || 0;
+      const fPct = parseFloat(customFats) || 0;
+      saveMacrosMutation.mutate({
+        calories: cals,
+        protein: Math.round((cals * pPct / 100) / 4),
+        carbs: Math.round((cals * cPct / 100) / 4),
+        fats: Math.round((cals * fPct / 100) / 9),
+        diet_style: "custom",
+      });
+    } else {
+      saveMacrosMutation.mutate({
+        calories: cals,
+        protein: parseInt(customProtein) || 0,
+        carbs: parseInt(customCarbs) || 0,
+        fats: parseInt(customFats) || 0,
+        diet_style: "custom",
+      });
+    }
+  };
+
+  const openMacroEdit = () => {
+    if (macroTargets) {
+      setCustomCalories(String(macroTargets.target_calories || ""));
+      setCustomProtein(String(Math.round(Number(macroTargets.target_protein) || 0)));
+      setCustomCarbs(String(Math.round(Number(macroTargets.target_carbs) || 0)));
+      setCustomFats(String(Math.round(Number(macroTargets.target_fats) || 0)));
+      setEditMode("grams");
+    }
+    setMacroEditOpen(true);
+  };
+
+  const getDietLabel = () => {
+    const style = (macroTargets as any)?.diet_style;
+    const found = DIET_STYLES.find(d => d.value === style);
+    if (found) return found.label;
+    if (style === "custom") return "Custom";
+    return null;
+  };
 
   // Complete task mutation
   const completeMutation = useMutation({
@@ -485,8 +578,15 @@ export default function ClientDashboard() {
         {settings.macros_enabled && macroTargets && (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Nutrition</h2>
-              <Button variant="ghost" size="sm" className="h-6 px-2 gap-1 text-xs" onClick={() => navigate("/client/macro-setup")}>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Nutrition</h2>
+                {getDietLabel() && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                    {getDietLabel()}
+                  </span>
+                )}
+              </div>
+              <Button variant="ghost" size="sm" className="h-6 px-2 gap-1 text-xs" onClick={(e) => { e.stopPropagation(); openMacroEdit(); }}>
                 <Pencil className="h-3 w-3" /> Edit
               </Button>
             </div>
@@ -616,7 +716,102 @@ export default function ClientDashboard() {
         )}
       </div>
 
-      
+      {/* Quick Edit Macros Sheet */}
+      <Sheet open={macroEditOpen} onOpenChange={setMacroEditOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] overflow-y-auto">
+          <div className="space-y-5 pb-6">
+            <div className="text-center pt-2">
+              <h2 className="text-lg font-bold">Change Macro Plan</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Pick a preset or customize your own</p>
+            </div>
+
+            {/* Preset options */}
+            <div className="space-y-2">
+              {DIET_STYLES.map((preset) => {
+                const isActive = (macroTargets as any)?.diet_style === preset.value;
+                return (
+                  <button
+                    key={preset.value}
+                    onClick={() => handleDietPresetSelect(preset)}
+                    disabled={saveMacrosMutation.isPending}
+                    className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all text-left ${
+                      isActive
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/30 hover:bg-muted/30"
+                    }`}
+                  >
+                    <span className="text-2xl">{preset.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold">{preset.label}</p>
+                      <p className="text-xs text-muted-foreground">{preset.split}</p>
+                    </div>
+                    {isActive && (
+                      <span className="text-xs font-semibold text-primary px-2 py-0.5 rounded-full bg-primary/10">Active</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs font-semibold text-muted-foreground uppercase">or customize</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            {/* Custom section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-bold">Custom Macros</Label>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className={editMode === "grams" ? "font-bold text-foreground" : "text-muted-foreground"}>Grams</span>
+                  <Switch
+                    checked={editMode === "percent"}
+                    onCheckedChange={(checked) => {
+                      setEditMode(checked ? "percent" : "grams");
+                      if (checked && macroTargets) {
+                        const cals = macroTargets.target_calories || 2000;
+                        const totalMacroCals = (Number(macroTargets.target_protein) || 0) * 4 + (Number(macroTargets.target_carbs) || 0) * 4 + (Number(macroTargets.target_fats) || 0) * 9;
+                        setCustomProtein(String(totalMacroCals > 0 ? Math.round(((Number(macroTargets.target_protein) || 0) * 4 / totalMacroCals) * 100) : 0));
+                        setCustomCarbs(String(totalMacroCals > 0 ? Math.round(((Number(macroTargets.target_carbs) || 0) * 4 / totalMacroCals) * 100) : 0));
+                        setCustomFats(String(totalMacroCals > 0 ? Math.round(((Number(macroTargets.target_fats) || 0) * 9 / totalMacroCals) * 100) : 0));
+                      } else if (macroTargets) {
+                        setCustomProtein(String(Math.round(Number(macroTargets.target_protein) || 0)));
+                        setCustomCarbs(String(Math.round(Number(macroTargets.target_carbs) || 0)));
+                        setCustomFats(String(Math.round(Number(macroTargets.target_fats) || 0)));
+                      }
+                    }}
+                  />
+                  <span className={editMode === "percent" ? "font-bold text-foreground" : "text-muted-foreground"}>%</span>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs text-muted-foreground">Calories</Label>
+                <Input type="number" value={customCalories} onChange={e => setCustomCalories(e.target.value)} placeholder="2000" className="mt-1" />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Protein {editMode === "percent" ? "%" : "(g)"}</Label>
+                  <Input type="number" value={customProtein} onChange={e => setCustomProtein(e.target.value)} className="mt-1" />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Carbs {editMode === "percent" ? "%" : "(g)"}</Label>
+                  <Input type="number" value={customCarbs} onChange={e => setCustomCarbs(e.target.value)} className="mt-1" />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Fats {editMode === "percent" ? "%" : "(g)"}</Label>
+                  <Input type="number" value={customFats} onChange={e => setCustomFats(e.target.value)} className="mt-1" />
+                </div>
+              </div>
+              <Button className="w-full h-11 font-semibold" onClick={handleCustomSave} disabled={saveMacrosMutation.isPending}>
+                {saveMacrosMutation.isPending ? "Saving..." : "Save Custom Macros"}
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </ClientLayout>
   );
 }

@@ -341,6 +341,7 @@ export type Database = {
         Row: {
           client_id: string
           created_at: string
+          diet_style: string | null
           id: string
           is_active: boolean | null
           rest_day_calories: number | null
@@ -358,6 +359,7 @@ export type Database = {
         Insert: {
           client_id: string
           created_at?: string
+          diet_style?: string | null
           id?: string
           is_active?: boolean | null
           rest_day_calories?: number | null
@@ -375,6 +377,7 @@ export type Database = {
         Update: {
           client_id?: string
           created_at?: string
+          diet_style?: string | null
           id?: string
           is_active?: boolean | null
           rest_day_calories?: number | null

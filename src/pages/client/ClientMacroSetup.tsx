@@ -156,6 +156,7 @@ export default function ClientMacroSetup() {
         target_carbs: macros.carbs,
         target_fats: macros.fats,
         is_active: true,
+        diet_style: dietStyle || "custom",
         ...(isImpersonating ? { trainer_id: user?.id } : {}),
       };
 
