@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.send-push-notification]
 verify_jwt = false
+
+[functions.admin-pin-login]
+verify_jwt = false

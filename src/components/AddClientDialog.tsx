@@ -56,16 +56,11 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
 
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
-      const emailSent = (data as any)?.emailSent;
-
       toast({
-        title: emailSent ? "Success" : "Client added (email not sent)",
-        description: emailSent
-          ? `Client ${fullName} has been added and will receive their login credentials via email`
-          : `Client ${fullName} was created, but the invite email couldn't be sent (email provider is in test mode until you verify a sending domain).`,
-        variant: emailSent ? "default" : "destructive",
+        title: "Client Created!",
+        description: `${fullName} can now sign in with:\nEmail: ${email}\nPassword: ${password}`,
       });
       handleClose();
     },
