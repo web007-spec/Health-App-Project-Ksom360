@@ -278,7 +278,7 @@ export default function ClientHabitDetail() {
                     </>
                   ) : (
                     <>
-                      <span className="text-6xl mb-1">{habit.icon_url?.startsWith("emoji:") ? habit.icon_url.replace("emoji:", "") : "🎯"}</span>
+                      <span className="text-6xl mb-1">{icon}</span>
                       <span className="text-sm text-muted-foreground mt-1">{currentCount} of {goalValue} {habit.goal_unit}</span>
                     </>
                   )}
