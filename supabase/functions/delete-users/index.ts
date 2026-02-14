@@ -14,7 +14,12 @@ serve(async (req) => {
   try {
     // Verify trainer is authenticated
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -22,8 +27,15 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user: trainer }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !trainer) throw new Error("Unauthorized");
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    const trainer = { id: claimsData.claims.sub as string };
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -53,12 +65,15 @@ serve(async (req) => {
         "client_goal_countdowns", "fitness_goals", "nutrition_logs",
         "progress_entries", "health_connections", "health_data",
         "health_notifications", "client_badges", "client_notes",
-        "client_meal_selections"
+        "client_meal_selections", "client_habits"
       ];
 
       for (const table of tables) {
         await supabaseAdmin.from(table).delete().eq("client_id", userId);
       }
+
+      // Delete habit completions
+      await supabaseAdmin.from("habit_completions").delete().eq("client_id", userId);
 
       // Delete workout sessions and their logs
       const { data: sessions } = await supabaseAdmin
