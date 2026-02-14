@@ -2,8 +2,15 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, X, Loader2, Plus, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
+interface USDAPortions {
+  amount: number;
+  unit: string;
+  gramWeight: number;
+}
 
 interface USDAFood {
   fdcId: number;
@@ -18,6 +25,13 @@ interface USDAFood {
   fiber: number;
   sugar: number;
   dataType: string;
+  portions: USDAPortions[];
+}
+
+export interface IngredientPortion {
+  amount: number;
+  unit: string;
+  gramWeight: number;
 }
 
 export interface RecipeIngredient {
@@ -35,6 +49,8 @@ export interface RecipeIngredient {
   basePro: number;
   baseCarb: number;
   baseFat: number;
+  // available portions from USDA
+  portions: IngredientPortion[];
 }
 
 interface IngredientSearchProps {
@@ -94,17 +110,34 @@ export function IngredientSearch({ ingredients, onIngredientsChange }: Ingredien
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  const DEFAULT_UNITS: IngredientPortion[] = [
+    { amount: 1, unit: "g", gramWeight: 1 },
+    { amount: 1, unit: "oz", gramWeight: 28.35 },
+    { amount: 1, unit: "lbs", gramWeight: 453.6 },
+  ];
+
   const addIngredient = (food: USDAFood) => {
-    // Default to servingSize from USDA or 100g
-    const qty = food.servingSize || 100;
-    const factor = qty / 100;
+    // Build available portions: USDA portions + default units
+    const usdaPortions: IngredientPortion[] = food.portions.map(p => ({
+      amount: p.amount,
+      unit: p.unit,
+      gramWeight: p.gramWeight,
+    }));
+    const allPortions = [...usdaPortions, ...DEFAULT_UNITS];
+
+    // Default to first USDA portion or 100g
+    const defaultPortion = usdaPortions[0];
+    const qty = defaultPortion ? 1 : (food.servingSize || 100);
+    const gramWeight = defaultPortion ? defaultPortion.gramWeight : qty;
+    const factor = gramWeight / 100;
+    const defaultUnit = defaultPortion ? defaultPortion.unit : (food.servingSizeUnit || "g");
 
     const ingredient: RecipeIngredient = {
       fdcId: food.fdcId,
       name: food.name,
       brandOwner: food.brandOwner,
       quantity: qty,
-      unit: food.servingSizeUnit || "g",
+      unit: defaultUnit,
       calories: Math.round(food.calories * factor),
       protein: Math.round(food.protein * factor * 10) / 10,
       carbs: Math.round(food.carbs * factor * 10) / 10,
@@ -113,6 +146,7 @@ export function IngredientSearch({ ingredients, onIngredientsChange }: Ingredien
       basePro: food.protein,
       baseCarb: food.carbs,
       baseFat: food.fats,
+      portions: allPortions,
     };
 
     onIngredientsChange([...ingredients, ingredient]);
@@ -125,17 +159,31 @@ export function IngredientSearch({ ingredients, onIngredientsChange }: Ingredien
     onIngredientsChange(ingredients.filter((_, i) => i !== index));
   };
 
+  const recalcMacros = (ing: RecipeIngredient, qty: number, unitName: string): RecipeIngredient => {
+    const portion = ing.portions.find(p => p.unit === unitName);
+    const gramWeight = portion ? portion.gramWeight * qty : qty; // if unit is 'g', gramWeight=1*qty
+    const factor = gramWeight / 100;
+    return {
+      ...ing,
+      quantity: qty,
+      unit: unitName,
+      calories: Math.round(ing.baseCal * factor),
+      protein: Math.round(ing.basePro * factor * 10) / 10,
+      carbs: Math.round(ing.baseCarb * factor * 10) / 10,
+      fats: Math.round(ing.baseFat * factor * 10) / 10,
+    };
+  };
+
   const updateQuantity = (index: number, newQty: number) => {
     if (newQty < 0) return;
     const updated = [...ingredients];
-    const ing = { ...updated[index] };
-    ing.quantity = newQty;
-    const factor = newQty / 100;
-    ing.calories = Math.round(ing.baseCal * factor);
-    ing.protein = Math.round(ing.basePro * factor * 10) / 10;
-    ing.carbs = Math.round(ing.baseCarb * factor * 10) / 10;
-    ing.fats = Math.round(ing.baseFat * factor * 10) / 10;
-    updated[index] = ing;
+    updated[index] = recalcMacros(updated[index], newQty, updated[index].unit);
+    onIngredientsChange(updated);
+  };
+
+  const changeUnit = (index: number, newUnit: string) => {
+    const updated = [...ingredients];
+    updated[index] = recalcMacros(updated[index], updated[index].quantity, newUnit);
     onIngredientsChange(updated);
   };
 
@@ -225,7 +273,7 @@ export function IngredientSearch({ ingredients, onIngredientsChange }: Ingredien
                   size="icon"
                   variant="ghost"
                   className="h-7 w-7"
-                  onClick={() => updateQuantity(idx, Math.max(0, ing.quantity - 10))}
+                  onClick={() => updateQuantity(idx, Math.max(0, ing.quantity - 1))}
                 >
                   <Minus className="h-3 w-3" />
                 </Button>
@@ -235,12 +283,23 @@ export function IngredientSearch({ ingredients, onIngredientsChange }: Ingredien
                   onChange={(e) => updateQuantity(idx, Number(e.target.value))}
                   className="w-16 h-7 text-center text-sm px-1"
                 />
-                <span className="text-xs text-muted-foreground w-4">{ing.unit}</span>
+                <Select value={ing.unit} onValueChange={(val) => changeUnit(idx, val)}>
+                  <SelectTrigger className="h-7 w-[130px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ing.portions.map((p, pIdx) => (
+                      <SelectItem key={`${p.unit}-${pIdx}`} value={p.unit}>
+                        {p.unit}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Button
                   size="icon"
                   variant="ghost"
                   className="h-7 w-7"
-                  onClick={() => updateQuantity(idx, ing.quantity + 10)}
+                  onClick={() => updateQuantity(idx, ing.quantity + 1)}
                 >
                   <Plus className="h-3 w-3" />
                 </Button>

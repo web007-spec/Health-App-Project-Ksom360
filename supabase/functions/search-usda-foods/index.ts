@@ -62,6 +62,13 @@ serve(async (req) => {
         return 0;
       };
 
+      // Extract food portions/measures
+      const portions = (food.foodMeasures || food.foodPortions || []).map((p: any) => ({
+        amount: p.amount || p.measureUnitNumber || 1,
+        unit: p.disseminationText || p.measureUnitName || p.modifier || 'serving',
+        gramWeight: p.gramWeight || 100,
+      })).filter((p: any) => p.gramWeight > 0);
+
       return {
         fdcId: food.fdcId,
         name: food.description || food.lowercaseDescription || 'Unknown',
@@ -75,6 +82,7 @@ serve(async (req) => {
         fiber: getNutrient([1079]),
         sugar: getNutrient([2000, 1063]),
         dataType: food.dataType,
+        portions,
       };
     });
 
