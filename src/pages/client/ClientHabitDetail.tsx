@@ -309,13 +309,9 @@ export default function ClientHabitDetail() {
                         className="w-14 h-14 rounded-xl flex items-center justify-center transition-all active:scale-95"
                         disabled={addCompletionMutation.isPending || removeCompletionMutation.isPending}
                       >
-                        {isFilled ? (
-                          <span className="text-3xl">💧</span>
-                        ) : (
-                          <div className="w-12 h-12 rounded-xl bg-muted/60 flex items-center justify-center border border-border/50">
-                            <Plus className="h-5 w-5 text-muted-foreground/60" />
-                          </div>
-                        )}
+                        <span className={`text-3xl transition-opacity ${isFilled ? "opacity-100" : "opacity-25 grayscale"}`}>
+                          💧
+                        </span>
                       </button>
                     );
                   })}
