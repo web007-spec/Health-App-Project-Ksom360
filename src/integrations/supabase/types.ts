@@ -352,7 +352,7 @@ export type Database = {
           target_fats: number | null
           target_protein: number | null
           tracking_option: string
-          trainer_id: string
+          trainer_id: string | null
           updated_at: string
         }
         Insert: {
@@ -369,7 +369,7 @@ export type Database = {
           target_fats?: number | null
           target_protein?: number | null
           tracking_option?: string
-          trainer_id: string
+          trainer_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -386,7 +386,7 @@ export type Database = {
           target_fats?: number | null
           target_protein?: number | null
           tracking_option?: string
-          trainer_id?: string
+          trainer_id?: string | null
           updated_at?: string
         }
         Relationships: []
