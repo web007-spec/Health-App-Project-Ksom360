@@ -13,6 +13,10 @@ export interface ClientFeatureSettings {
   macros_enabled: boolean;
   body_metrics_enabled: boolean;
   goals_enabled: boolean;
+  meal_plan_type: string;
+  meal_plan_allow_recipe_replacement: boolean;
+  meal_plan_add_recipe_books: boolean;
+  meal_plan_header_label: string;
 }
 
 const DEFAULT_SETTINGS: ClientFeatureSettings = {
@@ -26,6 +30,10 @@ const DEFAULT_SETTINGS: ClientFeatureSettings = {
   macros_enabled: true,
   body_metrics_enabled: true,
   goals_enabled: true,
+  meal_plan_type: "none",
+  meal_plan_allow_recipe_replacement: false,
+  meal_plan_add_recipe_books: false,
+  meal_plan_header_label: "Meal Plan",
 };
 
 export function useClientFeatureSettings() {

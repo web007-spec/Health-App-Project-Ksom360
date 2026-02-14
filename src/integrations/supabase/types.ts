@@ -165,6 +165,10 @@ export type Database = {
           goals_enabled: boolean
           id: string
           macros_enabled: boolean
+          meal_plan_add_recipe_books: boolean
+          meal_plan_allow_recipe_replacement: boolean
+          meal_plan_header_label: string
+          meal_plan_type: string
           messages_enabled: boolean
           progress_photos_enabled: boolean
           tasks_enabled: boolean
@@ -182,6 +186,10 @@ export type Database = {
           goals_enabled?: boolean
           id?: string
           macros_enabled?: boolean
+          meal_plan_add_recipe_books?: boolean
+          meal_plan_allow_recipe_replacement?: boolean
+          meal_plan_header_label?: string
+          meal_plan_type?: string
           messages_enabled?: boolean
           progress_photos_enabled?: boolean
           tasks_enabled?: boolean
@@ -199,6 +207,10 @@ export type Database = {
           goals_enabled?: boolean
           id?: string
           macros_enabled?: boolean
+          meal_plan_add_recipe_books?: boolean
+          meal_plan_allow_recipe_replacement?: boolean
+          meal_plan_header_label?: string
+          meal_plan_type?: string
           messages_enabled?: boolean
           progress_photos_enabled?: boolean
           tasks_enabled?: boolean
