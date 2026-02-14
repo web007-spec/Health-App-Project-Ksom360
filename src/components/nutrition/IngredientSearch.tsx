@@ -245,6 +245,7 @@ export function IngredientSearch({ ingredients, onIngredientsChange }: Ingredien
                   </div>
                   <div className="text-right ml-4 shrink-0">
                     <p className="text-sm font-semibold">{Math.round(food.calories)} Cal</p>
+                    <p className="text-[10px] text-muted-foreground/70">per 100g</p>
                     <p className="text-xs text-muted-foreground">
                       P{food.protein}g · C{food.carbs}g · F{food.fats}g
                     </p>
