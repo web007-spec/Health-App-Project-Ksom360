@@ -90,12 +90,152 @@ function getCommonPortions(foodName: string): { unit: string; gramWeight: number
       return portions.map(p => ({ ...p, amount: 1 }));
     }
   }
-  // Default common portions for any food
   return [
     { amount: 1, unit: '1 cup', gramWeight: 240 },
     { amount: 1, unit: '1 tbsp', gramWeight: 15 },
     { amount: 1, unit: '1 tsp', gramWeight: 5 },
   ];
+}
+
+interface NormalizedFood {
+  fdcId: number;
+  name: string;
+  brandOwner: string | null;
+  servingSize: number;
+  servingSizeUnit: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  fiber: number;
+  sugar: number;
+  dataType: string;
+  portions: { amount: number; unit: string; gramWeight: number }[];
+}
+
+// ── USDA Search ──
+async function searchUSDA(query: string, pageSize: number): Promise<NormalizedFood[]> {
+  const USDA_API_KEY = Deno.env.get('USDA_API_KEY');
+  if (!USDA_API_KEY) {
+    console.warn('USDA_API_KEY not configured, skipping USDA search');
+    return [];
+  }
+
+  const fetchSize = Math.min(pageSize * 3, 50);
+  const searchUrl = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${USDA_API_KEY}`;
+  const response = await fetch(searchUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query,
+      pageSize: fetchSize,
+      dataType: ['Foundation', 'SR Legacy', 'Branded'],
+    }),
+  });
+
+  if (!response.ok) {
+    console.error('USDA API error:', response.status, await response.text());
+    return [];
+  }
+
+  const data = await response.json();
+
+  return (data.foods || []).map((food: any) => {
+    const nutrients = food.foodNutrients || [];
+    const getNutrient = (ids: number[]) => {
+      for (const id of ids) {
+        const n = nutrients.find((n: any) => n.nutrientId === id);
+        if (n) return Math.round((n.value || 0) * 10) / 10;
+      }
+      return 0;
+    };
+
+    const usdaPortions = (food.foodMeasures || food.foodPortions || []).map((p: any) => ({
+      amount: p.amount || p.measureUnitNumber || 1,
+      unit: (p.disseminationText || p.measureUnitName || p.modifier || 'serving').trim(),
+      gramWeight: p.gramWeight || 100,
+    })).filter((p: any) => p.gramWeight > 0 && p.unit !== 'Quantity not specified' && p.unit !== 'serving');
+
+    const foodName = food.description || food.lowercaseDescription || '';
+    const commonPortions = getCommonPortions(foodName);
+    const existingUnits = new Set(usdaPortions.map((p: any) => p.unit.toLowerCase()));
+    const extraPortions = commonPortions.filter(cp => !existingUnits.has(cp.unit.toLowerCase()));
+    const portions = [...usdaPortions, ...extraPortions];
+
+    let servingSizeUnit = food.servingSizeUnit || 'g';
+    servingSizeUnit = servingSizeUnit.replace(/GRM/i, 'g').replace(/MLT/i, 'ml').replace(/UNT/i, 'unit');
+
+    return {
+      fdcId: food.fdcId,
+      name: foodName || 'Unknown',
+      brandOwner: food.brandOwner || null,
+      servingSize: food.servingSize ? Math.round(food.servingSize * 10) / 10 : 100,
+      servingSizeUnit,
+      calories: getNutrient([1008, 2048]),
+      protein: getNutrient([1003]),
+      carbs: getNutrient([1005]),
+      fats: getNutrient([1004]),
+      fiber: getNutrient([1079]),
+      sugar: getNutrient([2000, 1063]),
+      dataType: food.dataType,
+      portions,
+    };
+  });
+}
+
+// ── Open Food Facts Search ──
+async function searchOpenFoodFacts(query: string, pageSize: number): Promise<NormalizedFood[]> {
+  try {
+    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=${pageSize}&fields=code,product_name,brands,nutriments,serving_size,serving_quantity`;
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'EverFitStride/1.0 (fitness-app)' },
+    });
+
+    if (!response.ok) {
+      console.error('Open Food Facts error:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+
+    return (data.products || [])
+      .filter((p: any) => p.product_name && p.nutriments)
+      .map((product: any) => {
+        const n = product.nutriments || {};
+        const servingGrams = product.serving_quantity || 100;
+
+        // Build portions from serving size
+        const portions: { amount: number; unit: string; gramWeight: number }[] = [];
+        if (product.serving_size) {
+          portions.push({
+            amount: 1,
+            unit: `1 serving (${product.serving_size})`,
+            gramWeight: servingGrams,
+          });
+        }
+
+        return {
+          fdcId: parseInt(product.code?.replace(/\D/g, '').slice(0, 9) || '0', 10) || Math.floor(Math.random() * 900000) + 100000,
+          name: product.product_name,
+          brandOwner: product.brands || null,
+          servingSize: servingGrams,
+          servingSizeUnit: 'g',
+          // All values per 100g
+          calories: Math.round((n['energy-kcal_100g'] || n['energy_100g'] / 4.184 || 0) * 10) / 10,
+          protein: Math.round((n.proteins_100g || 0) * 10) / 10,
+          carbs: Math.round((n.carbohydrates_100g || 0) * 10) / 10,
+          fats: Math.round((n.fat_100g || 0) * 10) / 10,
+          fiber: Math.round((n.fiber_100g || 0) * 10) / 10,
+          sugar: Math.round((n.sugars_100g || 0) * 10) / 10,
+          dataType: 'Open Food Facts',
+          portions,
+        };
+      })
+      .filter((f: NormalizedFood) => f.calories > 0 || f.protein > 0 || f.carbs > 0 || f.fats > 0);
+  } catch (err) {
+    console.error('Open Food Facts search failed:', err);
+    return [];
+  }
 }
 
 serve(async (req) => {
@@ -113,106 +253,49 @@ serve(async (req) => {
       );
     }
 
-    const USDA_API_KEY = Deno.env.get('USDA_API_KEY');
-    if (!USDA_API_KEY) {
-      throw new Error('USDA_API_KEY not configured');
-    }
-
     const sanitizedQuery = query.trim().slice(0, 200);
     const clampedPageSize = Math.min(Math.max(1, pageSize), 25);
 
-    // Search USDA FoodData Central - fetch more to allow resorting
-    const fetchSize = Math.min(clampedPageSize * 3, 50);
-    const searchUrl = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${USDA_API_KEY}`;
-    const response = await fetch(searchUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: sanitizedQuery,
-        pageSize: fetchSize,
-        dataType: ['Foundation', 'SR Legacy', 'Branded'],
-      }),
+    // Search both sources in parallel
+    const [usdaResults, offResults] = await Promise.all([
+      searchUSDA(sanitizedQuery, clampedPageSize),
+      searchOpenFoodFacts(sanitizedQuery, Math.ceil(clampedPageSize / 2)),
+    ]);
+
+    // Merge: USDA first, then Open Food Facts (deduplicate by name similarity)
+    const usdaNames = new Set(usdaResults.map(f => f.name.toLowerCase().trim()));
+    const uniqueOFF = offResults.filter(f => {
+      const lower = f.name.toLowerCase().trim();
+      // Skip if USDA already has a very similar item
+      for (const uName of usdaNames) {
+        if (uName.includes(lower) || lower.includes(uName)) return false;
+      }
+      return true;
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('USDA API error:', response.status, errorText);
-      throw new Error(`USDA API error: ${response.status}`);
-    }
+    let foods = [...usdaResults, ...uniqueOFF];
 
-    const data = await response.json();
+    // Sort: Foundation > SR Legacy > Open Food Facts branded > Branded
+    const dataTypePriority: Record<string, number> = {
+      'Foundation': 0,
+      'SR Legacy': 1,
+      'Open Food Facts': 2,
+      'Branded': 3,
+    };
 
-    // Transform search results
-    let foods = (data.foods || []).map((food: any) => {
-      const nutrients = food.foodNutrients || [];
-
-      const getNutrient = (ids: number[]) => {
-        for (const id of ids) {
-          const n = nutrients.find((n: any) => n.nutrientId === id);
-          if (n) return Math.round((n.value || 0) * 10) / 10;
-        }
-        return 0;
-      };
-
-      // Extract food portions/measures from search results
-      const usdaPortions = (food.foodMeasures || food.foodPortions || []).map((p: any) => ({
-        amount: p.amount || p.measureUnitNumber || 1,
-        unit: (p.disseminationText || p.measureUnitName || p.modifier || 'serving').trim(),
-        gramWeight: p.gramWeight || 100,
-      })).filter((p: any) => p.gramWeight > 0 && p.unit !== 'Quantity not specified' && p.unit !== 'serving');
-
-      // Use USDA portions first, then supplement with common portions
-      const foodName = food.description || food.lowercaseDescription || '';
-      const commonPortions = getCommonPortions(foodName);
-      // Merge: USDA portions take priority, add common ones that don't duplicate
-      const existingUnits = new Set(usdaPortions.map((p: any) => p.unit.toLowerCase()));
-      const extraPortions = commonPortions.filter(cp => !existingUnits.has(cp.unit.toLowerCase()));
-      const portions = [...usdaPortions, ...extraPortions];
-
-      let servingSizeUnit = food.servingSizeUnit || 'g';
-      servingSizeUnit = servingSizeUnit.replace(/GRM/i, 'g').replace(/MLT/i, 'ml').replace(/UNT/i, 'unit');
-      const servingSize = food.servingSize ? Math.round(food.servingSize * 10) / 10 : 100;
-
-      return {
-        fdcId: food.fdcId,
-        name: foodName || 'Unknown',
-        brandOwner: food.brandOwner || null,
-        servingSize,
-        servingSizeUnit,
-        calories: getNutrient([1008, 2048]),
-        protein: getNutrient([1003]),
-        carbs: getNutrient([1005]),
-        fats: getNutrient([1004]),
-        fiber: getNutrient([1079]),
-        sugar: getNutrient([2000, 1063]),
-        dataType: food.dataType,
-        portions,
-      };
-    });
-
-    // Sort: Foundation & SR Legacy first, then Branded
-    // Within same type, prefer "whole" and deprioritize parts like "white", "yolk", "dried"
-    const dataTypePriority: Record<string, number> = { 'Foundation': 0, 'SR Legacy': 1, 'Branded': 2 };
-    const queryLower = sanitizedQuery.toLowerCase();
-    foods.sort((a: any, b: any) => {
-      const typeDiff = (dataTypePriority[a.dataType] ?? 2) - (dataTypePriority[b.dataType] ?? 2);
+    foods.sort((a, b) => {
+      const typeDiff = (dataTypePriority[a.dataType] ?? 3) - (dataTypePriority[b.dataType] ?? 3);
       if (typeDiff !== 0) return typeDiff;
-      // Within same data type, score by relevance
       const scoreItem = (name: string) => {
         const lower = name.toLowerCase();
-        const isDried = lower.includes('dried') || lower.includes('powder');
-        const isPart = lower.includes('white') || lower.includes('yolk');
-        // Penalize dried/powder forms heavily
-        if (isDried) return 4;
-        // Penalize parts (white, yolk) 
-        if (isPart) return 3;
-        // Prefer "whole" items
+        if (lower.includes('dried') || lower.includes('powder')) return 4;
+        if (lower.includes('white') || lower.includes('yolk')) return 3;
         if (lower.includes('whole')) return 0;
-        // Normal items
         return 1;
       };
       return scoreItem(a.name) - scoreItem(b.name);
     });
+
     foods = foods.slice(0, clampedPageSize);
 
     return new Response(
