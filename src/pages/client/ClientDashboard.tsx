@@ -1,7 +1,7 @@
 import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X } from "lucide-react";
+import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X, Plus, Pencil } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10,6 +10,8 @@ import { useNavigate } from "react-router-dom";
 import { format, isToday, parseISO } from "date-fns";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useClientFeatureSettings } from "@/hooks/useClientFeatureSettings";
+import { LogMealDialog } from "@/components/LogMealDialog";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 export default function ClientDashboard() {
   const { user } = useAuth();
@@ -175,6 +177,24 @@ export default function ClientDashboard() {
     },
     enabled: !!clientId && settings.food_journal_enabled,
   });
+
+  // Fetch macro targets
+  const { data: macroTargets } = useQuery({
+    queryKey: ["client-macro-targets", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_macro_targets")
+        .select("*")
+        .eq("client_id", clientId!)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clientId && settings.macros_enabled,
+  });
+
+  const [logMealOpen, setLogMealOpen] = useState(false);
 
   // Complete task mutation
   const completeMutation = useMutation({
@@ -437,8 +457,89 @@ export default function ClientDashboard() {
           </div>
         )}
 
-        {/* Food Journal - only if food journal enabled */}
-        {settings.food_journal_enabled && (
+        {/* Nutrition / Macros Section */}
+        {settings.macros_enabled && !macroTargets && (
+          <div>
+            <Card className="overflow-hidden cursor-pointer hover:shadow-sm transition-shadow" onClick={() => navigate("/client/macro-setup")}>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <h3 className="font-bold text-base">Set Macro Goals</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                      Macros First, Magic Later.{"\n"}Let's Lock in That Goal Today!
+                    </p>
+                    <button className="text-sm font-semibold text-primary mt-2">Set goals</button>
+                  </div>
+                  <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-3xl">
+                    🍱
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {settings.macros_enabled && macroTargets && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Nutrition</h2>
+              <Button variant="ghost" size="sm" className="h-6 px-2 gap-1 text-xs" onClick={() => navigate("/client/macro-setup")}>
+                <Pencil className="h-3 w-3" /> Edit
+              </Button>
+            </div>
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  {/* Mini donut chart */}
+                  <div className="relative w-20 h-20 shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { value: todayCalories, color: "hsl(var(--primary))" },
+                            { value: Math.max((macroTargets.target_calories || 0) - todayCalories, 0), color: "hsl(var(--muted))" },
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={28}
+                          outerRadius={38}
+                          startAngle={90}
+                          endAngle={-270}
+                          paddingAngle={0}
+                          dataKey="value"
+                          strokeWidth={0}
+                        >
+                          <Cell fill="hsl(var(--primary))" />
+                          <Cell fill="hsl(var(--muted))" />
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-xs font-bold text-foreground leading-none">{todayCalories}</span>
+                      <span className="text-[9px] text-muted-foreground">cal</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm">
+                      {todayCalories} / {macroTargets.target_calories?.toLocaleString()} cal
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {todayMealCount > 0
+                        ? `${todayMealCount} meal${todayMealCount > 1 ? "s" : ""} logged today`
+                        : "No meals logged yet"}
+                    </p>
+                  </div>
+                  <Button size="sm" className="shrink-0 gap-1" onClick={(e) => { e.stopPropagation(); setLogMealOpen(true); }}>
+                    <Plus className="h-3.5 w-3.5" /> Log Meal
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Food Journal fallback (no macros but food journal enabled) */}
+        {settings.food_journal_enabled && !settings.macros_enabled && (
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Food Journal</h2>
             <Card className="cursor-pointer hover:shadow-sm transition-shadow" onClick={() => navigate("/client/nutrition")}>
@@ -483,6 +584,8 @@ export default function ClientDashboard() {
           </div>
         )}
       </div>
+
+      <LogMealDialog open={logMealOpen} onOpenChange={setLogMealOpen} />
     </ClientLayout>
   );
 }
