@@ -97,7 +97,8 @@ export default function ClientCommandCenter() {
 
   const handleCopyCredentials = async () => {
     if (!clientData?.client?.email || !generatedPassword) return;
-    const text = `Login URL: ${window.location.origin}/auth\nEmail: ${clientData.client.email}\nPassword: ${generatedPassword}`;
+    const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+    const text = `Login URL: ${appUrl}/auth\nEmail: ${clientData.client.email}\nPassword: ${generatedPassword}`;
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -241,7 +242,7 @@ export default function ClientCommandCenter() {
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-2 text-sm font-mono">
-            <div><span className="text-muted-foreground">Login URL:</span> {window.location.origin}/auth</div>
+            <div><span className="text-muted-foreground">Login URL:</span> {import.meta.env.VITE_APP_URL || window.location.origin}/auth</div>
             <div><span className="text-muted-foreground">Email:</span> {clientData?.client?.email}</div>
             <div><span className="text-muted-foreground">Password:</span> {generatedPassword}</div>
           </div>
@@ -251,7 +252,8 @@ export default function ClientCommandCenter() {
               {copied ? "Copied!" : "Copy"}
             </Button>
             <Button variant="outline" onClick={async () => {
-              const text = `Here are your login details:\n\nLogin URL: ${window.location.origin}/auth\nEmail: ${clientData?.client?.email}\nPassword: ${generatedPassword}`;
+              const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+              const text = `Here are your login details:\n\nLogin URL: ${appUrl}/auth\nEmail: ${clientData?.client?.email}\nPassword: ${generatedPassword}`;
               if (navigator.share) {
                 try { await navigator.share({ title: "Login Credentials", text }); } catch {}
               } else {
