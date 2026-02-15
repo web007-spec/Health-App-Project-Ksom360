@@ -111,7 +111,7 @@ export function ExerciseCard({ exercise, onEdit, selectionMode, isSelected, onTo
             <img 
               src={exercise.image_url} 
               alt={exercise.name}
-              className="w-full h-full object-cover object-center"
+              className="w-full h-full object-contain bg-muted"
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
