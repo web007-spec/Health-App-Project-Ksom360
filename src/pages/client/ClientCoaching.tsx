@@ -2,7 +2,7 @@ import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Dumbbell, ListChecks, Target } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Dumbbell, ListChecks, Target, Flame, UtensilsCrossed } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useClientFeatureSettings } from "@/hooks/useClientFeatureSettings";
@@ -285,14 +285,8 @@ export default function ClientCoaching() {
           </div>
         </div>
 
-        {/* Meal plan shortcut */}
-        {settings.food_journal_enabled !== false && (
-          <Card className="cursor-pointer" onClick={() => navigate("/client/meal-plan")}>
-            <CardContent className="p-4">
-              <p className="text-sm font-medium text-foreground">🍽️ View your meal plan →</p>
-            </CardContent>
-          </Card>
-        )}
+        {/* Meal Options Section */}
+        <MealOptionsSection clientId={clientId} onNavigate={() => navigate("/client/meal-plan")} />
       </div>
 
       {selectedWorkoutId && (
@@ -306,5 +300,111 @@ export default function ClientCoaching() {
         />
       )}
     </ClientLayout>
+  );
+}
+
+function MealOptionsSection({ clientId, onNavigate }: { clientId: string; onNavigate: () => void }) {
+  const { data: assignment } = useQuery({
+    queryKey: ["client-meal-assignment", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_meal_plan_assignments")
+        .select("*, meal_plans(*)")
+        .eq("client_id", clientId)
+        .order("assigned_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clientId,
+  });
+
+  const mealPlan = assignment?.meal_plans;
+  const isFlexible = mealPlan?.plan_type === "flexible";
+
+  const { data: options } = useQuery({
+    queryKey: ["coaching-meal-options", assignment?.meal_plan_id],
+    queryFn: async () => {
+      const table = isFlexible ? "meal_plan_flexible_options" : "meal_plan_days";
+      const { data, error } = await supabase
+        .from(table)
+        .select("*, recipes(*)")
+        .eq("meal_plan_id", assignment!.meal_plan_id!)
+        .order("meal_type");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!assignment?.meal_plan_id,
+  });
+
+  if (!assignment || !options || options.length === 0) return null;
+
+  const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"];
+  const mealGroups = MEAL_TYPES.map((type) => {
+    const items = options.filter((o: any) => o.meal_type === type);
+    // Get first recipe image as thumbnail
+    const firstRecipe = items[0]?.recipes;
+    return { type, count: items.length, image: firstRecipe?.image_url, name: type };
+  }).filter((g) => g.count > 0);
+
+  // Weekly nutrition averages
+  const allRecipes = options.map((o: any) => o.recipes).filter(Boolean);
+  const avgCalories = allRecipes.length > 0 ? Math.round(allRecipes.reduce((s: number, r: any) => s + (r.calories || 0), 0) / Math.max(allRecipes.length / mealGroups.length, 1)) : 0;
+  const avgProtein = allRecipes.length > 0 ? Math.round(allRecipes.reduce((s: number, r: any) => s + Number(r.protein || 0), 0) / Math.max(allRecipes.length / mealGroups.length, 1)) : 0;
+  const avgCarbs = allRecipes.length > 0 ? Math.round(allRecipes.reduce((s: number, r: any) => s + Number(r.carbs || 0), 0) / Math.max(allRecipes.length / mealGroups.length, 1)) : 0;
+  const avgFats = allRecipes.length > 0 ? Math.round(allRecipes.reduce((s: number, r: any) => s + Number(r.fats || 0), 0) / Math.max(allRecipes.length / mealGroups.length, 1)) : 0;
+
+  return (
+    <Card className="cursor-pointer" onClick={onNavigate}>
+      <CardContent className="p-4">
+        <h3 className="font-bold text-base mb-3">Meal Options</h3>
+
+        {/* Weekly Nutrition Averages */}
+        <div className="flex items-center gap-2 mb-3">
+          <Flame className="h-4 w-4 text-orange-500" />
+          <span className="text-sm text-muted-foreground">Weekly Nutrition Averages</span>
+        </div>
+        <div className="grid grid-cols-4 gap-2 text-center mb-4">
+          <div>
+            <p className="font-bold text-lg">{avgCalories}<span className="text-xs font-normal text-muted-foreground ml-0.5">cal</span></p>
+            <p className="text-[10px] text-muted-foreground">Calories</p>
+          </div>
+          <div>
+            <p className="font-bold text-lg">{avgProtein}<span className="text-xs font-normal text-muted-foreground ml-0.5">g</span></p>
+            <p className="text-[10px] text-muted-foreground">Protein</p>
+          </div>
+          <div>
+            <p className="font-bold text-lg">{avgCarbs}<span className="text-xs font-normal text-muted-foreground ml-0.5">g</span></p>
+            <p className="text-[10px] text-muted-foreground">Carbs</p>
+          </div>
+          <div>
+            <p className="font-bold text-lg">{avgFats}<span className="text-xs font-normal text-muted-foreground ml-0.5">g</span></p>
+            <p className="text-[10px] text-muted-foreground">Fat</p>
+          </div>
+        </div>
+
+        {/* Meal category thumbnails */}
+        <div className="grid grid-cols-4 gap-3">
+          {mealGroups.map((group) => (
+            <div key={group.type} className="text-center">
+              <p className="text-xs font-medium capitalize mb-1.5 text-foreground">{group.type}</p>
+              <div className="relative">
+                {group.image ? (
+                  <img src={group.image} alt={group.type} className="w-full aspect-square object-cover rounded-lg" />
+                ) : (
+                  <div className="w-full aspect-square bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg flex items-center justify-center">
+                    <UtensilsCrossed className="h-6 w-6 text-primary/40" />
+                  </div>
+                )}
+                <Badge className="absolute -bottom-1 -right-1 h-5 w-5 p-0 flex items-center justify-center rounded-full text-[10px]">
+                  {group.count}
+                </Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

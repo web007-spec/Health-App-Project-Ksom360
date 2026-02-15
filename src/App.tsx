@@ -57,6 +57,7 @@ import ClientMacroSetup from "./pages/client/ClientMacroSetup";
 import ClientLogMeal from "./pages/client/ClientLogMeal";
 import ClientCoaching from "./pages/client/ClientCoaching";
 import ClientProfile from "./pages/client/ClientProfile";
+import ClientRecipeDetail from "./pages/client/ClientRecipeDetail";
 import ClientWorkoutHistory from "./pages/ClientWorkoutHistory";
 import ClientCommandCenter from "./pages/ClientCommandCenter";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -129,6 +130,7 @@ const App = () => (
           <Route path="/client/habits/:id" element={<ProtectedRoute allowedRoles={["client"]}><ClientHabitDetail /></ProtectedRoute>} />
           <Route path="/client/macro-setup" element={<ProtectedRoute allowedRoles={["client"]}><ClientMacroSetup /></ProtectedRoute>} />
           <Route path="/client/log-meal" element={<ProtectedRoute allowedRoles={["client"]}><ClientLogMeal /></ProtectedRoute>} />
+          <Route path="/client/recipes/:id" element={<ProtectedRoute allowedRoles={["client"]}><ClientRecipeDetail /></ProtectedRoute>} />
           <Route path="/client/workouts/:id" element={<ProtectedRoute allowedRoles={["client"]}><WorkoutDetail /></ProtectedRoute>} />
           <Route path="/client/messages" element={<ProtectedRoute allowedRoles={["client"]}><Messages /></ProtectedRoute>} />
           
