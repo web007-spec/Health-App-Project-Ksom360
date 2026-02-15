@@ -615,6 +615,27 @@ export type Database = {
           },
         ]
       }
+      client_recipe_collections: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       client_rest_day_cards: {
         Row: {
           client_id: string
@@ -644,6 +665,45 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      client_saved_recipes: {
+        Row: {
+          client_id: string
+          collection_id: string | null
+          id: string
+          recipe_id: string
+          saved_at: string
+        }
+        Insert: {
+          client_id: string
+          collection_id?: string | null
+          id?: string
+          recipe_id: string
+          saved_at?: string
+        }
+        Update: {
+          client_id?: string
+          collection_id?: string | null
+          id?: string
+          recipe_id?: string
+          saved_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_saved_recipes_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "client_recipe_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_saved_recipes_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       client_tasks: {
         Row: {
@@ -2080,6 +2140,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      recipe_ingredients: {
+        Row: {
+          amount: string | null
+          id: string
+          name: string
+          notes: string | null
+          order_index: number
+          recipe_id: string
+          unit: string | null
+        }
+        Insert: {
+          amount?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          order_index?: number
+          recipe_id: string
+          unit?: string | null
+        }
+        Update: {
+          amount?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          order_index?: number
+          recipe_id?: string
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_ingredients_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recipes: {
         Row: {
