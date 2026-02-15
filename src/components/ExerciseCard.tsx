@@ -189,23 +189,23 @@ export function ExerciseCard({ exercise, onEdit, selectionMode, isSelected, onTo
 
       {/* Video Dialog */}
       <Dialog open={showVideoDialog} onOpenChange={setShowVideoDialog}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-2">
             <DialogTitle>{exercise.name}</DialogTitle>
           </DialogHeader>
           {embedUrl && (
-            <div className="aspect-video">
+            <div className="w-full aspect-video">
               {isDirectVideo ? (
                 <video
                   src={embedUrl}
                   controls
                   autoPlay
-                  className="w-full h-full rounded-lg"
+                  className="w-full h-full object-contain bg-black"
                 />
               ) : (
                 <iframe
                   src={embedUrl}
-                  className="w-full h-full rounded-lg"
+                  className="w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                 />
