@@ -1,11 +1,12 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Upload, Video, X, CheckCircle2, AlertCircle, FileVideo } from "lucide-react";
+import { Upload, Video, X, CheckCircle2, AlertCircle, FileVideo, RefreshCw } from "lucide-react";
 import { useState, useRef, useCallback } from "react";
 import { validateVideoFile, uploadVideo, getMaxVideoSizeLabel, type UploadProgress } from "@/lib/videoUpload";
 import { useAuth } from "@/hooks/useAuth";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,6 +23,8 @@ interface FileItem {
   status: "pending" | "uploading" | "done" | "error";
   progress: number;
   error?: string;
+  isDuplicate?: boolean;
+  duplicateExerciseId?: string;
 }
 
 function cleanFileName(fileName: string): string {
@@ -42,27 +45,66 @@ export function BulkVideoUploadDialog({ open, onOpenChange }: BulkVideoUploadDia
 
   const [files, setFiles] = useState<FileItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [duplicateAlert, setDuplicateAlert] = useState<{ fileItems: FileItem[]; nonDuplicates: FileItem[] } | null>(null);
+
+  // Fetch existing exercise names for duplicate detection
+  const { data: existingExercises } = useQuery({
+    queryKey: ["exercises-names", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data } = await supabase
+        .from("exercises")
+        .select("id, name")
+        .eq("trainer_id", user.id);
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
 
   const handleFilesSelected = useCallback((selectedFiles: FileList | null) => {
     if (!selectedFiles) return;
+
+    const existingNames = new Set(
+      (existingExercises || []).map((e) => e.name.toLowerCase())
+    );
+    // Also check already-queued files
+    const queuedNames = new Set(
+      files.map((f) => f.name.toLowerCase())
+    );
 
     const newFiles: FileItem[] = [];
     for (let i = 0; i < selectedFiles.length; i++) {
       const file = selectedFiles[i];
       const validationError = validateVideoFile(file);
+      const cleanedName = cleanFileName(file.name);
+      const isDuplicate = existingNames.has(cleanedName.toLowerCase()) || queuedNames.has(cleanedName.toLowerCase());
+      const matchingExercise = isDuplicate
+        ? (existingExercises || []).find((e) => e.name.toLowerCase() === cleanedName.toLowerCase())
+        : undefined;
+
       newFiles.push({
         id: `${Date.now()}-${i}`,
         file,
-        name: cleanFileName(file.name),
+        name: cleanedName,
         status: validationError ? "error" : "pending",
         progress: 0,
         error: validationError || undefined,
+        isDuplicate,
+        duplicateExerciseId: matchingExercise?.id,
       });
     }
 
-    setFiles((prev) => [...prev, ...newFiles]);
+    const duplicates = newFiles.filter((f) => f.isDuplicate && f.status !== "error");
+    const nonDuplicates = newFiles.filter((f) => !f.isDuplicate || f.status === "error");
+
+    if (duplicates.length > 0) {
+      setDuplicateAlert({ fileItems: duplicates, nonDuplicates });
+    } else {
+      setFiles((prev) => [...prev, ...newFiles]);
+    }
+
     if (fileInputRef.current) fileInputRef.current.value = "";
-  }, []);
+  }, [existingExercises, files]);
 
   const removeFile = (id: string) => {
     setFiles((prev) => prev.filter((f) => f.id !== id));
@@ -96,14 +138,20 @@ export function BulkVideoUploadDialog({ open, onOpenChange }: BulkVideoUploadDia
           }
         );
 
-        // Create exercise entry
-        const { error } = await supabase.from("exercises").insert({
-          name: fileItem.name,
-          video_url: videoUrl,
-          trainer_id: user.id,
-        });
-
-        if (error) throw error;
+        // Create or replace exercise entry
+        if (fileItem.duplicateExerciseId) {
+          const { error } = await supabase.from("exercises").update({
+            video_url: videoUrl,
+          }).eq("id", fileItem.duplicateExerciseId);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from("exercises").insert({
+            name: fileItem.name,
+            video_url: videoUrl,
+            trainer_id: user.id,
+          });
+          if (error) throw error;
+        }
 
         setFiles((prev) =>
           prev.map((f) =>
@@ -123,10 +171,25 @@ export function BulkVideoUploadDialog({ open, onOpenChange }: BulkVideoUploadDia
 
     setIsProcessing(false);
     queryClient.invalidateQueries({ queryKey: ["exercises"] });
+    queryClient.invalidateQueries({ queryKey: ["exercises-names"] });
     toast({
       title: "Bulk upload complete",
       description: "You can now edit each exercise to add details like muscle group, equipment, and tags.",
     });
+  };
+
+  const handleDuplicateReplace = () => {
+    if (!duplicateAlert) return;
+    // Add all files (duplicates marked for replacement + non-duplicates)
+    setFiles((prev) => [...prev, ...duplicateAlert.fileItems, ...duplicateAlert.nonDuplicates]);
+    setDuplicateAlert(null);
+  };
+
+  const handleDuplicateSkip = () => {
+    if (!duplicateAlert) return;
+    // Only add non-duplicates
+    setFiles((prev) => [...prev, ...duplicateAlert.nonDuplicates]);
+    setDuplicateAlert(null);
   };
 
   const handleClose = (openState: boolean) => {
@@ -148,6 +211,7 @@ export function BulkVideoUploadDialog({ open, onOpenChange }: BulkVideoUploadDia
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
@@ -224,7 +288,15 @@ export function BulkVideoUploadDialog({ open, onOpenChange }: BulkVideoUploadDia
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{fileItem.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-medium truncate">{fileItem.name}</p>
+                          {fileItem.isDuplicate && fileItem.status !== "done" && (
+                            <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-accent text-accent-foreground">
+                              <RefreshCw className="h-3 w-3" />
+                              Replace
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           {formatSize(fileItem.file.size)}
                           {fileItem.error && (
@@ -268,5 +340,28 @@ export function BulkVideoUploadDialog({ open, onOpenChange }: BulkVideoUploadDia
         </div>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={!!duplicateAlert} onOpenChange={(open) => !open && setDuplicateAlert(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Duplicate Videos Detected</AlertDialogTitle>
+          <AlertDialogDescription>
+            {duplicateAlert?.fileItems.length === 1
+              ? `"${duplicateAlert.fileItems[0].name}" already exists in your exercise library.`
+              : `${duplicateAlert?.fileItems.length} videos already exist in your exercise library: ${duplicateAlert?.fileItems.map((f) => `"${f.name}"`).join(", ")}.`}
+            {" "}Would you like to replace the existing video{(duplicateAlert?.fileItems.length ?? 0) > 1 ? "s" : ""} or skip {(duplicateAlert?.fileItems.length ?? 0) > 1 ? "them" : "it"}?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={handleDuplicateSkip}>
+            Skip Duplicate{(duplicateAlert?.fileItems.length ?? 0) > 1 ? "s" : ""}
+          </AlertDialogCancel>
+          <AlertDialogAction onClick={handleDuplicateReplace}>
+            Replace
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
