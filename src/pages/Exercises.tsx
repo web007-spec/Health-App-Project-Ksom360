@@ -11,6 +11,7 @@ import { ExerciseCard } from "@/components/ExerciseCard";
 import { CreateExerciseDialog } from "@/components/CreateExerciseDialog";
 import { EditExerciseDialog } from "@/components/EditExerciseDialog";
 import { toast } from "sonner";
+import { useExerciseOptions } from "@/hooks/useExerciseOptions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,13 +23,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const muscleGroups = ["chest", "back", "shoulders", "arms", "legs", "glutes", "core", "cardio", "full body"];
-const equipmentTypes = ["bodyweight", "dumbbells", "barbell", "machine", "resistance bands", "kettlebell", "cable", "mini bands", "medicine ball"];
-const categories = ["strength", "cardio", "flexibility", "mobility", "plyometric", "warm-up", "cool-down"];
+// Options provided by useExerciseOptions hook
 
 export default function Exercises() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { muscleGroups, equipmentTypes, categories } = useExerciseOptions();
   const [searchTerm, setSearchTerm] = useState("");
   const [muscleFilter, setMuscleFilter] = useState("all");
   const [equipmentFilter, setEquipmentFilter] = useState("all");
