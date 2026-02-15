@@ -4,30 +4,39 @@ import { supabase } from "@/integrations/supabase/client";
  * Extract a frame from a video file at a given time (default 1 second)
  * and return it as a Blob (JPEG).
  */
-export function extractVideoThumbnail(
+export async function extractVideoThumbnail(
   videoFile: File | string,
   timeInSeconds = 1
 ): Promise<Blob> {
+  // For remote URLs, fetch as blob first to avoid CORS/tainted canvas issues
+  let localSrc: string;
+  let needsRevoke = false;
+
+  if (typeof videoFile === "string") {
+    try {
+      const response = await fetch(videoFile);
+      const videoBlob = await response.blob();
+      localSrc = URL.createObjectURL(videoBlob);
+      needsRevoke = true;
+    } catch {
+      throw new Error("Failed to fetch video for thumbnail generation");
+    }
+  } else {
+    localSrc = URL.createObjectURL(videoFile);
+    needsRevoke = true;
+  }
+
   return new Promise((resolve, reject) => {
     const video = document.createElement("video");
-    video.preload = "metadata";
+    video.preload = "auto";
     video.muted = true;
     video.playsInline = true;
-    video.crossOrigin = "anonymous";
-
-    const src =
-      typeof videoFile === "string"
-        ? videoFile
-        : URL.createObjectURL(videoFile);
 
     const cleanup = () => {
-      if (typeof videoFile !== "string") {
-        URL.revokeObjectURL(src);
-      }
+      if (needsRevoke) URL.revokeObjectURL(localSrc);
     };
 
     video.onloadedmetadata = () => {
-      // Seek to the requested time (or halfway if video is shorter)
       video.currentTime = Math.min(timeInSeconds, video.duration / 2);
     };
 
@@ -66,7 +75,7 @@ export function extractVideoThumbnail(
       reject(new Error("Failed to load video for thumbnail extraction"));
     };
 
-    video.src = src;
+    video.src = localSrc;
   });
 }
 
