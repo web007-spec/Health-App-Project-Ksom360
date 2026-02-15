@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Play, Dumbbell, Search } from "lucide-react";
@@ -10,12 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 export default function ClientWorkoutHub() {
-  const { user } = useAuth();
+  const clientId = useEffectiveClientId();
   const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: collections, isLoading } = useQuery({
-    queryKey: ["client-workout-collections", user?.id],
+    queryKey: ["client-workout-collections", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_workout_collection_access")
@@ -37,12 +37,12 @@ export default function ClientWorkoutHub() {
             )
           )
         `)
-        .eq("client_id", user?.id);
+        .eq("client_id", clientId);
 
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!clientId,
   });
 
   const currentCollection = selectedCollection

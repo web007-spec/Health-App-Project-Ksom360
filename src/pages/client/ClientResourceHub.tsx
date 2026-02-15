@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Link as LinkIcon, FileCheck, Package } from "lucide-react";
@@ -8,10 +8,10 @@ import { ClientLayout } from "@/components/ClientLayout";
 import { Button } from "@/components/ui/button";
 
 export default function ClientResourceHub() {
-  const { user } = useAuth();
+  const clientId = useEffectiveClientId();
 
   const { data: collections, isLoading } = useQuery({
-    queryKey: ["client-resource-collections", user?.id],
+    queryKey: ["client-resource-collections", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_collection_access")
@@ -28,12 +28,12 @@ export default function ClientResourceHub() {
             )
           )
         `)
-        .eq("client_id", user?.id);
+        .eq("client_id", clientId);
 
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!clientId,
   });
 
   const getResourceIcon = (type: string) => {
