@@ -55,6 +55,8 @@ import ClientHabits from "./pages/client/ClientHabits";
 import ClientHabitDetail from "./pages/client/ClientHabitDetail";
 import ClientMacroSetup from "./pages/client/ClientMacroSetup";
 import ClientLogMeal from "./pages/client/ClientLogMeal";
+import ClientCoaching from "./pages/client/ClientCoaching";
+import ClientProfile from "./pages/client/ClientProfile";
 import ClientWorkoutHistory from "./pages/ClientWorkoutHistory";
 import ClientCommandCenter from "./pages/ClientCommandCenter";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -106,6 +108,8 @@ const App = () => (
           
           {/* Client Routes */}
           <Route path="/client/dashboard" element={<ProtectedRoute allowedRoles={["client"]}><ClientDashboard /></ProtectedRoute>} />
+          <Route path="/client/coaching" element={<ProtectedRoute allowedRoles={["client"]}><ClientCoaching /></ProtectedRoute>} />
+          <Route path="/client/profile" element={<ProtectedRoute allowedRoles={["client"]}><ClientProfile /></ProtectedRoute>} />
           <Route path="/client/onboarding" element={<ProtectedRoute allowedRoles={["client"]}><ClientOnboarding /></ProtectedRoute>} />
           <Route path="/client/workouts" element={<ProtectedRoute allowedRoles={["client"]}><ClientWorkouts /></ProtectedRoute>} />
           <Route path="/client/progress" element={<ProtectedRoute allowedRoles={["client"]}><ClientProgress /></ProtectedRoute>} />
