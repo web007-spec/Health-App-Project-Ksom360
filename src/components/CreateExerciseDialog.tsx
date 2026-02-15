@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dumbbell, Upload, X, Plus, Video, Link } from "lucide-react";
 import { useState, useRef } from "react";
+import { validateVideoFile, uploadVideo, getMaxVideoSizeLabel, type UploadProgress } from "@/lib/videoUpload";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +40,7 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [videoSourceType, setVideoSourceType] = useState<"upload" | "url">("upload");
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isCreateTagDialogOpen, setIsCreateTagDialogOpen] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -89,23 +91,9 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('video/')) {
-      toast({
-        title: "Invalid file type",
-        description: "Please select a video file",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate file size (max 100MB)
-    if (file.size > 100 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please select a video smaller than 100MB",
-        variant: "destructive",
-      });
+    const validationError = validateVideoFile(file);
+    if (validationError) {
+      toast({ title: "Invalid file", description: validationError, variant: "destructive" });
       return;
     }
 
@@ -129,30 +117,15 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
       let videoUrl = videoSourceType === "url" ? formData.video_url : "";
 
       setIsUploading(true);
+      setUploadProgress(null);
       try {
-
         // Upload video if file is selected
         if (videoFile && user?.id && videoSourceType === "upload") {
-          const fileExt = videoFile.name.split('.').pop();
-          const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('exercise-videos')
-            .upload(fileName, videoFile, {
-              contentType: videoFile.type,
-              upsert: false,
-            });
-
-          if (uploadError) throw uploadError;
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('exercise-videos')
-            .getPublicUrl(fileName);
-
-          videoUrl = publicUrl;
+          videoUrl = await uploadVideo(videoFile, user.id, "exercise-videos", setUploadProgress);
         }
       } finally {
         setIsUploading(false);
+        setUploadProgress(null);
       }
 
       // Upload thumbnail image if selected
@@ -425,7 +398,7 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
                       Click to upload exercise video
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      MP4, MOV, or WebM (max 100MB)
+                      MP4, MOV, or WebM (max {getMaxVideoSizeLabel()})
                     </p>
                   </div>
                 )}
@@ -452,13 +425,33 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
             </Tabs>
           </div>
 
+          {/* Upload Progress */}
+          {isUploading && uploadProgress && (
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Uploading video...</span>
+                <span>{uploadProgress.percentage}%</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-primary h-full rounded-full transition-all duration-300" 
+                  style={{ width: `${uploadProgress.percentage}%` }} 
+                />
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-3 justify-end pt-4 border-t">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={createExerciseMutation.isPending || isUploading}>
-              {isUploading ? "Uploading image..." : createExerciseMutation.isPending ? "Creating..." : "Create Exercise"}
+              {isUploading 
+                ? uploadProgress 
+                  ? `Uploading... ${uploadProgress.percentage}%` 
+                  : "Uploading..." 
+                : createExerciseMutation.isPending ? "Creating..." : "Create Exercise"}
             </Button>
           </div>
         </form>
