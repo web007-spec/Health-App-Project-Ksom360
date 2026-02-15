@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dumbbell, Upload, X, Plus, Video, Link } from "lucide-react";
 import { useState, useRef } from "react";
 import { validateVideoFile, uploadVideo, getMaxVideoSizeLabel, type UploadProgress } from "@/lib/videoUpload";
+import { generateAndUploadThumbnail } from "@/lib/videoThumbnail";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -128,7 +129,7 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
         setUploadProgress(null);
       }
 
-      // Upload thumbnail image if selected
+      // Upload thumbnail image if selected, otherwise auto-generate from video
       let imageUrl: string | null = null;
       if (imageFile && user?.id) {
         const { compressImage } = await import("@/lib/imageCompression");
@@ -143,6 +144,16 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
           .from('exercise-images')
           .getPublicUrl(fileName);
         imageUrl = publicUrl;
+      } else if (videoUrl && user?.id) {
+        // Auto-generate thumbnail from uploaded/linked video
+        try {
+          imageUrl = await generateAndUploadThumbnail(
+            videoFile && videoSourceType === "upload" ? videoFile : videoUrl,
+            user.id
+          );
+        } catch (thumbErr) {
+          console.warn("Auto-thumbnail generation failed:", thumbErr);
+        }
       }
 
       const { data, error } = await supabase

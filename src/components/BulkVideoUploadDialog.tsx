@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Upload, Video, X, CheckCircle2, AlertCircle, FileVideo, RefreshCw } from "lucide-react";
 import { useState, useRef, useCallback } from "react";
 import { validateVideoFile, uploadVideo, getMaxVideoSizeLabel, type UploadProgress } from "@/lib/videoUpload";
+import { generateAndUploadThumbnail } from "@/lib/videoThumbnail";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -138,16 +139,25 @@ export function BulkVideoUploadDialog({ open, onOpenChange }: BulkVideoUploadDia
           }
         );
 
+        // Auto-generate thumbnail from video
+        let imageUrl: string | null = null;
+        try {
+          imageUrl = await generateAndUploadThumbnail(videoUrl, user.id);
+        } catch (thumbErr) {
+          console.warn("Thumbnail generation failed, continuing without:", thumbErr);
+        }
+
         // Create or replace exercise entry
         if (fileItem.duplicateExerciseId) {
-          const { error } = await supabase.from("exercises").update({
-            video_url: videoUrl,
-          }).eq("id", fileItem.duplicateExerciseId);
+          const updateData: any = { video_url: videoUrl };
+          if (imageUrl) updateData.image_url = imageUrl;
+          const { error } = await supabase.from("exercises").update(updateData).eq("id", fileItem.duplicateExerciseId);
           if (error) throw error;
         } else {
           const { error } = await supabase.from("exercises").insert({
             name: fileItem.name,
             video_url: videoUrl,
+            image_url: imageUrl,
             trainer_id: user.id,
           });
           if (error) throw error;
