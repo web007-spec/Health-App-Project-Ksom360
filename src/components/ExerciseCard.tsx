@@ -107,11 +107,19 @@ export function ExerciseCard({ exercise, onEdit, selectionMode, isSelected, onTo
               />
             </div>
           )}
-          {exercise.image_url ? (
+        {exercise.image_url ? (
             <img 
               src={exercise.image_url} 
               alt={exercise.name}
               className="w-full h-full object-contain bg-muted"
+            />
+          ) : exercise.video_url ? (
+            <video
+              src={exercise.video_url}
+              preload="metadata"
+              muted
+              playsInline
+              className="w-full h-full object-contain bg-muted pointer-events-none"
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
