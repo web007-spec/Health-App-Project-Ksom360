@@ -6,11 +6,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, Video, ArrowUpDown, Dumbbell, Trash2, X, Upload } from "lucide-react";
+import { Search, Plus, Video, ArrowUpDown, Dumbbell, Trash2, X, Upload, ImagePlus } from "lucide-react";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { CreateExerciseDialog } from "@/components/CreateExerciseDialog";
 import { EditExerciseDialog } from "@/components/EditExerciseDialog";
 import { BulkVideoUploadDialog } from "@/components/BulkVideoUploadDialog";
+import { generateAndUploadThumbnail } from "@/lib/videoThumbnail";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { useExerciseOptions } from "@/hooks/useExerciseOptions";
 import {
@@ -44,7 +46,8 @@ export default function Exercises() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
-
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [regenProgress, setRegenProgress] = useState({ current: 0, total: 0 });
   const { data: exercises, isLoading } = useQuery({
     queryKey: ["exercises", user?.id],
     queryFn: async () => {
@@ -173,6 +176,34 @@ export default function Exercises() {
     }
   };
 
+  const handleRegenerateThumbnails = async () => {
+    if (!user?.id || !exercises) return;
+    const missing = exercises.filter((ex) => ex.video_url && !ex.image_url);
+    if (missing.length === 0) {
+      toast.info("All exercises with videos already have thumbnails!");
+      return;
+    }
+    setIsRegenerating(true);
+    setRegenProgress({ current: 0, total: missing.length });
+    let success = 0;
+    let failed = 0;
+    for (const ex of missing) {
+      try {
+        const imageUrl = await generateAndUploadThumbnail(ex.video_url!, user.id);
+        await supabase.from("exercises").update({ image_url: imageUrl }).eq("id", ex.id);
+        success++;
+      } catch {
+        failed++;
+      }
+      setRegenProgress((p) => ({ ...p, current: p.current + 1 }));
+    }
+    setIsRegenerating(false);
+    queryClient.invalidateQueries({ queryKey: ["exercises"] });
+    toast.success(`Generated ${success} thumbnail${success !== 1 ? "s" : ""}${failed > 0 ? `, ${failed} failed` : ""}`);
+  };
+
+  const missingThumbnailCount = exercises?.filter((ex) => ex.video_url && !ex.image_url).length || 0;
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -202,6 +233,14 @@ export default function Exercises() {
               </>
             ) : (
               <>
+                {missingThumbnailCount > 0 && (
+                  <Button variant="outline" onClick={handleRegenerateThumbnails} disabled={isRegenerating}>
+                    <ImagePlus className="h-4 w-4 mr-2" />
+                    {isRegenerating
+                      ? `Generating ${regenProgress.current}/${regenProgress.total}...`
+                      : `Generate Thumbnails (${missingThumbnailCount})`}
+                  </Button>
+                )}
                 <Button variant="outline" onClick={() => setSelectionMode(true)}>
                   <Trash2 className="h-4 w-4 mr-2" />
                   Bulk Delete
@@ -218,6 +257,16 @@ export default function Exercises() {
             )}
           </div>
         </div>
+
+        {isRegenerating && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>Generating thumbnails...</span>
+              <span>{regenProgress.current} / {regenProgress.total}</span>
+            </div>
+            <Progress value={(regenProgress.current / regenProgress.total) * 100} />
+          </div>
+        )}
 
         {/* Filters */}
         <div className="bg-card rounded-lg border border-border p-6 space-y-4">
