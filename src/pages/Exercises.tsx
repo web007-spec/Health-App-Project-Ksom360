@@ -6,10 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, Video, ArrowUpDown, Dumbbell, Trash2, X } from "lucide-react";
+import { Search, Plus, Video, ArrowUpDown, Dumbbell, Trash2, X, Upload } from "lucide-react";
 import { ExerciseCard } from "@/components/ExerciseCard";
 import { CreateExerciseDialog } from "@/components/CreateExerciseDialog";
 import { EditExerciseDialog } from "@/components/EditExerciseDialog";
+import { BulkVideoUploadDialog } from "@/components/BulkVideoUploadDialog";
 import { toast } from "sonner";
 import { useExerciseOptions } from "@/hooks/useExerciseOptions";
 import {
@@ -42,6 +43,7 @@ export default function Exercises() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
   const { data: exercises, isLoading } = useQuery({
     queryKey: ["exercises", user?.id],
@@ -204,6 +206,10 @@ export default function Exercises() {
                   <Trash2 className="h-4 w-4 mr-2" />
                   Bulk Delete
                 </Button>
+                <Button variant="outline" onClick={() => setIsBulkUploadOpen(true)}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Bulk Upload
+                </Button>
                 <Button onClick={() => setIsCreateDialogOpen(true)} size="lg">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Exercise
@@ -357,6 +363,11 @@ export default function Exercises() {
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         exercise={selectedExercise}
+      />
+
+      <BulkVideoUploadDialog
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
       />
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
