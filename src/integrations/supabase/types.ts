@@ -1074,6 +1074,30 @@ export type Database = {
           },
         ]
       }
+      exercise_custom_options: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          option_type: string
+          trainer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          option_type: string
+          trainer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          option_type?: string
+          trainer_id?: string
+        }
+        Relationships: []
+      }
       exercise_exercise_tags: {
         Row: {
           exercise_id: string

@@ -13,15 +13,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CreateExerciseTagDialog } from "./CreateExerciseTagDialog";
+import { ExerciseOptionSelect } from "./ExerciseOptionSelect";
+import { useExerciseOptions } from "@/hooks/useExerciseOptions";
 
 interface CreateExerciseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const muscleGroups = ["chest", "back", "shoulders", "arms", "legs", "glutes", "core", "full body", "cardio"];
-const equipmentTypes = ["bodyweight", "dumbbells", "barbell", "machine", "resistance bands", "kettlebell", "cable", "mini bands", "medicine ball"];
-const categories = ["strength", "cardio", "flexibility", "mobility", "plyometric", "warm-up", "cool-down"];
 
 export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialogProps) {
   const { user } = useAuth();
@@ -44,6 +42,7 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isCreateTagDialogOpen, setIsCreateTagDialogOpen] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const { muscleGroups, equipmentTypes, categories, addOption } = useExerciseOptions();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -278,59 +277,35 @@ export function CreateExerciseDialog({ open, onOpenChange }: CreateExerciseDialo
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
-              <Select
+              <ExerciseOptionSelect
                 value={formData.category}
                 onValueChange={(value) => setFormData({ ...formData, category: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category.charAt(0).toUpperCase() + category.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                options={categories}
+                placeholder="Select category"
+                onAddCustom={(name) => addOption.mutate({ type: "category", name })}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="muscle_group">Target Muscle Groups</Label>
-              <Select
+              <ExerciseOptionSelect
                 value={formData.muscle_group}
                 onValueChange={(value) => setFormData({ ...formData, muscle_group: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select muscle group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {muscleGroups.map((muscle) => (
-                    <SelectItem key={muscle} value={muscle}>
-                      {muscle.charAt(0).toUpperCase() + muscle.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                options={muscleGroups}
+                placeholder="Select muscle group"
+                onAddCustom={(name) => addOption.mutate({ type: "muscle_group", name })}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="equipment">Equipment</Label>
-              <Select
+              <ExerciseOptionSelect
                 value={formData.equipment}
                 onValueChange={(value) => setFormData({ ...formData, equipment: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select equipment" />
-                </SelectTrigger>
-                <SelectContent>
-                  {equipmentTypes.map((equipment) => (
-                    <SelectItem key={equipment} value={equipment}>
-                      {equipment.charAt(0).toUpperCase() + equipment.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                options={equipmentTypes}
+                placeholder="Select equipment"
+                onAddCustom={(name) => addOption.mutate({ type: "equipment", name })}
+              />
             </div>
           </div>
 
