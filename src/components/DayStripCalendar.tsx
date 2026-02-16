@@ -223,139 +223,137 @@ export function DayStripCalendar({ clientId, daysAhead, trainingEnabled, tasksEn
 
       {/* Selected day preview (future days only) */}
       {selectedDate && !isViewingToday && (
-        <Card className="border-dashed overflow-hidden">
-          <CardContent className="p-4 space-y-3">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              {format(viewDate, "EEEE, MMM d")}
-            </p>
+        <div className="space-y-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            {format(viewDate, "EEEE, MMM d")}
+          </p>
 
-            {/* Sport Event Cards with full imagery */}
-            {viewData.sportEvents.map((event: any) => {
-              const isGame = event.event_type === "game" || event.event_type === "event";
-              const customCard = isGame ? gameCard : practiceCard;
-              const EventIcon = isGame ? Swords : Trophy;
-              const label = isGame ? "Game Day" : "Practice";
-              const startTime = formatEventTime(event.start_time);
-              const endTime = event.end_time ? formatEventTime(event.end_time) : null;
-              const timeDisplay = endTime && endTime !== startTime ? `${startTime} - ${endTime}` : startTime;
+          {/* Sport Event Cards — full-bleed, matching dashboard */}
+          {viewData.sportEvents.map((event: any) => {
+            const isGame = event.event_type === "game" || event.event_type === "event";
+            const customCard = isGame ? gameCard : practiceCard;
+            const EventIcon = isGame ? Swords : Trophy;
+            const label = isGame ? "Game Day" : "Practice";
+            const startTime = formatEventTime(event.start_time);
+            const endTime = event.end_time ? formatEventTime(event.end_time) : null;
+            const timeDisplay = endTime && endTime !== startTime ? `${startTime} - ${endTime}` : startTime;
 
-              return (
-                <div key={event.id} className="rounded-xl overflow-hidden border">
-                  <div className={cn(
-                    "relative h-56",
-                    isGame ? "bg-gradient-to-br from-rose-500/20 to-rose-500/5" : "bg-gradient-to-br from-sky-500/20 to-sky-500/5"
-                  )}>
-                    {customCard?.image_url ? (
-                      <img src={customCard.image_url} alt={label} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <EventIcon className={cn("h-12 w-12", isGame ? "text-rose-400/30" : "text-sky-400/30")} />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-3">
-                      <p className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">{label}</p>
-                      <p className="text-sm font-bold text-white">{event.title}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <p className="text-xs text-white/80">{timeDisplay}</p>
-                        {event.location && (
-                          <p className="text-xs text-white/80 flex items-center gap-0.5">
-                            <MapPin className="h-3 w-3" />
-                            {event.location}
-                          </p>
-                        )}
-                      </div>
-                      {customCard?.message && (
-                        <p className="text-[10px] text-white/60 mt-0.5">{customCard.message}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Workout Cards with imagery */}
-            {viewData.workouts.map((w: any) => (
-              <div key={w.id} className="rounded-xl overflow-hidden border">
-                <div className="relative h-56 bg-gradient-to-br from-primary/20 to-primary/5">
-                  {w.workout_plan?.image_url ? (
-                    <img src={w.workout_plan.image_url} alt={w.workout_plan.name} className="w-full h-full object-cover" />
+            return (
+              <Card key={event.id} className="overflow-hidden">
+                <div className={cn(
+                  "relative h-56",
+                  isGame ? "bg-gradient-to-br from-rose-500/20 to-rose-500/5" : "bg-gradient-to-br from-sky-500/20 to-sky-500/5"
+                )}>
+                  {customCard?.image_url ? (
+                    <img src={customCard.image_url} alt={label} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Dumbbell className="h-12 w-12 text-primary/20" />
+                      <EventIcon className={cn("h-16 w-16", isGame ? "text-rose-400/30" : "text-sky-400/30")} />
                     </div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3">
-                    <p className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">Workout</p>
-                    <p className="text-sm font-bold text-white">{w.workout_plan?.name || "Workout"}</p>
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">{label}</p>
+                    <p className="text-lg font-bold text-white">{event.title}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      <p className="text-sm text-white/80">{timeDisplay}</p>
+                      {event.location && (
+                        <p className="text-sm text-white/80 flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {event.location}
+                        </p>
+                      )}
+                    </div>
+                    {customCard?.message && (
+                      <p className="text-xs text-white/70 mt-1">{customCard.message}</p>
+                    )}
                   </div>
                 </div>
-              </div>
-            ))}
+              </Card>
+            );
+          })}
 
-            {/* Rest Day Card (only if no workouts or sport events) */}
-            {isRestDay && trainingEnabled && (
-              <div className="rounded-xl overflow-hidden border">
-                {restDayCard?.image_url ? (
-                  <div className="relative h-56">
-                    <img src={restDayCard.image_url} alt="Rest day" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-3">
-                      <p className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">Rest Day</p>
-                      <p className="text-sm font-bold text-white">
-                        {restDayCard?.message || "No workouts scheduled. Enjoy your rest!"}
-                      </p>
-                    </div>
-                  </div>
+          {/* Workout Cards — full-bleed, matching dashboard */}
+          {viewData.workouts.map((w: any) => (
+            <Card key={w.id} className="overflow-hidden">
+              <div className="relative h-56 bg-gradient-to-br from-primary/20 to-primary/5">
+                {w.workout_plan?.image_url ? (
+                  <img src={w.workout_plan.image_url} alt={w.workout_plan.name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="p-4 text-center">
-                    <Dumbbell className="h-8 w-8 text-muted-foreground/30 mx-auto mb-1" />
-                    <p className="text-sm font-semibold">Rest Day</p>
-                    <p className="text-xs text-muted-foreground">
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Dumbbell className="h-16 w-16 text-primary/20" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Workout</p>
+                  <p className="text-lg font-bold text-white">{w.workout_plan?.name || "Workout"}</p>
+                </div>
+              </div>
+            </Card>
+          ))}
+
+          {/* Rest Day Card — full-bleed, matching dashboard */}
+          {isRestDay && trainingEnabled && (
+            <Card className="overflow-hidden">
+              {restDayCard?.image_url ? (
+                <div className="relative h-56">
+                  <img src={restDayCard.image_url} alt="Rest day" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Rest Day</p>
+                    <p className="text-base font-bold text-white">
                       {restDayCard?.message || "No workouts scheduled. Enjoy your rest!"}
                     </p>
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* Tasks */}
-            {viewData.tasks.map((t: any) => (
-              <div key={t.id} className="flex items-center gap-3 rounded-lg p-3 bg-amber-500/5 border border-amber-500/10">
-                <div className="p-2 rounded-lg bg-amber-500/10">
-                  <CheckSquare className="h-4 w-4 text-amber-500" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{t.name}</p>
-                  <p className="text-xs text-muted-foreground">Task</p>
-                </div>
-              </div>
-            ))}
-
-            {/* Habits */}
-            {viewData.habits.length > 0 && (
-              <div className="flex items-center gap-3 rounded-lg p-3 bg-emerald-500/5 border border-emerald-500/10">
-                <div className="p-2 rounded-lg bg-emerald-500/10">
-                  <Droplets className="h-4 w-4 text-emerald-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold">
-                    {viewData.habits.length} habit{viewData.habits.length > 1 ? "s" : ""}
+              ) : (
+                <CardContent className="p-6 text-center">
+                  <Dumbbell className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-lg font-semibold">Rest Day</p>
+                  <p className="text-sm text-muted-foreground">
+                    {restDayCard?.message || "No workouts scheduled. Enjoy your rest!"}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {viewData.habits.map((h: any) => h.name).join(", ")}
-                  </p>
-                </div>
-              </div>
-            )}
+                </CardContent>
+              )}
+            </Card>
+          )}
 
-            {/* Nothing scheduled at all */}
-            {!hasAnything && !trainingEnabled && (
-              <p className="text-sm text-muted-foreground py-2">Nothing scheduled</p>
-            )}
-          </CardContent>
-        </Card>
+          {/* Tasks */}
+          {viewData.tasks.map((t: any) => (
+            <div key={t.id} className="flex items-center gap-3 rounded-lg p-3 bg-amber-500/5 border border-amber-500/10">
+              <div className="p-2 rounded-lg bg-amber-500/10">
+                <CheckSquare className="h-4 w-4 text-amber-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate">{t.name}</p>
+                <p className="text-xs text-muted-foreground">Task</p>
+              </div>
+            </div>
+          ))}
+
+          {/* Habits */}
+          {viewData.habits.length > 0 && (
+            <div className="flex items-center gap-3 rounded-lg p-3 bg-emerald-500/5 border border-emerald-500/10">
+              <div className="p-2 rounded-lg bg-emerald-500/10">
+                <Droplets className="h-4 w-4 text-emerald-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">
+                  {viewData.habits.length} habit{viewData.habits.length > 1 ? "s" : ""}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {viewData.habits.map((h: any) => h.name).join(", ")}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Nothing scheduled at all */}
+          {!hasAnything && !trainingEnabled && (
+            <p className="text-sm text-muted-foreground py-2">Nothing scheduled</p>
+          )}
+        </div>
       )}
     </div>
   );
