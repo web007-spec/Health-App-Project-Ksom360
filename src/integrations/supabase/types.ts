@@ -14,6 +14,107 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointment_types: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          id: string
+          is_active: boolean
+          location_type: string
+          name: string
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          location_type?: string
+          name: string
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          location_type?: string
+          name?: string
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      appointments: {
+        Row: {
+          appointment_type_id: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          client_id: string
+          created_at: string
+          end_time: string
+          google_event_id: string | null
+          id: string
+          location: string | null
+          notes: string | null
+          start_time: string
+          status: string
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_type_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          client_id: string
+          created_at?: string
+          end_time: string
+          google_event_id?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          start_time: string
+          status?: string
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_type_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          client_id?: string
+          created_at?: string
+          end_time?: string
+          google_event_id?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          start_time?: string
+          status?: string
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_appointment_type_id_fkey"
+            columns: ["appointment_type_id"]
+            isOneToOne: false
+            referencedRelation: "appointment_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       badge_definitions: {
         Row: {
           badge_type: string
@@ -41,6 +142,45 @@ export type Database = {
           id?: string
           name?: string
           requirement_value?: number
+        }
+        Relationships: []
+      }
+      booking_settings: {
+        Row: {
+          allow_self_booking: boolean
+          booking_window_days: number
+          buffer_minutes: number
+          cancellation_notice_hours: number
+          created_at: string
+          id: string
+          max_daily_appointments: number | null
+          min_notice_hours: number
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          allow_self_booking?: boolean
+          booking_window_days?: number
+          buffer_minutes?: number
+          cancellation_notice_hours?: number
+          created_at?: string
+          id?: string
+          max_daily_appointments?: number | null
+          min_notice_hours?: number
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          allow_self_booking?: boolean
+          booking_window_days?: number
+          buffer_minutes?: number
+          cancellation_notice_hours?: number
+          created_at?: string
+          id?: string
+          max_daily_appointments?: number | null
+          min_notice_hours?: number
+          trainer_id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1341,6 +1481,45 @@ export type Database = {
           },
         ]
       }
+      google_calendar_connections: {
+        Row: {
+          access_token: string | null
+          calendar_id: string | null
+          connected_at: string
+          id: string
+          refresh_token: string | null
+          sync_from_google: boolean
+          sync_to_google: boolean
+          token_expires_at: string | null
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          calendar_id?: string | null
+          connected_at?: string
+          id?: string
+          refresh_token?: string | null
+          sync_from_google?: boolean
+          sync_to_google?: boolean
+          token_expires_at?: string | null
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          calendar_id?: string | null
+          connected_at?: string
+          id?: string
+          refresh_token?: string | null
+          sync_from_google?: boolean
+          sync_to_google?: boolean
+          token_expires_at?: string | null
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       habit_comments: {
         Row: {
           content: string | null
@@ -2555,6 +2734,53 @@ export type Database = {
         }
         Relationships: []
       }
+      trainer_availability: {
+        Row: {
+          appointment_type_id: string | null
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          is_active: boolean
+          is_general: boolean
+          location: string | null
+          start_time: string
+          trainer_id: string
+        }
+        Insert: {
+          appointment_type_id?: string | null
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          is_active?: boolean
+          is_general?: boolean
+          location?: string | null
+          start_time: string
+          trainer_id: string
+        }
+        Update: {
+          appointment_type_id?: string | null
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          is_general?: boolean
+          location?: string | null
+          start_time?: string
+          trainer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainer_availability_appointment_type_id_fkey"
+            columns: ["appointment_type_id"]
+            isOneToOne: false
+            referencedRelation: "appointment_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainer_clients: {
         Row: {
           assigned_at: string
@@ -2593,6 +2819,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      trainer_date_overrides: {
+        Row: {
+          created_at: string
+          end_time: string | null
+          id: string
+          is_unavailable: boolean
+          notes: string | null
+          override_date: string
+          start_time: string | null
+          trainer_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          is_unavailable?: boolean
+          notes?: string | null
+          override_date: string
+          start_time?: string | null
+          trainer_id: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          is_unavailable?: boolean
+          notes?: string | null
+          override_date?: string
+          start_time?: string | null
+          trainer_id?: string
+        }
+        Relationships: []
+      }
+      trainer_vacations: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          reason: string | null
+          start_date: string
+          trainer_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          id?: string
+          reason?: string | null
+          start_date: string
+          trainer_id: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          reason?: string | null
+          start_date?: string
+          trainer_id?: string
+        }
+        Relationships: []
       }
       workout_collection_categories: {
         Row: {
