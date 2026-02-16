@@ -1,7 +1,7 @@
 import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X, Plus, Pencil } from "lucide-react";
+import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X, Plus, Pencil, Swords, Trophy, MapPin } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -335,6 +335,50 @@ export default function ClientDashboard() {
     enabled: !!clientId && settings.training_enabled,
   });
 
+  // Fetch today's sport schedule events
+  const { data: todaySportEvents } = useQuery({
+    queryKey: ["client-sport-events-today", clientId],
+    queryFn: async () => {
+      const today = format(new Date(), "yyyy-MM-dd");
+      const { data, error } = await supabase
+        .from("sport_schedule_events")
+        .select("*")
+        .eq("client_id", clientId)
+        .gte("start_time", `${today}T00:00:00`)
+        .lte("start_time", `${today}T23:59:59`)
+        .order("start_time", { ascending: true });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!clientId,
+  });
+
+  // Fetch custom sport day cards (practice/game)
+  const { data: sportDayCards } = useQuery({
+    queryKey: ["sport-day-cards", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_sport_day_cards" as any)
+        .select("*")
+        .eq("client_id", clientId);
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!clientId,
+  });
+
+  const practiceCard = sportDayCards?.find((c: any) => c.card_type === "practice");
+  const gameCard = sportDayCards?.find((c: any) => c.card_type === "game");
+
+  function formatEventTime(isoString: string): string {
+    const match = isoString.match(/T(\d{2}):(\d{2})/);
+    if (!match) return "";
+    const hours = parseInt(match[1], 10);
+    const displayHour = hours % 12 || 12;
+    const ampm = hours >= 12 ? "PM" : "AM";
+    return `${displayHour}:${match[2]} ${ampm}`;
+  }
+
   // Today's workouts
   const todaysWorkouts = clientWorkouts?.filter((w) => {
     if (w.completed_at) return false;
@@ -342,8 +386,10 @@ export default function ClientDashboard() {
     return false;
   }) || [];
 
-  const isRestDay = todaysWorkouts.length === 0;
-  const hasMultiple = todaysWorkouts.length > 1;
+  const hasSportEvents = (todaySportEvents?.length || 0) > 0;
+  const isRestDay = todaysWorkouts.length === 0 && !hasSportEvents;
+  const totalCards = todaysWorkouts.length + (todaySportEvents?.length || 0);
+  const hasMultiple = totalCards > 1;
 
   // Attach scroll listener
   useEffect(() => {
@@ -414,11 +460,11 @@ export default function ClientDashboard() {
           </Card>
         )}
 
-        {/* Today's Workouts - only if training enabled */}
+        {/* Today's Workouts & Sport Events */}
         {settings.training_enabled && (
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-              Today's Workout{hasMultiple ? "s" : ""}
+              {isRestDay ? "Today" : hasSportEvents && todaysWorkouts.length === 0 ? "Today's Schedule" : `Today's Workout${hasMultiple ? "s" : ""}`}
             </h2>
             {isRestDay ? (
               <Card className="overflow-hidden">
@@ -446,6 +492,7 @@ export default function ClientDashboard() {
             ) : (
               <div>
                 <div ref={scrollRef} className={hasMultiple ? "flex overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-hide" : ""}>
+                  {/* Workout cards */}
                   {todaysWorkouts.map((workout) => (
                     <Card
                       key={workout.id}
@@ -476,10 +523,58 @@ export default function ClientDashboard() {
                       </CardContent>
                     </Card>
                   ))}
+
+                  {/* Sport event cards */}
+                  {todaySportEvents?.map((event: any) => {
+                    const isGame = event.event_type === "game" || event.event_type === "event";
+                    const customCard = isGame ? gameCard : practiceCard;
+                    const EventIcon = isGame ? Swords : Trophy;
+                    const gradientFrom = isGame ? "from-rose-500/20" : "from-sky-500/20";
+                    const gradientTo = isGame ? "to-rose-500/5" : "to-sky-500/5";
+                    const iconColor = isGame ? "text-rose-400/30" : "text-sky-400/30";
+                    const label = isGame ? "Game Day" : "Practice";
+                    const startTime = formatEventTime(event.start_time);
+                    const endTime = event.end_time ? formatEventTime(event.end_time) : null;
+                    const timeDisplay = endTime && endTime !== startTime ? `${startTime} - ${endTime}` : startTime;
+
+                    return (
+                      <Card
+                        key={event.id}
+                        className={`overflow-hidden shrink-0 snap-center ${hasMultiple ? "w-full min-w-full" : "w-full"}`}
+                      >
+                        <div className={`relative h-56 bg-gradient-to-br ${gradientFrom} ${gradientTo}`}>
+                          {customCard?.image_url ? (
+                            <img src={customCard.image_url} alt={label} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <EventIcon className={`h-16 w-16 ${iconColor}`} />
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                          <div className="absolute bottom-0 left-0 right-0 p-4">
+                            <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">{label}</p>
+                            <p className="text-lg font-bold text-white">{event.title}</p>
+                            <div className="flex items-center gap-3 mt-1">
+                              <p className="text-sm text-white/80">{timeDisplay}</p>
+                              {event.location && (
+                                <p className="text-sm text-white/80 flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {event.location}
+                                </p>
+                              )}
+                            </div>
+                            {customCard?.message && (
+                              <p className="text-xs text-white/70 mt-1">{customCard.message}</p>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
                 </div>
                 {hasMultiple && (
                   <div className="flex justify-center gap-1.5 mt-3">
-                    {todaysWorkouts.map((_, i) => (
+                    {Array.from({ length: totalCards }).map((_, i) => (
                       <button
                         key={i}
                         className={`h-2 rounded-full transition-all duration-300 ${i === activeIndex ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30"}`}
