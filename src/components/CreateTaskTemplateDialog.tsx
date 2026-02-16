@@ -18,6 +18,7 @@ import { compressImage } from "@/lib/imageCompression";
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { FormQuestionBuilder, type FormQuestion } from "@/components/FormQuestionBuilder";
 
 const taskTemplateSchema = z.object({
   name: z.string().trim().min(1, "Task name is required").max(200),
@@ -47,6 +48,7 @@ export function CreateTaskTemplateDialog({ open, onOpenChange }: CreateTaskTempl
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [formQuestions, setFormQuestions] = useState<FormQuestion[]>([]);
 
   const form = useForm<TaskTemplateForm>({
     resolver: zodResolver(taskTemplateSchema),
@@ -145,6 +147,7 @@ export function CreateTaskTemplateDialog({ open, onOpenChange }: CreateTaskTempl
         goal_value: values.task_type === "habit" ? values.goal_value : null,
         goal_unit: values.task_type === "habit" ? values.goal_unit : null,
         frequency: values.task_type === "habit" ? values.frequency : null,
+        form_questions: values.task_type === "form" ? JSON.parse(JSON.stringify(formQuestions)) : null,
       }]);
       if (error) throw error;
     },
@@ -156,6 +159,7 @@ export function CreateTaskTemplateDialog({ open, onOpenChange }: CreateTaskTempl
       });
       form.reset();
       clearIcon();
+      setFormQuestions([]);
       onOpenChange(false);
     },
     onError: (error: Error) => {
@@ -359,6 +363,19 @@ export function CreateTaskTemplateDialog({ open, onOpenChange }: CreateTaskTempl
                     )}
                   />
                 </div>
+              </div>
+            )}
+
+            {form.watch("task_type") === "form" && (
+              <div className="space-y-3 rounded-lg border p-4">
+                <FormLabel className="text-base">Check-In Form Builder</FormLabel>
+                <p className="text-xs text-muted-foreground">
+                  Build your check-in form by adding questions. Drag to reorder.
+                </p>
+                <FormQuestionBuilder
+                  questions={formQuestions}
+                  onChange={setFormQuestions}
+                />
               </div>
             )}
 
