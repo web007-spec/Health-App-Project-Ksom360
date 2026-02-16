@@ -1,5 +1,7 @@
-import { LayoutDashboard, Users, Dumbbell, Calendar, MessageSquare, Settings, TrendingUp, Target, CheckSquare, FileText, Play, Tags, Calculator, Activity, Heart, GraduationCap } from "lucide-react";
+import { useState } from "react";
+import { LayoutDashboard, Users, Dumbbell, Calendar, MessageSquare, Settings, TrendingUp, Target, CheckSquare, FileText, Play, Tags, Calculator, Activity, Heart, GraduationCap, Library, ChevronDown, ChevronRight, BookOpen } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -11,34 +13,38 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const mainItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Clients", url: "/clients", icon: Users },
   { title: "Health", url: "/clients-health", icon: Heart },
-  { title: "Exercises", url: "/exercises", icon: Dumbbell },
-  { title: "Workouts", url: "/workouts", icon: Calendar },
-  { title: "Goals", url: "/goals", icon: Target },
-  { title: "Tasks", url: "/tasks", icon: CheckSquare },
   { title: "Messages", url: "/messages", icon: MessageSquare },
   { title: "Analytics", url: "/analytics", icon: TrendingUp },
 ];
 
-const nutritionItems = [
+const libraryItems = [
+  { title: "Exercises", url: "/exercises", icon: Dumbbell },
+  { title: "Workouts", url: "/workouts", icon: Calendar },
+  { title: "Programs", url: "/studio-programs", icon: GraduationCap },
+  { title: "Tasks", url: "/tasks", icon: CheckSquare },
+  { title: "Goals", url: "/goals", icon: Target },
   { title: "Recipes", url: "/recipes", icon: FileText },
-  { title: "Recipe Books", url: "/recipe-books", icon: FileText },
+  { title: "Recipe Books", url: "/recipe-books", icon: BookOpen },
   { title: "Meal Plans", url: "/meal-plans", icon: Calendar },
+  { title: "Workout Labels", url: "/workout-labels", icon: Tags },
+];
+
+const nutritionItems = [
   { title: "Macro Calculator", url: "/macro-calculator", icon: Calculator },
   { title: "Macro Tracking", url: "/macro-tracking", icon: Activity },
 ];
 
 const studioItems = [
-  { title: "Studio Programs", url: "/studio-programs", icon: GraduationCap },
   { title: "Resources", url: "/resources", icon: FileText },
   { title: "Resource Collections", url: "/resource-collections", icon: FileText },
   { title: "On-Demand Workouts", url: "/ondemand-workouts", icon: Play },
   { title: "Workout Collections", url: "/workout-collections", icon: Play },
-  { title: "Workout Labels", url: "/workout-labels", icon: Tags },
 ];
 
 const bottomItems = [
@@ -47,6 +53,10 @@ const bottomItems = [
 
 export function TrainerSidebar() {
   const { open } = useSidebar();
+  const location = useLocation();
+  const libraryPaths = libraryItems.map((i) => i.url);
+  const isLibraryActive = libraryPaths.some((p) => location.pathname === p || location.pathname.startsWith(p + "/"));
+  const [libraryOpen, setLibraryOpen] = useState(isLibraryActive);
 
   return (
     <Sidebar collapsible="icon">
@@ -72,7 +82,7 @@ export function TrainerSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      end
+                      end={item.url === "/"}
                       className="hover:bg-sidebar-accent"
                       activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                     >
@@ -82,6 +92,39 @@ export function TrainerSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+
+              {/* Library collapsible group */}
+              <SidebarMenuItem>
+                <Collapsible open={libraryOpen} onOpenChange={setLibraryOpen}>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton className={`hover:bg-sidebar-accent w-full ${isLibraryActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : ""}`}>
+                      <Library className="h-4 w-4" />
+                      <span className="flex-1 text-left">Library</span>
+                      {open && (
+                        libraryOpen ? <ChevronDown className="h-3.5 w-3.5 ml-auto" /> : <ChevronRight className="h-3.5 w-3.5 ml-auto" />
+                      )}
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenu className="pl-4 border-l border-sidebar-border ml-4 mt-1">
+                      {libraryItems.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton asChild>
+                            <NavLink
+                              to={item.url}
+                              className="hover:bg-sidebar-accent"
+                              activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                            >
+                              <item.icon className="h-4 w-4" />
+                              <span>{item.title}</span>
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </CollapsibleContent>
+                </Collapsible>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
