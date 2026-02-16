@@ -519,6 +519,45 @@ export type Database = {
           },
         ]
       }
+      client_ical_feeds: {
+        Row: {
+          client_id: string
+          created_at: string
+          feed_name: string
+          feed_url: string
+          id: string
+          is_active: boolean
+          last_synced_at: string | null
+          sync_error: string | null
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          feed_name?: string
+          feed_url: string
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          sync_error?: string | null
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          feed_name?: string
+          feed_url?: string
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          sync_error?: string | null
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_macro_targets: {
         Row: {
           client_id: string
@@ -2672,6 +2711,62 @@ export type Database = {
             columns: ["section_id"]
             isOneToOne: false
             referencedRelation: "collection_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sport_schedule_events: {
+        Row: {
+          all_day: boolean
+          client_id: string
+          created_at: string
+          description: string | null
+          end_time: string | null
+          event_type: string
+          event_uid: string
+          feed_id: string
+          id: string
+          location: string | null
+          start_time: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          all_day?: boolean
+          client_id: string
+          created_at?: string
+          description?: string | null
+          end_time?: string | null
+          event_type?: string
+          event_uid: string
+          feed_id: string
+          id?: string
+          location?: string | null
+          start_time: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          all_day?: boolean
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          end_time?: string | null
+          event_type?: string
+          event_uid?: string
+          feed_id?: string
+          id?: string
+          location?: string | null
+          start_time?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sport_schedule_events_feed_id_fkey"
+            columns: ["feed_id"]
+            isOneToOne: false
+            referencedRelation: "client_ical_feeds"
             referencedColumns: ["id"]
           },
         ]

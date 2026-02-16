@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.admin-pin-login]
 verify_jwt = false
+
+[functions.sync-ical-feed]
+verify_jwt = false
