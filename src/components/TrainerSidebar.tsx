@@ -53,12 +53,10 @@ export function TrainerSidebar() {
       <SidebarContent>
         <div className="p-4 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-              <Dumbbell className="h-6 w-6 text-primary-foreground" />
-            </div>
+            <img src="/logo.png" alt="EverFit Stride" className="h-10 w-10 rounded-lg object-contain" />
             {open && (
               <div>
-                <h2 className="font-bold text-sidebar-foreground">FitCoach Pro</h2>
+                <h2 className="font-bold text-sidebar-foreground">EverFit Stride</h2>
                 <p className="text-xs text-sidebar-foreground/60">Trainer Portal</p>
               </div>
             )}
