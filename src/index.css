@@ -4,80 +4,80 @@
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
-Light Theme 1: Clean & Athletic — warm white base, bold red accents, crisp contrast.
+Light Theme 2: Warm Ivory — creamy off-white base, charcoal text, warm red accents.
 */
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 0 0% 12%;
+    --background: 36 33% 96%;
+    --foreground: 20 10% 15%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 12%;
+    --card: 36 30% 99%;
+    --card-foreground: 20 10% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 12%;
+    --popover: 36 30% 99%;
+    --popover-foreground: 20 10% 15%;
 
-    --primary: 0 80% 50%;
+    --primary: 4 72% 48%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 94%;
-    --secondary-foreground: 0 0% 25%;
+    --secondary: 30 15% 90%;
+    --secondary-foreground: 20 10% 30%;
 
-    --muted: 0 0% 95%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 30 12% 92%;
+    --muted-foreground: 20 5% 48%;
 
-    --accent: 0 80% 50%;
+    --accent: 4 72% 48%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 76% 36%;
+    --success: 142 60% 38%;
     --success-foreground: 0 0% 100%;
 
-    --border: 0 0% 89%;
-    --input: 0 0% 89%;
-    --ring: 0 80% 50%;
+    --border: 30 12% 86%;
+    --input: 30 12% 86%;
+    --ring: 4 72% 48%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 25%;
-    --sidebar-primary: 0 80% 50%;
+    --sidebar-background: 36 25% 97%;
+    --sidebar-foreground: 20 10% 28%;
+    --sidebar-primary: 4 72% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 96%;
-    --sidebar-accent-foreground: 0 0% 12%;
-    --sidebar-border: 0 0% 91%;
-    --sidebar-ring: 0 80% 50%;
+    --sidebar-accent: 30 15% 93%;
+    --sidebar-accent-foreground: 20 10% 15%;
+    --sidebar-border: 30 12% 88%;
+    --sidebar-ring: 4 72% 48%;
 
-    --chart-1: 0 80% 50%;
-    --chart-2: 0 60% 65%;
-    --chart-3: 142 76% 36%;
-    --chart-4: 0 0% 55%;
-    --chart-5: 0 0% 75%;
+    --chart-1: 4 72% 48%;
+    --chart-2: 20 55% 60%;
+    --chart-3: 142 60% 38%;
+    --chart-4: 30 15% 55%;
+    --chart-5: 30 10% 72%;
   }
 
   .dark {
-    --background: 0 0% 4%;
-    --foreground: 0 0% 96%;
+    --background: 20 10% 6%;
+    --foreground: 36 15% 92%;
 
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 96%;
+    --card: 20 8% 9%;
+    --card-foreground: 36 15% 92%;
 
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 96%;
+    --popover: 20 8% 9%;
+    --popover-foreground: 36 15% 92%;
 
-    --primary: 0 85% 55%;
+    --primary: 4 80% 52%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 85%;
+    --secondary: 20 8% 14%;
+    --secondary-foreground: 36 12% 82%;
 
-    --muted: 0 0% 10%;
-    --muted-foreground: 0 0% 50%;
+    --muted: 20 6% 12%;
+    --muted-foreground: 20 5% 48%;
 
-    --accent: 0 85% 55%;
+    --accent: 4 80% 52%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
@@ -86,18 +86,18 @@ Light Theme 1: Clean & Athletic — warm white base, bold red accents, crisp con
     --success: 142 76% 45%;
     --success-foreground: 0 0% 100%;
 
-    --border: 0 0% 14%;
-    --input: 0 0% 14%;
-    --ring: 0 85% 55%;
+    --border: 20 6% 16%;
+    --input: 20 6% 16%;
+    --ring: 4 80% 52%;
 
-    --sidebar-background: 0 0% 3%;
-    --sidebar-foreground: 0 0% 80%;
-    --sidebar-primary: 0 85% 55%;
+    --sidebar-background: 20 10% 5%;
+    --sidebar-foreground: 36 12% 78%;
+    --sidebar-primary: 4 80% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 9%;
-    --sidebar-accent-foreground: 0 0% 96%;
-    --sidebar-border: 0 0% 12%;
-    --sidebar-ring: 0 85% 55%;
+    --sidebar-accent: 20 8% 11%;
+    --sidebar-accent-foreground: 36 15% 92%;
+    --sidebar-border: 20 6% 13%;
+    --sidebar-ring: 4 80% 52%;
   }
 }
 
