@@ -150,7 +150,7 @@ export function SportEventCompletionDialog({ open, onOpenChange, event, clientId
           <div className="space-y-2">
             <Button
               variant="outline"
-              className="w-full justify-start gap-3 h-14 border-emerald-500/30 hover:bg-emerald-500/5 hover:border-emerald-500"
+              className="w-full justify-start gap-3 h-14 border-emerald-500/30 hover:bg-emerald-500/10 hover:border-emerald-500 hover:text-foreground"
               onClick={() => handleSubmit("completed")}
               disabled={completeMutation.isPending}
             >
@@ -163,7 +163,7 @@ export function SportEventCompletionDialog({ open, onOpenChange, event, clientId
 
             <Button
               variant="outline"
-              className="w-full justify-start gap-3 h-14 border-amber-500/30 hover:bg-amber-500/5 hover:border-amber-500"
+              className="w-full justify-start gap-3 h-14 border-amber-500/30 hover:bg-amber-500/10 hover:border-amber-500 hover:text-foreground"
               onClick={() => handleSubmit("incomplete")}
               disabled={completeMutation.isPending}
             >
@@ -176,7 +176,7 @@ export function SportEventCompletionDialog({ open, onOpenChange, event, clientId
 
             <Button
               variant="outline"
-              className="w-full justify-start gap-3 h-14 border-destructive/30 hover:bg-destructive/5 hover:border-destructive"
+              className="w-full justify-start gap-3 h-14 border-destructive/30 hover:bg-destructive/10 hover:border-destructive hover:text-foreground"
               onClick={() => handleSubmit("missed")}
               disabled={completeMutation.isPending}
             >
