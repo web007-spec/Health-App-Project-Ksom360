@@ -4,100 +4,100 @@
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
-Light Theme 4: Stone & Sand — warm stone/taupe base, earthy text, deep crimson accents.
+Light Theme 1: Clean & Athletic — warm white base, bold red accents, crisp contrast.
 */
 
 @layer base {
   :root {
-    --background: 30 10% 92%;
-    --foreground: 25 15% 14%;
+    --background: 0 0% 98%;
+    --foreground: 0 0% 12%;
 
-    --card: 30 8% 97%;
-    --card-foreground: 25 15% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 12%;
 
-    --popover: 30 8% 97%;
-    --popover-foreground: 25 15% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 12%;
 
-    --primary: 350 70% 45%;
+    --primary: 0 80% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 28 8% 85%;
-    --secondary-foreground: 25 12% 30%;
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 25%;
 
-    --muted: 28 8% 88%;
-    --muted-foreground: 25 6% 46%;
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 350 70% 45%;
+    --accent: 0 80% 50%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 160 55% 36%;
+    --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
 
-    --border: 28 8% 82%;
-    --input: 28 8% 82%;
-    --ring: 350 70% 45%;
+    --border: 0 0% 89%;
+    --input: 0 0% 89%;
+    --ring: 0 80% 50%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 30 10% 94%;
-    --sidebar-foreground: 25 12% 28%;
-    --sidebar-primary: 350 70% 45%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 25%;
+    --sidebar-primary: 0 80% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 28 8% 89%;
-    --sidebar-accent-foreground: 25 15% 14%;
-    --sidebar-border: 28 8% 84%;
-    --sidebar-ring: 350 70% 45%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 12%;
+    --sidebar-border: 0 0% 91%;
+    --sidebar-ring: 0 80% 50%;
 
-    --chart-1: 350 70% 45%;
-    --chart-2: 25 40% 58%;
-    --chart-3: 160 55% 36%;
-    --chart-4: 28 10% 55%;
-    --chart-5: 28 6% 72%;
+    --chart-1: 0 80% 50%;
+    --chart-2: 0 60% 65%;
+    --chart-3: 142 76% 36%;
+    --chart-4: 0 0% 55%;
+    --chart-5: 0 0% 75%;
   }
 
   .dark {
-    --background: 25 12% 6%;
-    --foreground: 30 10% 92%;
+    --background: 0 0% 4%;
+    --foreground: 0 0% 96%;
 
-    --card: 25 10% 9%;
-    --card-foreground: 30 10% 92%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 96%;
 
-    --popover: 25 10% 9%;
-    --popover-foreground: 30 10% 92%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 96%;
 
-    --primary: 350 75% 50%;
+    --primary: 0 85% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 25 10% 14%;
-    --secondary-foreground: 30 8% 82%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 85%;
 
-    --muted: 25 8% 12%;
-    --muted-foreground: 25 5% 48%;
+    --muted: 0 0% 10%;
+    --muted-foreground: 0 0% 50%;
 
-    --accent: 350 75% 50%;
+    --accent: 0 85% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 160 65% 42%;
+    --success: 142 76% 45%;
     --success-foreground: 0 0% 100%;
 
-    --border: 25 8% 16%;
-    --input: 25 8% 16%;
-    --ring: 350 75% 50%;
+    --border: 0 0% 14%;
+    --input: 0 0% 14%;
+    --ring: 0 85% 55%;
 
-    --sidebar-background: 25 12% 5%;
-    --sidebar-foreground: 30 8% 78%;
-    --sidebar-primary: 350 75% 50%;
+    --sidebar-background: 0 0% 3%;
+    --sidebar-foreground: 0 0% 80%;
+    --sidebar-primary: 0 85% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 25 10% 11%;
-    --sidebar-accent-foreground: 30 10% 92%;
-    --sidebar-border: 25 8% 13%;
-    --sidebar-ring: 350 75% 50%;
+    --sidebar-accent: 0 0% 9%;
+    --sidebar-accent-foreground: 0 0% 96%;
+    --sidebar-border: 0 0% 12%;
+    --sidebar-ring: 0 85% 55%;
   }
 }
 
