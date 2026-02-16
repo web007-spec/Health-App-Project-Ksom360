@@ -13,6 +13,7 @@ import { ClientSportScheduleCard } from "./ClientSportScheduleCard";
 import { ClientSportProfileEditor } from "./ClientSportProfileEditor";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
+import { ClientRemindersSection } from "@/components/ClientRemindersSection";
 
 interface ClientSettingsTabProps {
   clientId: string;
@@ -346,6 +347,8 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
           })}
         </CardContent>
       </Card>
+
+      <ClientRemindersSection clientId={clientId} />
     </div>
   );
 }
