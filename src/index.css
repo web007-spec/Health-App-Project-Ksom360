@@ -9,22 +9,22 @@ Light Theme 2b: Light Grey — cool light grey base, charcoal text, warm red acc
 
 @layer base {
   :root {
-    --background: 220 10% 95%;
+    --background: 220 10% 90%;
     --foreground: 220 10% 12%;
 
-    --card: 220 10% 99%;
+    --card: 220 10% 96%;
     --card-foreground: 220 10% 12%;
 
-    --popover: 220 10% 99%;
+    --popover: 220 10% 96%;
     --popover-foreground: 220 10% 12%;
 
     --primary: 4 72% 48%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 8% 90%;
+    --secondary: 220 8% 85%;
     --secondary-foreground: 220 10% 28%;
 
-    --muted: 220 8% 92%;
+    --muted: 220 8% 87%;
     --muted-foreground: 220 5% 46%;
 
     --accent: 4 72% 48%;
@@ -36,19 +36,19 @@ Light Theme 2b: Light Grey — cool light grey base, charcoal text, warm red acc
     --success: 142 60% 38%;
     --success-foreground: 0 0% 100%;
 
-    --border: 220 8% 87%;
-    --input: 220 8% 87%;
+    --border: 220 8% 82%;
+    --input: 220 8% 82%;
     --ring: 4 72% 48%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 220 10% 97%;
+    --sidebar-background: 220 10% 92%;
     --sidebar-foreground: 220 10% 25%;
     --sidebar-primary: 4 72% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 8% 93%;
+    --sidebar-accent: 220 8% 88%;
     --sidebar-accent-foreground: 220 10% 12%;
-    --sidebar-border: 220 8% 89%;
+    --sidebar-border: 220 8% 84%;
     --sidebar-ring: 4 72% 48%;
 
     --chart-1: 4 72% 48%;
