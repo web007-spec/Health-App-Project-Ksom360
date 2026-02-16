@@ -51,14 +51,8 @@ export default function Exercises() {
   const { data: exercises, isLoading } = useQuery({
     queryKey: ["exercises", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("exercises")
-        .select("*")
-        .eq("trainer_id", user?.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data;
+      const { fetchAllExercises } = await import("@/lib/fetchAllRows");
+      return fetchAllExercises(user!.id);
     },
     enabled: !!user?.id,
   });
