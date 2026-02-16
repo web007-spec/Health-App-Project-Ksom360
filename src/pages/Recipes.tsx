@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2, Download, Upload } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Download, Upload, Sparkles } from "lucide-react";
 import { CreateRecipeDialog } from "@/components/nutrition/CreateRecipeDialog";
 import { EditRecipeDialog } from "@/components/nutrition/EditRecipeDialog";
 import { DeleteRecipeDialog } from "@/components/nutrition/DeleteRecipeDialog";
 import { ExportRecipesDialog } from "@/components/nutrition/ExportRecipesDialog";
 import { ImportRecipesDialog } from "@/components/nutrition/ImportRecipesDialog";
+import { AIRecipeBuilderDialog } from "@/components/nutrition/AIRecipeBuilderDialog";
 
 export default function Recipes() {
   const { user } = useAuth();
@@ -22,6 +23,7 @@ export default function Recipes() {
   const [deletingRecipe, setDeletingRecipe] = useState<any>(null);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [aiBuilderOpen, setAiBuilderOpen] = useState(false);
 
   const { data: recipes, isLoading } = useQuery({
     queryKey: ["recipes", user?.id],
@@ -53,7 +55,11 @@ export default function Recipes() {
               Create and manage your recipe library
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => setAiBuilderOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              AI Recipe Builder
+            </Button>
             <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
               <Upload className="h-4 w-4 mr-2" />
               Import
@@ -190,6 +196,11 @@ export default function Recipes() {
       <ImportRecipesDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
+      />
+
+      <AIRecipeBuilderDialog
+        open={aiBuilderOpen}
+        onOpenChange={setAiBuilderOpen}
       />
     </DashboardLayout>
   );
