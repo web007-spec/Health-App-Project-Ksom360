@@ -1,5 +1,6 @@
 import { ClientBottomNav } from "./ClientBottomNav";
 import { LogOut, RefreshCw } from "lucide-react";
+import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
@@ -48,18 +49,28 @@ export function ClientLayout({ children }: ClientLayoutProps) {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Top bar - only show when impersonating */}
-      {isImpersonating && (
-        <header className="h-12 border-b border-border bg-card flex items-center justify-between px-4 shrink-0">
-          <Badge variant="default" className="bg-orange-500 hover:bg-orange-600 text-xs">
-            Previewing: {profile?.full_name || profile?.email || "Client"}
-          </Badge>
-          <Button variant="ghost" size="sm" onClick={handleBackToTrainer}>
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Back
-          </Button>
-        </header>
-      )}
+      {/* Top bar */}
+      <header className="h-12 border-b border-border bg-card flex items-center justify-between px-4 shrink-0">
+        {isImpersonating ? (
+          <>
+            <Badge variant="default" className="bg-orange-500 hover:bg-orange-600 text-xs">
+              Previewing: {profile?.full_name || profile?.email || "Client"}
+            </Badge>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button variant="ghost" size="sm" onClick={handleBackToTrainer}>
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <span />
+            <ThemeToggle />
+          </>
+        )}
+      </header>
 
       {/* Main content with bottom padding for nav */}
       <main className="flex-1 overflow-auto pb-20">
