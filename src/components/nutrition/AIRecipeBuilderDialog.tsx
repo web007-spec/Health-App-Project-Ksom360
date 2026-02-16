@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Sparkles, Link, FileText, Loader2, Save, RotateCcw, FileUp } from "lucide-react";
+import { Sparkles, Link, FileText, Loader2, Save, RotateCcw, FileUp, ImagePlus, X } from "lucide-react";
 
 interface AIRecipeBuilderDialogProps {
   open: boolean;
@@ -48,7 +48,11 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
   const [pdfText, setPdfText] = useState("");
   const [extractedRecipe, setExtractedRecipe] = useState<ExtractedRecipe | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [recipeImage, setRecipeImage] = useState<File | null>(null);
+  const [recipeImagePreview, setRecipeImagePreview] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -119,9 +123,44 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
     }
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    setRecipeImage(file);
+    setRecipeImagePreview(URL.createObjectURL(file));
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!recipeImage || !user?.id) return null;
+    setIsUploadingImage(true);
+    try {
+      const ext = recipeImage.name.split(".").pop() || "jpg";
+      const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("recipe-images")
+        .upload(path, recipeImage);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage
+        .from("recipe-images")
+        .getPublicUrl(path);
+      return urlData.publicUrl;
+    } catch (err: any) {
+      console.error("Image upload error:", err);
+      return null;
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!extractedRecipe || !user?.id) throw new Error("Missing data");
+
+      const imageUrl = await uploadImage();
 
       // Combine ingredients into instructions if present
       let fullInstructions = "";
@@ -145,7 +184,7 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
         cook_time_minutes: extractedRecipe.cook_time_minutes || null,
         servings: extractedRecipe.servings || 1,
         tags: extractedRecipe.tags || [],
-        image_url: null,
+        image_url: imageUrl,
       });
 
       if (error) throw error;
@@ -167,6 +206,8 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
     setTextInput("");
     setPdfFileName("");
     setPdfText("");
+    setRecipeImage(null);
+    setRecipeImagePreview(null);
   };
 
   const updateField = (field: keyof ExtractedRecipe, value: any) => {
@@ -296,6 +337,47 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
           <div className="flex-1 overflow-y-auto space-y-4 pr-1">
             {/* Editable Preview */}
             <div className="space-y-3">
+              {/* Recipe Image Upload */}
+              <div>
+                <Label>Recipe Photo</Label>
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                {recipeImagePreview ? (
+                  <div className="relative mt-1">
+                    <img
+                      src={recipeImagePreview}
+                      alt="Recipe"
+                      className="w-full h-40 object-cover rounded-md"
+                    />
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="absolute top-2 right-2 h-7 w-7"
+                      onClick={() => {
+                        setRecipeImage(null);
+                        setRecipeImagePreview(null);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full mt-1 h-20 border-dashed"
+                    onClick={() => imageInputRef.current?.click()}
+                  >
+                    <ImagePlus className="h-5 w-5 mr-2 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Add a photo</span>
+                  </Button>
+                )}
+              </div>
+
               <div>
                 <Label>Name</Label>
                 <Input
