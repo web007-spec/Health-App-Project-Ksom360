@@ -705,6 +705,48 @@ export type Database = {
           },
         ]
       }
+      client_studio_program_access: {
+        Row: {
+          client_id: string
+          current_week: number | null
+          granted_at: string
+          id: string
+          program_id: string
+          started_at: string | null
+        }
+        Insert: {
+          client_id: string
+          current_week?: number | null
+          granted_at?: string
+          id?: string
+          program_id: string
+          started_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          current_week?: number | null
+          granted_at?: string
+          id?: string
+          program_id?: string
+          started_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_studio_program_access_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_studio_program_access_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "studio_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_tasks: {
         Row: {
           assigned_at: string
@@ -2377,6 +2419,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      studio_programs: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          duration_weeks: number
+          id: string
+          is_published: boolean | null
+          name: string
+          status: string
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_weeks?: number
+          id?: string
+          is_published?: boolean | null
+          name: string
+          status?: string
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_weeks?: number
+          id?: string
+          is_published?: boolean | null
+          name?: string
+          status?: string
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       task_templates: {
         Row: {

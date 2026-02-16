@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Dumbbell, Calendar, MessageSquare, Settings, TrendingUp, Target, CheckSquare, FileText, Play, Tags, Calculator, Activity, Heart } from "lucide-react";
+import { LayoutDashboard, Users, Dumbbell, Calendar, MessageSquare, Settings, TrendingUp, Target, CheckSquare, FileText, Play, Tags, Calculator, Activity, Heart, GraduationCap } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -33,6 +33,7 @@ const nutritionItems = [
 ];
 
 const studioItems = [
+  { title: "Studio Programs", url: "/studio-programs", icon: GraduationCap },
   { title: "Resources", url: "/resources", icon: FileText },
   { title: "Resource Collections", url: "/resource-collections", icon: FileText },
   { title: "On-Demand Workouts", url: "/ondemand-workouts", icon: Play },
