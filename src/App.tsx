@@ -60,6 +60,7 @@ import ClientMacroSetup from "./pages/client/ClientMacroSetup";
 import ClientLogMeal from "./pages/client/ClientLogMeal";
 import ClientCoaching from "./pages/client/ClientCoaching";
 import ClientProfile from "./pages/client/ClientProfile";
+import ClientSportsProfile from "./pages/client/ClientSportsProfile";
 import ClientBooking from "./pages/client/ClientBooking";
 import ClientAppointments from "./pages/client/ClientAppointments";
 import ClientRecipeDetail from "./pages/client/ClientRecipeDetail";
@@ -145,6 +146,7 @@ const App = () => (
           <Route path="/client/messages" element={<ProtectedRoute allowedRoles={["client"]}><Messages /></ProtectedRoute>} />
           <Route path="/client/booking" element={<ProtectedRoute allowedRoles={["client"]}><ClientBooking /></ProtectedRoute>} />
           <Route path="/client/appointments" element={<ProtectedRoute allowedRoles={["client"]}><ClientAppointments /></ProtectedRoute>} />
+          <Route path="/client/sports" element={<ProtectedRoute allowedRoles={["client"]}><ClientSportsProfile /></ProtectedRoute>} />
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

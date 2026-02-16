@@ -712,8 +712,10 @@ export default function ClientDashboard() {
           </div>
         )}
 
+        {/* Latest Game Stats Card */}
+        <LatestGameStatsCard clientId={clientId} navigate={navigate} />
 
-        {/* Nutrition / Macros Section */}
+
         {settings.macros_enabled && !macroTargets && (
           <div>
             <Card className="overflow-hidden cursor-pointer hover:shadow-sm transition-shadow" onClick={() => navigate("/client/macro-setup")}>
@@ -982,5 +984,76 @@ export default function ClientDashboard() {
         />
       )}
     </ClientLayout>
+  );
+}
+
+function LatestGameStatsCard({ clientId, navigate }: { clientId: string | undefined; navigate: (path: string) => void }) {
+  const { data: latestGame } = useQuery({
+    queryKey: ["latest-game-stat", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("game_stat_entries" as any)
+        .select("*")
+        .eq("client_id", clientId)
+        .order("game_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+    enabled: !!clientId,
+  });
+
+  if (!latestGame) return null;
+
+  const battingAvg = latestGame.at_bats > 0 ? (latestGame.hits / latestGame.at_bats).toFixed(3) : ".000";
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Last Game</h2>
+        <button onClick={() => navigate("/client/sports")} className="text-xs font-semibold text-primary">View all</button>
+      </div>
+      <Card className="cursor-pointer hover:shadow-sm transition-shadow" onClick={() => navigate("/client/sports")}>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold">{latestGame.opponent ? `vs ${latestGame.opponent}` : "Game"}</p>
+              <p className="text-xs text-muted-foreground">{latestGame.game_date}</p>
+            </div>
+            {latestGame.result && (
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${
+                latestGame.result === "win" ? "bg-emerald-500/10 text-emerald-600" :
+                latestGame.result === "loss" ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
+              }`}>
+                {latestGame.result}
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-5 gap-2 mt-3 text-center">
+            <div>
+              <p className="text-base font-bold">{battingAvg}</p>
+              <p className="text-[9px] text-muted-foreground font-semibold uppercase">AVG</p>
+            </div>
+            <div>
+              <p className="text-base font-bold">{latestGame.hits}/{latestGame.at_bats}</p>
+              <p className="text-[9px] text-muted-foreground font-semibold uppercase">H/AB</p>
+            </div>
+            <div>
+              <p className="text-base font-bold">{latestGame.runs || 0}</p>
+              <p className="text-[9px] text-muted-foreground font-semibold uppercase">R</p>
+            </div>
+            <div>
+              <p className="text-base font-bold">{latestGame.rbis || 0}</p>
+              <p className="text-[9px] text-muted-foreground font-semibold uppercase">RBI</p>
+            </div>
+            <div>
+              <p className="text-base font-bold">{latestGame.home_runs || 0}</p>
+              <p className="text-[9px] text-muted-foreground font-semibold uppercase">HR</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

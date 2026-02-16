@@ -947,6 +947,48 @@ export type Database = {
         }
         Relationships: []
       }
+      client_sport_profiles: {
+        Row: {
+          bats: string | null
+          client_id: string
+          created_at: string
+          id: string
+          jersey_number: string | null
+          position: string | null
+          sport: string
+          team_name: string | null
+          throws: string | null
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          bats?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          jersey_number?: string | null
+          position?: string | null
+          sport?: string
+          team_name?: string | null
+          throws?: string | null
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          bats?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          jersey_number?: string | null
+          position?: string | null
+          sport?: string
+          team_name?: string | null
+          throws?: string | null
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_studio_program_access: {
         Row: {
           client_id: string
@@ -1547,6 +1589,95 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      game_stat_entries: {
+        Row: {
+          at_bats: number | null
+          client_id: string
+          created_at: string
+          doubles: number | null
+          earned_runs: number | null
+          errors: number | null
+          game_date: string
+          hits: number | null
+          home_runs: number | null
+          id: string
+          innings_pitched: number | null
+          notes: string | null
+          opponent: string | null
+          pitch_strikeouts: number | null
+          rbis: number | null
+          result: string | null
+          runs: number | null
+          singles: number | null
+          sport_event_id: string | null
+          stolen_bases: number | null
+          strikeouts: number | null
+          triples: number | null
+          updated_at: string
+          walks: number | null
+        }
+        Insert: {
+          at_bats?: number | null
+          client_id: string
+          created_at?: string
+          doubles?: number | null
+          earned_runs?: number | null
+          errors?: number | null
+          game_date?: string
+          hits?: number | null
+          home_runs?: number | null
+          id?: string
+          innings_pitched?: number | null
+          notes?: string | null
+          opponent?: string | null
+          pitch_strikeouts?: number | null
+          rbis?: number | null
+          result?: string | null
+          runs?: number | null
+          singles?: number | null
+          sport_event_id?: string | null
+          stolen_bases?: number | null
+          strikeouts?: number | null
+          triples?: number | null
+          updated_at?: string
+          walks?: number | null
+        }
+        Update: {
+          at_bats?: number | null
+          client_id?: string
+          created_at?: string
+          doubles?: number | null
+          earned_runs?: number | null
+          errors?: number | null
+          game_date?: string
+          hits?: number | null
+          home_runs?: number | null
+          id?: string
+          innings_pitched?: number | null
+          notes?: string | null
+          opponent?: string | null
+          pitch_strikeouts?: number | null
+          rbis?: number | null
+          result?: string | null
+          runs?: number | null
+          singles?: number | null
+          sport_event_id?: string | null
+          stolen_bases?: number | null
+          strikeouts?: number | null
+          triples?: number | null
+          updated_at?: string
+          walks?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_stat_entries_sport_event_id_fkey"
+            columns: ["sport_event_id"]
+            isOneToOne: false
+            referencedRelation: "sport_schedule_events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       goal_milestones: {
         Row: {
