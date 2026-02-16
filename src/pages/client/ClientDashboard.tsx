@@ -421,7 +421,7 @@ export default function ClientDashboard() {
             {isRestDay ? (
               <Card className="overflow-hidden">
                 {restDayCard?.image_url ? (
-                  <div className="relative h-44">
+                  <div className="relative h-56">
                     <img src={restDayCard.image_url} alt="Rest day" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-4">
@@ -450,7 +450,7 @@ export default function ClientDashboard() {
                       className={`overflow-hidden cursor-pointer hover:shadow-md transition-all duration-300 shrink-0 snap-center ${hasMultiple ? "w-full min-w-full" : "w-full"}`}
                       onClick={() => navigate(`/client/workouts/${workout.workout_plan_id}`)}
                     >
-                      <div className="relative h-44 bg-gradient-to-br from-primary/20 to-primary/5">
+                      <div className="relative h-56 bg-gradient-to-br from-primary/20 to-primary/5">
                         {workout.workout_plan?.image_url ? (
                           <img src={workout.workout_plan.image_url} alt={workout.workout_plan.name} className="w-full h-full object-cover" />
                         ) : (
