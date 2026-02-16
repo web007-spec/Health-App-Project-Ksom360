@@ -24,23 +24,24 @@ const REMINDER_COLORS: Record<string, string> = {
   custom: "text-muted-foreground",
 };
 
-export function ClientRemindersSection() {
+export function ClientRemindersSection({ clientId: propClientId }: { clientId?: string } = {}) {
   const { user } = useAuth();
+  const effectiveClientId = propClientId || user?.id;
   const queryClient = useQueryClient();
 
   const { data: reminders, isLoading } = useQuery({
-    queryKey: ["client-reminders", user?.id],
+    queryKey: ["client-reminders", effectiveClientId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_reminders" as any)
         .select("*")
-        .eq("client_id", user?.id)
+        .eq("client_id", effectiveClientId)
         .eq("is_dismissed", false)
         .order("remind_at", { ascending: true });
       if (error) throw error;
       return data as any[];
     },
-    enabled: !!user?.id,
+    enabled: !!effectiveClientId,
   });
 
   const dismissMutation = useMutation({
