@@ -48,6 +48,8 @@ export default function Exercises() {
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regenProgress, setRegenProgress] = useState({ current: 0, total: 0 });
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 50;
   const { data: exercises, isLoading } = useQuery({
     queryKey: ["exercises", user?.id],
     queryFn: async () => {
@@ -123,6 +125,13 @@ export default function Exercises() {
     }
     return 0;
   });
+
+  // Paginate
+  const totalPages = Math.ceil(sortedExercises.length / PAGE_SIZE);
+  const paginatedExercises = sortedExercises.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // Reset page when filters change
+  const resetPage = () => setPage(1);
 
   const videoDemoCount = exercises?.filter(ex => ex.video_url).length || 0;
 
@@ -278,14 +287,14 @@ export default function Exercises() {
             <Input
               placeholder="Search by name or description..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => { setSearchTerm(e.target.value); resetPage(); }}
               className="pl-10"
             />
           </div>
 
           {/* Filter Row */}
           <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-4 items-center">
-            <Select value={muscleFilter} onValueChange={setMuscleFilter}>
+            <Select value={muscleFilter} onValueChange={(v) => { setMuscleFilter(v); resetPage(); }}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="All Muscles" />
               </SelectTrigger>
@@ -299,7 +308,7 @@ export default function Exercises() {
               </SelectContent>
             </Select>
 
-            <Select value={equipmentFilter} onValueChange={setEquipmentFilter}>
+            <Select value={equipmentFilter} onValueChange={(v) => { setEquipmentFilter(v); resetPage(); }}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="All Equipment" />
               </SelectTrigger>
@@ -313,7 +322,7 @@ export default function Exercises() {
               </SelectContent>
             </Select>
 
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <Select value={categoryFilter} onValueChange={(v) => { setCategoryFilter(v); resetPage(); }}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
@@ -327,7 +336,7 @@ export default function Exercises() {
               </SelectContent>
             </Select>
 
-            <Select value={tagFilter} onValueChange={setTagFilter}>
+            <Select value={tagFilter} onValueChange={(v) => { setTagFilter(v); resetPage(); }}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="All Tags" />
               </SelectTrigger>
@@ -390,18 +399,33 @@ export default function Exercises() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sortedExercises.map((exercise) => (
-              <ExerciseCard 
-                key={exercise.id} 
-                exercise={exercise} 
-                onEdit={selectionMode ? undefined : handleEditExercise}
-                selectionMode={selectionMode}
-                isSelected={selectedIds.has(exercise.id)}
-                onToggleSelect={() => toggleSelection(exercise.id)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {paginatedExercises.map((exercise) => (
+                <ExerciseCard 
+                  key={exercise.id} 
+                  exercise={exercise} 
+                  onEdit={selectionMode ? undefined : handleEditExercise}
+                  selectionMode={selectionMode}
+                  isSelected={selectedIds.has(exercise.id)}
+                  onToggleSelect={() => toggleSelection(exercise.id)}
+                />
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-4">
+                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {page} of {totalPages}
+                </span>
+                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                  Next
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
