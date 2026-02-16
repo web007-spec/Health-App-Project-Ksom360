@@ -602,7 +602,7 @@ export default function ClientDashboard() {
                 <Pencil className="h-3 w-3" /> Edit
               </Button>
             </div>
-            <Card className="cursor-pointer hover:shadow-sm transition-shadow" onClick={() => navigate("/client/nutrition")}>
+            <Card className="cursor-pointer hover:shadow-sm transition-shadow min-h-[160px]" onClick={() => navigate("/client/nutrition")}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                   {/* Mini donut chart */}
@@ -711,17 +711,16 @@ export default function ClientDashboard() {
         {/* Step Tracker / Health - only if activity logging enabled */}
         {settings.activity_logging_enabled && (
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Step Tracker</h2>
-            <Card className="cursor-pointer hover:shadow-sm transition-shadow" onClick={() => navigate("/client/health-connect")}>
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="p-3 bg-primary/10 rounded-xl">
-                  <Footprints className="h-6 w-6 text-primary" />
-                </div>
+            <h2 className="text-lg font-bold mb-2">Step tracker</h2>
+            <Card className="cursor-pointer hover:shadow-sm transition-shadow min-h-[120px]" onClick={() => navigate("/client/health-connect")}>
+              <CardContent className="p-5 flex items-center gap-4 h-full">
                 <div className="flex-1">
-                  <p className="font-semibold text-sm">Connect Health App</p>
+                  <p className="font-semibold text-sm text-primary">Connect Apple Health</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Track your daily steps and activity</p>
                 </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                <div className="p-3 bg-primary/10 rounded-xl">
+                  <Footprints className="h-10 w-10 text-primary" />
+                </div>
               </CardContent>
             </Card>
           </div>
