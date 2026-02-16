@@ -208,49 +208,57 @@ export default function Exercises() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Exercise Library</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Exercise Library</h1>
+            <p className="text-muted-foreground mt-1 text-sm">
               {exercises?.length || 0} total exercises • {videoDemoCount} with video demos
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {selectionMode ? (
               <>
-                <Button variant="outline" onClick={exitSelectionMode}>
-                  <X className="h-4 w-4 mr-2" />
+                <Button variant="outline" size="sm" onClick={exitSelectionMode}>
+                  <X className="h-4 w-4 mr-1" />
                   Cancel
                 </Button>
                 <Button 
                   variant="destructive" 
+                  size="sm"
                   onClick={() => setShowDeleteDialog(true)}
                   disabled={selectedIds.size === 0}
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
+                  <Trash2 className="h-4 w-4 mr-1" />
                   Delete ({selectedIds.size})
                 </Button>
               </>
             ) : (
               <>
                 {missingThumbnailCount > 0 && (
-                  <Button variant="outline" onClick={handleRegenerateThumbnails} disabled={isRegenerating}>
-                    <ImagePlus className="h-4 w-4 mr-2" />
-                    {isRegenerating
-                      ? `Generating ${regenProgress.current}/${regenProgress.total}...`
-                      : `Generate Thumbnails (${missingThumbnailCount})`}
+                  <Button variant="outline" size="sm" onClick={handleRegenerateThumbnails} disabled={isRegenerating}>
+                    <ImagePlus className="h-4 w-4 mr-1" />
+                    <span className="hidden sm:inline">
+                      {isRegenerating
+                        ? `Generating ${regenProgress.current}/${regenProgress.total}...`
+                        : `Generate Thumbnails (${missingThumbnailCount})`}
+                    </span>
+                    <span className="sm:hidden">
+                      {isRegenerating ? `${regenProgress.current}/${regenProgress.total}` : `Thumbs (${missingThumbnailCount})`}
+                    </span>
                   </Button>
                 )}
-                <Button variant="outline" onClick={() => setSelectionMode(true)}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Bulk Delete
+                <Button variant="outline" size="sm" onClick={() => setSelectionMode(true)}>
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">Bulk Delete</span>
+                  <span className="sm:hidden">Delete</span>
                 </Button>
-                <Button variant="outline" onClick={() => setIsBulkUploadOpen(true)}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Bulk Upload
+                <Button variant="outline" size="sm" onClick={() => setIsBulkUploadOpen(true)}>
+                  <Upload className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">Bulk Upload</span>
+                  <span className="sm:hidden">Upload</span>
                 </Button>
-                <Button onClick={() => setIsCreateDialogOpen(true)} size="lg">
-                  <Plus className="h-4 w-4 mr-2" />
+                <Button onClick={() => setIsCreateDialogOpen(true)} size="sm">
+                  <Plus className="h-4 w-4 mr-1" />
                   Add Exercise
                 </Button>
               </>
@@ -269,7 +277,7 @@ export default function Exercises() {
         )}
 
         {/* Filters */}
-        <div className="bg-card rounded-lg border border-border p-6 space-y-4">
+        <div className="bg-card rounded-lg border border-border p-4 sm:p-6 space-y-4">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -282,9 +290,9 @@ export default function Exercises() {
           </div>
 
           {/* Filter Row */}
-          <div className="flex flex-wrap gap-4 items-center">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-4 items-center">
             <Select value={muscleFilter} onValueChange={setMuscleFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="All Muscles" />
               </SelectTrigger>
               <SelectContent>
@@ -298,7 +306,7 @@ export default function Exercises() {
             </Select>
 
             <Select value={equipmentFilter} onValueChange={setEquipmentFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="All Equipment" />
               </SelectTrigger>
               <SelectContent>
@@ -312,7 +320,7 @@ export default function Exercises() {
             </Select>
 
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
@@ -326,7 +334,7 @@ export default function Exercises() {
             </Select>
 
             <Select value={tagFilter} onValueChange={setTagFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="All Tags" />
               </SelectTrigger>
               <SelectContent>
@@ -339,10 +347,10 @@ export default function Exercises() {
               </SelectContent>
             </Select>
 
-            <div className="ml-auto flex items-center gap-2">
+            <div className="col-span-2 sm:ml-auto flex items-center gap-2">
               <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
