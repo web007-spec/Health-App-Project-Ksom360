@@ -242,7 +242,7 @@ export function DayStripCalendar({ clientId, daysAhead, trainingEnabled, tasksEn
               return (
                 <div key={event.id} className="rounded-xl overflow-hidden border">
                   <div className={cn(
-                    "relative h-40",
+                    "relative h-56",
                     isGame ? "bg-gradient-to-br from-rose-500/20 to-rose-500/5" : "bg-gradient-to-br from-sky-500/20 to-sky-500/5"
                   )}>
                     {customCard?.image_url ? (
@@ -277,7 +277,7 @@ export function DayStripCalendar({ clientId, daysAhead, trainingEnabled, tasksEn
             {/* Workout Cards with imagery */}
             {viewData.workouts.map((w: any) => (
               <div key={w.id} className="rounded-xl overflow-hidden border">
-                <div className="relative h-40 bg-gradient-to-br from-primary/20 to-primary/5">
+                <div className="relative h-56 bg-gradient-to-br from-primary/20 to-primary/5">
                   {w.workout_plan?.image_url ? (
                     <img src={w.workout_plan.image_url} alt={w.workout_plan.name} className="w-full h-full object-cover" />
                   ) : (
@@ -298,7 +298,7 @@ export function DayStripCalendar({ clientId, daysAhead, trainingEnabled, tasksEn
             {isRestDay && trainingEnabled && (
               <div className="rounded-xl overflow-hidden border">
                 {restDayCard?.image_url ? (
-                  <div className="relative h-40">
+                  <div className="relative h-56">
                     <img src={restDayCard.image_url} alt="Rest day" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-3">
