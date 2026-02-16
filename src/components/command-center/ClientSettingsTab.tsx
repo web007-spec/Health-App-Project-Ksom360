@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Dumbbell, MessageSquare, Camera, CheckSquare, Utensils, Activity, Target, Scale, BookOpen, CalendarDays, List, ChefHat } from "lucide-react";
 import { RestDayCardEditor } from "./RestDayCardEditor";
+import { ClientSportScheduleCard } from "./ClientSportScheduleCard";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 
@@ -140,6 +141,7 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
 
   return (
     <div className="space-y-6">
+      <ClientSportScheduleCard clientId={clientId} trainerId={trainerId} />
       <RestDayCardEditor clientId={clientId} trainerId={trainerId} />
 
       {/* Meal Plan Configuration */}

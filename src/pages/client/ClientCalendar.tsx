@@ -2,7 +2,7 @@ import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle2, Circle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle2, Circle, Trophy } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -61,6 +61,23 @@ export default function ClientCalendar() {
         .gte("due_date", format(monthStart, "yyyy-MM-dd"))
         .lte("due_date", format(monthEnd, "yyyy-MM-dd"))
         .order("due_date", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clientId,
+  });
+
+  // Fetch sport schedule events for the month
+  const { data: sportEvents } = useQuery({
+    queryKey: ["sport-schedule-events", clientId, format(monthStart, "yyyy-MM")],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sport_schedule_events")
+        .select("*")
+        .eq("client_id", clientId)
+        .gte("start_time", format(monthStart, "yyyy-MM-dd"))
+        .lte("start_time", format(monthEnd, "yyyy-MM-dd'T'23:59:59"))
+        .order("start_time", { ascending: true });
       if (error) throw error;
       return data;
     },
@@ -182,6 +199,11 @@ export default function ClientCalendar() {
     return workouts.filter((w) => w.scheduled_date && isSameDay(parseISO(w.scheduled_date), day));
   };
 
+  const getSportEventsForDay = (day: Date) => {
+    if (!sportEvents) return [];
+    return sportEvents.filter((e: any) => e.start_time && isSameDay(parseISO(e.start_time), day));
+  };
+
   const handlePreviousMonth = () => setCurrentDate(subMonths(currentDate, 1));
   const handleNextMonth = () => setCurrentDate(addMonths(currentDate, 1));
   const handleToday = () => setCurrentDate(new Date());
@@ -242,6 +264,7 @@ export default function ClientCalendar() {
                 const dayWorkouts = getWorkoutsForDay(day);
                 const dayTasks = getTasksForDay(day);
                 const dayHabits = getHabitsForDay(day);
+                const daySportEvents = getSportEventsForDay(day);
                 const isCurrentMonth = isSameMonth(day, currentDate);
                 const isToday = isSameDay(day, new Date());
 
@@ -311,6 +334,24 @@ export default function ClientCalendar() {
                           </div>
                         );
                       })}
+                      {daySportEvents.map((event: any) => {
+                        const isGame = event.event_type === "game";
+                        return (
+                          <div
+                            key={event.id}
+                            className={`w-full text-left text-xs p-1.5 rounded ${
+                              isGame
+                                ? "bg-rose-500/20 text-rose-900 dark:text-rose-200"
+                                : "bg-sky-500/20 text-sky-900 dark:text-sky-200"
+                            }`}
+                          >
+                            <div className="font-medium truncate flex items-center gap-1">
+                              <Trophy className="h-3 w-3 shrink-0" />
+                              {event.title}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -330,6 +371,14 @@ export default function ClientCalendar() {
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded bg-violet-500/20"></div>
                 <span className="text-sm text-muted-foreground">Habit</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-rose-500/20"></div>
+                <span className="text-sm text-muted-foreground">Game</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-sky-500/20"></div>
+                <span className="text-sm text-muted-foreground">Practice</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded bg-success/20"></div>
