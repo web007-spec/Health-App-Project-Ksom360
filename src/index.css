@@ -4,28 +4,28 @@
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
-Light Theme 2: Warm Ivory — creamy off-white base, charcoal text, warm red accents.
+Light Theme 2b: Light Grey — cool light grey base, charcoal text, warm red accents.
 */
 
 @layer base {
   :root {
-    --background: 36 33% 96%;
-    --foreground: 20 10% 15%;
+    --background: 220 10% 95%;
+    --foreground: 220 10% 12%;
 
-    --card: 36 30% 99%;
-    --card-foreground: 20 10% 15%;
+    --card: 220 10% 99%;
+    --card-foreground: 220 10% 12%;
 
-    --popover: 36 30% 99%;
-    --popover-foreground: 20 10% 15%;
+    --popover: 220 10% 99%;
+    --popover-foreground: 220 10% 12%;
 
     --primary: 4 72% 48%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 15% 90%;
-    --secondary-foreground: 20 10% 30%;
+    --secondary: 220 8% 90%;
+    --secondary-foreground: 220 10% 28%;
 
-    --muted: 30 12% 92%;
-    --muted-foreground: 20 5% 48%;
+    --muted: 220 8% 92%;
+    --muted-foreground: 220 5% 46%;
 
     --accent: 4 72% 48%;
     --accent-foreground: 0 0% 100%;
@@ -36,26 +36,26 @@ Light Theme 2: Warm Ivory — creamy off-white base, charcoal text, warm red acc
     --success: 142 60% 38%;
     --success-foreground: 0 0% 100%;
 
-    --border: 30 12% 86%;
-    --input: 30 12% 86%;
+    --border: 220 8% 87%;
+    --input: 220 8% 87%;
     --ring: 4 72% 48%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 36 25% 97%;
-    --sidebar-foreground: 20 10% 28%;
+    --sidebar-background: 220 10% 97%;
+    --sidebar-foreground: 220 10% 25%;
     --sidebar-primary: 4 72% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 30 15% 93%;
-    --sidebar-accent-foreground: 20 10% 15%;
-    --sidebar-border: 30 12% 88%;
+    --sidebar-accent: 220 8% 93%;
+    --sidebar-accent-foreground: 220 10% 12%;
+    --sidebar-border: 220 8% 89%;
     --sidebar-ring: 4 72% 48%;
 
     --chart-1: 4 72% 48%;
-    --chart-2: 20 55% 60%;
+    --chart-2: 220 15% 60%;
     --chart-3: 142 60% 38%;
-    --chart-4: 30 15% 55%;
-    --chart-5: 30 10% 72%;
+    --chart-4: 220 8% 55%;
+    --chart-5: 220 6% 72%;
   }
 
   .dark {
