@@ -1,7 +1,7 @@
 import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X, Plus, Pencil, Swords, Trophy, MapPin } from "lucide-react";
+import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X, Plus, Pencil, Swords, Trophy, MapPin, Check } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { SportEventCompletionDialog } from "@/components/SportEventCompletionDialog";
 
 export default function ClientDashboard() {
   const { user } = useAuth();
@@ -370,6 +371,24 @@ export default function ClientDashboard() {
   const practiceCard = sportDayCards?.find((c: any) => c.card_type === "practice");
   const gameCard = sportDayCards?.find((c: any) => c.card_type === "game");
 
+  // Sport event completion dialog state
+  const [selectedSportEvent, setSelectedSportEvent] = useState<any>(null);
+  const [sportCompletionOpen, setSportCompletionOpen] = useState(false);
+
+  // Fetch today's sport event completions
+  const { data: sportEventCompletions } = useQuery({
+    queryKey: ["sport-event-completions", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sport_event_completions" as any)
+        .select("*")
+        .eq("client_id", clientId);
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!clientId,
+  });
+
   function formatEventTime(isoString: string): string {
     const match = isoString.match(/T(\d{2}):(\d{2})/);
     if (!match) return "";
@@ -536,11 +555,19 @@ export default function ClientDashboard() {
                     const startTime = formatEventTime(event.start_time);
                     const endTime = event.end_time ? formatEventTime(event.end_time) : null;
                     const timeDisplay = endTime && endTime !== startTime ? `${startTime} - ${endTime}` : startTime;
+                    const completion = sportEventCompletions?.find((c: any) => c.sport_event_id === event.id);
+                    const isEventCompleted = !!completion;
 
                     return (
                       <Card
                         key={event.id}
-                        className={`overflow-hidden shrink-0 snap-center ${hasMultiple ? "w-full min-w-full" : "w-full"}`}
+                        className={`overflow-hidden shrink-0 snap-center cursor-pointer hover:shadow-md transition-all ${hasMultiple ? "w-full min-w-full" : "w-full"} ${isEventCompleted ? "opacity-75" : ""}`}
+                        onClick={() => {
+                          if (!isEventCompleted) {
+                            setSelectedSportEvent(event);
+                            setSportCompletionOpen(true);
+                          }
+                        }}
                       >
                         <div className={`relative h-56 bg-gradient-to-br ${gradientFrom} ${gradientTo}`}>
                           {customCard?.image_url ? (
@@ -551,6 +578,18 @@ export default function ClientDashboard() {
                             </div>
                           )}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                          {isEventCompleted && (
+                            <div className="absolute top-3 right-3">
+                              <div className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
+                                completion.status === 'completed' ? 'bg-emerald-500 text-white' :
+                                completion.status === 'incomplete' ? 'bg-amber-500 text-white' :
+                                'bg-destructive text-white'
+                              }`}>
+                                <Check className="h-3 w-3" />
+                                {completion.status === 'completed' ? 'Done' : completion.status === 'incomplete' ? 'Partial' : 'Missed'}
+                              </div>
+                            </div>
+                          )}
                           <div className="absolute bottom-0 left-0 right-0 p-4">
                             <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">{label}</p>
                             <p className="text-lg font-bold text-white">{event.title}</p>
@@ -568,6 +607,17 @@ export default function ClientDashboard() {
                             )}
                           </div>
                         </div>
+                        {!isEventCompleted && (
+                          <CardContent className="p-3">
+                            <Button className="w-full" size="lg" variant="outline" onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedSportEvent(event);
+                              setSportCompletionOpen(true);
+                            }}>
+                              Log {isGame ? "Game" : "Practice"}
+                            </Button>
+                          </CardContent>
+                        )}
                       </Card>
                     );
                   })}
@@ -921,6 +971,16 @@ export default function ClientDashboard() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Sport Event Completion Dialog */}
+      {selectedSportEvent && (
+        <SportEventCompletionDialog
+          open={sportCompletionOpen}
+          onOpenChange={setSportCompletionOpen}
+          event={selectedSportEvent}
+          clientId={clientId!}
+        />
+      )}
     </ClientLayout>
   );
 }

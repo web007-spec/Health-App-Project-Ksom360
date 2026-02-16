@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, TrendingDown, Users, Dumbbell, Activity, Calendar, Download } from "lucide-react";
+import { TrendingUp, TrendingDown, Users, Dumbbell, Activity, Calendar, Download, Swords, Trophy } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -155,6 +155,45 @@ export default function Analytics() {
 
       if (error) throw error;
       return data;
+    },
+    enabled: !!user?.id && !!clients,
+  });
+
+  // Fetch sport event completions
+  const { data: sportCompletions } = useQuery({
+    queryKey: ["analytics-sport-completions", user?.id, selectedClient, timeRange],
+    queryFn: async () => {
+      const clientIds = selectedClient === "all"
+        ? clients?.map((c) => c.client_id) || []
+        : [selectedClient];
+
+      if (clientIds.length === 0) return [];
+
+      // Fetch completions
+      const { data: completions, error: compError } = await supabase
+        .from("sport_event_completions" as any)
+        .select("*")
+        .in("client_id", clientIds)
+        .gte("completed_at", startDate.toISOString())
+        .lte("completed_at", endDate.toISOString());
+
+      if (compError) throw compError;
+      if (!completions || completions.length === 0) return [];
+
+      // Fetch associated sport events
+      const eventIds = [...new Set((completions as any[]).map((c: any) => c.sport_event_id))];
+      const { data: events, error: evError } = await supabase
+        .from("sport_schedule_events")
+        .select("*")
+        .in("id", eventIds);
+
+      if (evError) throw evError;
+
+      const eventMap = new Map((events || []).map((e: any) => [e.id, e]));
+      return (completions as any[]).map((c: any) => ({
+        ...c,
+        sport_event: eventMap.get(c.sport_event_id) || null,
+      }));
     },
     enabled: !!user?.id && !!clients,
   });
@@ -367,6 +406,7 @@ export default function Analytics() {
         <Tabs defaultValue="workouts" className="space-y-6">
           <TabsList>
             <TabsTrigger value="workouts">Workouts</TabsTrigger>
+            <TabsTrigger value="sports">Sports</TabsTrigger>
             <TabsTrigger value="progress">Progress</TabsTrigger>
             <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
           </TabsList>
@@ -466,7 +506,167 @@ export default function Analytics() {
             </div>
           </TabsContent>
 
-          {/* Progress Tab */}
+          {/* Sports Tab */}
+          <TabsContent value="sports" className="space-y-6">
+            {/* Sport Stats Cards */}
+            {(() => {
+              const totalSportEvents = sportCompletions?.length || 0;
+              const completedEvents = sportCompletions?.filter((s: any) => s.status === 'completed').length || 0;
+              const incompleteEvents = sportCompletions?.filter((s: any) => s.status === 'incomplete').length || 0;
+              const missedEvents = sportCompletions?.filter((s: any) => s.status === 'missed').length || 0;
+              const practiceEvents = sportCompletions?.filter((s: any) => {
+                const et = s.sport_event?.event_type;
+                return et === 'practice';
+              }).length || 0;
+              const gameEvents = sportCompletions?.filter((s: any) => {
+                const et = s.sport_event?.event_type;
+                return et === 'game' || et === 'event';
+              }).length || 0;
+              const practiceCompleted = sportCompletions?.filter((s: any) => s.sport_event?.event_type === 'practice' && s.status === 'completed').length || 0;
+              const gameCompleted = sportCompletions?.filter((s: any) => (s.sport_event?.event_type === 'game' || s.sport_event?.event_type === 'event') && s.status === 'completed').length || 0;
+              const sportCompletionRate = totalSportEvents > 0 ? Math.round((completedEvents / totalSportEvents) * 100) : 0;
+
+              const sportByStatus = [
+                { name: "Completed", value: completedEvents },
+                { name: "Incomplete", value: incompleteEvents },
+                { name: "Missed", value: missedEvents },
+              ].filter(d => d.value > 0);
+
+              const SPORT_COLORS = ["hsl(var(--success))", "#eab308", "hsl(var(--destructive))"];
+
+              return (
+                <>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Total Events</p>
+                            <h3 className="text-3xl font-bold mt-2">{totalSportEvents}</h3>
+                          </div>
+                          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <Activity className="h-6 w-6 text-primary" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Attendance Rate</p>
+                            <h3 className="text-3xl font-bold mt-2">{sportCompletionRate}%</h3>
+                          </div>
+                          <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center">
+                            <TrendingUp className="h-6 w-6 text-success" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Practices</p>
+                            <h3 className="text-3xl font-bold mt-2">{practiceCompleted}/{practiceEvents}</h3>
+                          </div>
+                          <div className="h-12 w-12 rounded-xl bg-sky-500/10 flex items-center justify-center">
+                            <Trophy className="h-6 w-6 text-sky-500" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Games</p>
+                            <h3 className="text-3xl font-bold mt-2">{gameCompleted}/{gameEvents}</h3>
+                          </div>
+                          <div className="h-12 w-12 rounded-xl bg-rose-500/10 flex items-center justify-center">
+                            <Swords className="h-6 w-6 text-rose-500" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Attendance Breakdown</CardTitle>
+                        <CardDescription>Completed vs missed vs incomplete</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {sportByStatus.length > 0 ? (
+                          <ResponsiveContainer width="100%" height={300}>
+                            <PieChart>
+                              <Pie
+                                data={sportByStatus}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                                outerRadius={80}
+                                dataKey="value"
+                              >
+                                {sportByStatus.map((_, index) => (
+                                  <Cell key={`cell-${index}`} fill={SPORT_COLORS[index % SPORT_COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                            No sport event data available
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Recent Sport Events</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {sportCompletions && sportCompletions.length > 0 ? (
+                          <div className="space-y-3">
+                            {sportCompletions.slice(0, 10).map((sc: any) => {
+                              const isGame = sc.sport_event?.event_type === 'game' || sc.sport_event?.event_type === 'event';
+                              return (
+                                <div key={sc.id} className="flex items-center justify-between p-3 border rounded-lg">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-lg ${isGame ? 'bg-rose-500/10' : 'bg-sky-500/10'}`}>
+                                      {isGame ? <Swords className="h-4 w-4 text-rose-500" /> : <Trophy className="h-4 w-4 text-sky-500" />}
+                                    </div>
+                                    <div>
+                                      <p className="font-medium text-sm">{sc.sport_event?.title || 'Sport Event'}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {sc.completed_at ? format(parseISO(sc.completed_at), "MMM d, yyyy") : ''}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Badge variant={sc.status === 'completed' ? 'default' : sc.status === 'missed' ? 'destructive' : 'secondary'}>
+                                    {sc.status}
+                                  </Badge>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                            No sport event data available
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </>
+              );
+            })()}
+          </TabsContent>
+
           <TabsContent value="progress" className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
               {/* Weight Trend */}

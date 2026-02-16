@@ -2748,6 +2748,44 @@ export type Database = {
           },
         ]
       }
+      sport_event_completions: {
+        Row: {
+          client_id: string
+          completed_at: string
+          created_at: string
+          id: string
+          notes: string | null
+          sport_event_id: string
+          status: string
+        }
+        Insert: {
+          client_id: string
+          completed_at?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          sport_event_id: string
+          status?: string
+        }
+        Update: {
+          client_id?: string
+          completed_at?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          sport_event_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sport_event_completions_sport_event_id_fkey"
+            columns: ["sport_event_id"]
+            isOneToOne: false
+            referencedRelation: "sport_schedule_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sport_schedule_events: {
         Row: {
           all_day: boolean
