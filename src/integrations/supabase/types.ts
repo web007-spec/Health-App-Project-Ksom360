@@ -329,6 +329,7 @@ export type Database = {
         Row: {
           activity_logging_enabled: boolean
           body_metrics_enabled: boolean
+          calendar_days_ahead: number
           client_id: string
           created_at: string
           food_journal_enabled: boolean
@@ -350,6 +351,7 @@ export type Database = {
         Insert: {
           activity_logging_enabled?: boolean
           body_metrics_enabled?: boolean
+          calendar_days_ahead?: number
           client_id: string
           created_at?: string
           food_journal_enabled?: boolean
@@ -371,6 +373,7 @@ export type Database = {
         Update: {
           activity_logging_enabled?: boolean
           body_metrics_enabled?: boolean
+          calendar_days_ahead?: number
           client_id?: string
           created_at?: string
           food_journal_enabled?: boolean

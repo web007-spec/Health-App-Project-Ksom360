@@ -17,6 +17,7 @@ export interface ClientFeatureSettings {
   meal_plan_allow_recipe_replacement: boolean;
   meal_plan_add_recipe_books: boolean;
   meal_plan_header_label: string;
+  calendar_days_ahead: number;
 }
 
 const DEFAULT_SETTINGS: ClientFeatureSettings = {
@@ -34,6 +35,7 @@ const DEFAULT_SETTINGS: ClientFeatureSettings = {
   meal_plan_allow_recipe_replacement: false,
   meal_plan_add_recipe_books: false,
   meal_plan_header_label: "Meal Plan",
+  calendar_days_ahead: 0,
 };
 
 export function useClientFeatureSettings() {
