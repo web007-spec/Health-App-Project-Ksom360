@@ -5,7 +5,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Dumbbell, MessageSquare, Camera, CheckSquare, Utensils, Activity, Target, Scale, BookOpen, CalendarDays, List, ChefHat } from "lucide-react";
+import { Dumbbell, MessageSquare, Camera, CheckSquare, Utensils, Activity, Target, Scale, BookOpen, CalendarDays, List, ChefHat, Eye } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import { RestDayCardEditor } from "./RestDayCardEditor";
 import { SportDayCardEditor } from "./SportDayCardEditor";
 import { ClientSportScheduleCard } from "./ClientSportScheduleCard";
@@ -143,6 +144,45 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
 
   return (
     <div className="space-y-6">
+      {/* Calendar Preview Days */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Eye className="h-5 w-5" />
+            Calendar Preview
+          </CardTitle>
+          <CardDescription>
+            Show a compact day strip on the client's dashboard so they can preview upcoming scheduled events. Set to 0 to hide the strip entirely.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium">Days ahead to show</Label>
+            <span className="text-2xl font-bold text-primary min-w-[2ch] text-right">
+              {(settings as any)?.calendar_days_ahead ?? 0}
+            </span>
+          </div>
+          <Slider
+            value={[(settings as any)?.calendar_days_ahead ?? 0]}
+            onValueChange={([value]) => toggleMutation.mutate({ key: "calendar_days_ahead", value: value as any })}
+            min={0}
+            max={7}
+            step={1}
+            className="w-full"
+          />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Off</span>
+            <span>1</span>
+            <span>2</span>
+            <span>3</span>
+            <span>4</span>
+            <span>5</span>
+            <span>6</span>
+            <span>7 days</span>
+          </div>
+        </CardContent>
+      </Card>
+
       <ClientSportProfileEditor clientId={clientId} trainerId={trainerId} />
       <ClientSportScheduleCard clientId={clientId} trainerId={trainerId} />
       <SportDayCardEditor clientId={clientId} trainerId={trainerId} />

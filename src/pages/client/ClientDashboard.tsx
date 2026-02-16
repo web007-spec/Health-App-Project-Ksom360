@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { SportEventCompletionDialog } from "@/components/SportEventCompletionDialog";
+import { DayStripCalendar } from "@/components/DayStripCalendar";
 
 export default function ClientDashboard() {
   const { user } = useAuth();
@@ -444,6 +445,16 @@ export default function ClientDashboard() {
             <Bell className="h-5 w-5" />
           </Button>
         </div>
+
+        {/* Day Strip Calendar */}
+        {settings.calendar_days_ahead > 0 && clientId && (
+          <DayStripCalendar
+            clientId={clientId}
+            daysAhead={settings.calendar_days_ahead}
+            trainingEnabled={settings.training_enabled}
+            tasksEnabled={settings.tasks_enabled}
+          />
+        )}
 
         {/* Install App Banner */}
         {showInstallBanner && (
