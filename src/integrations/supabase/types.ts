@@ -755,6 +755,7 @@ export type Database = {
           completed_at: string | null
           description: string | null
           due_date: string | null
+          form_responses: Json | null
           id: string
           name: string
           notes: string | null
@@ -771,6 +772,7 @@ export type Database = {
           completed_at?: string | null
           description?: string | null
           due_date?: string | null
+          form_responses?: Json | null
           id?: string
           name: string
           notes?: string | null
@@ -787,6 +789,7 @@ export type Database = {
           completed_at?: string | null
           description?: string | null
           due_date?: string | null
+          form_responses?: Json | null
           id?: string
           name?: string
           notes?: string | null
@@ -2464,6 +2467,7 @@ export type Database = {
           attachments: Json | null
           created_at: string
           description: string | null
+          form_questions: Json | null
           frequency: string | null
           goal_unit: string | null
           goal_value: number | null
@@ -2481,6 +2485,7 @@ export type Database = {
           attachments?: Json | null
           created_at?: string
           description?: string | null
+          form_questions?: Json | null
           frequency?: string | null
           goal_unit?: string | null
           goal_value?: number | null
@@ -2498,6 +2503,7 @@ export type Database = {
           attachments?: Json | null
           created_at?: string
           description?: string | null
+          form_questions?: Json | null
           frequency?: string | null
           goal_unit?: string | null
           goal_value?: number | null
