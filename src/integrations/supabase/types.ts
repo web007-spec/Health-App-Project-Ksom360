@@ -51,7 +51,15 @@ export type Database = {
           trainer_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "appointment_types_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       appointments: {
         Row: {
@@ -111,6 +119,20 @@ export type Database = {
             columns: ["appointment_type_id"]
             isOneToOne: false
             referencedRelation: "appointment_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -182,7 +204,15 @@ export type Database = {
           trainer_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "booking_settings_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       category_workouts: {
         Row: {
@@ -1518,7 +1548,15 @@ export type Database = {
           trainer_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "google_calendar_connections_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       habit_comments: {
         Row: {
@@ -2779,6 +2817,13 @@ export type Database = {
             referencedRelation: "appointment_types"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "trainer_availability_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       trainer_clients: {
@@ -2851,7 +2896,15 @@ export type Database = {
           start_time?: string | null
           trainer_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "trainer_date_overrides_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trainer_vacations: {
         Row: {
@@ -2878,7 +2931,15 @@ export type Database = {
           start_date?: string
           trainer_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "trainer_vacations_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workout_collection_categories: {
         Row: {

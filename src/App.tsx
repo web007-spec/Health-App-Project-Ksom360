@@ -63,6 +63,7 @@ import ClientProfile from "./pages/client/ClientProfile";
 import ClientRecipeDetail from "./pages/client/ClientRecipeDetail";
 import ClientWorkoutHistory from "./pages/ClientWorkoutHistory";
 import ClientCommandCenter from "./pages/ClientCommandCenter";
+import Scheduling from "./pages/Scheduling";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -111,6 +112,7 @@ const App = () => (
           <Route path="/clients/:clientId" element={<ProtectedRoute allowedRoles={["trainer"]}><ClientCommandCenter /></ProtectedRoute>} />
           <Route path="/clients/:clientId/workout-history" element={<ProtectedRoute allowedRoles={["trainer"]}><ClientWorkoutHistory /></ProtectedRoute>} />
           <Route path="/clients-health" element={<ProtectedRoute allowedRoles={["trainer"]}><ClientsHealth /></ProtectedRoute>} />
+          <Route path="/scheduling" element={<ProtectedRoute allowedRoles={["trainer"]}><Scheduling /></ProtectedRoute>} />
           
           {/* Client Routes */}
           <Route path="/client/dashboard" element={<ProtectedRoute allowedRoles={["client"]}><ClientDashboard /></ProtectedRoute>} />

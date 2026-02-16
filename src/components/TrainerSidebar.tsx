@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, Dumbbell, Calendar, MessageSquare, Settings, TrendingUp, Target, CheckSquare, FileText, Play, Tags, Calculator, Activity, Heart, GraduationCap, Library, ChevronDown, ChevronRight, BookOpen } from "lucide-react";
+import { LayoutDashboard, Users, Dumbbell, Calendar, CalendarClock, MessageSquare, Settings, TrendingUp, Target, CheckSquare, FileText, Play, Tags, Calculator, Activity, Heart, GraduationCap, Library, ChevronDown, ChevronRight, BookOpen } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -21,6 +21,7 @@ const mainItems = [
   { title: "Health", url: "/clients-health", icon: Heart },
   { title: "Messages", url: "/messages", icon: MessageSquare },
   { title: "Analytics", url: "/analytics", icon: TrendingUp },
+  { title: "Scheduling", url: "/scheduling", icon: CalendarClock },
 ];
 
 const libraryItems = [
