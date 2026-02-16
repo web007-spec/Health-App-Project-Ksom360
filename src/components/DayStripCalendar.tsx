@@ -3,7 +3,7 @@ import { format, addDays, isToday, isSameDay } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Dumbbell, Swords, Trophy, CheckSquare, Droplets } from "lucide-react";
+import { Dumbbell, Swords, Trophy, CheckSquare, Droplets, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 interface DayStripCalendarProps {
@@ -23,13 +23,11 @@ interface DayData {
 export function DayStripCalendar({ clientId, daysAhead, trainingEnabled, tasksEnabled }: DayStripCalendarProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const today = new Date();
-
   const days = Array.from({ length: daysAhead + 1 }, (_, i) => addDays(today, i));
-
-  // Fetch workouts for the range
   const endDate = format(addDays(today, daysAhead), "yyyy-MM-dd");
   const startDate = format(today, "yyyy-MM-dd");
 
+  // Fetch workouts, sport events, tasks, habits
   const { data: workouts } = useQuery({
     queryKey: ["day-strip-workouts", clientId, startDate, endDate],
     queryFn: async () => {
@@ -93,6 +91,37 @@ export function DayStripCalendar({ clientId, daysAhead, trainingEnabled, tasksEn
     enabled: !!clientId && tasksEnabled,
   });
 
+  // Fetch custom cards for preview
+  const { data: restDayCard } = useQuery({
+    queryKey: ["day-strip-rest-card", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_rest_day_cards" as any)
+        .select("*")
+        .eq("client_id", clientId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+    enabled: !!clientId && trainingEnabled,
+  });
+
+  const { data: sportDayCards } = useQuery({
+    queryKey: ["day-strip-sport-cards", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_sport_day_cards" as any)
+        .select("*")
+        .eq("client_id", clientId);
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!clientId,
+  });
+
+  const practiceCard = sportDayCards?.find((c: any) => c.card_type === "practice");
+  const gameCard = sportDayCards?.find((c: any) => c.card_type === "game");
+
   function getDayData(date: Date): DayData {
     const dateStr = format(date, "yyyy-MM-dd");
     return {
@@ -118,11 +147,6 @@ export function DayStripCalendar({ clientId, daysAhead, trainingEnabled, tasksEn
     };
   }
 
-  const viewDate = selectedDate || today;
-  const viewData = getDayData(viewDate);
-  const isViewingToday = isToday(viewDate);
-  const hasAnything = viewData.workouts.length > 0 || viewData.sportEvents.length > 0 || viewData.tasks.length > 0 || viewData.habits.length > 0;
-
   function formatEventTime(isoString: string): string {
     const match = isoString.match(/T(\d{2}):(\d{2})/);
     if (!match) return "";
@@ -131,6 +155,12 @@ export function DayStripCalendar({ clientId, daysAhead, trainingEnabled, tasksEn
     const ampm = hours >= 12 ? "PM" : "AM";
     return `${displayHour}:${match[2]} ${ampm}`;
   }
+
+  const viewDate = selectedDate || today;
+  const viewData = getDayData(viewDate);
+  const isViewingToday = isToday(viewDate);
+  const isRestDay = viewData.workouts.length === 0 && viewData.sportEvents.length === 0;
+  const hasAnything = viewData.workouts.length > 0 || viewData.sportEvents.length > 0 || viewData.tasks.length > 0 || viewData.habits.length > 0;
 
   return (
     <div className="space-y-3">
@@ -165,7 +195,6 @@ export function DayStripCalendar({ clientId, daysAhead, trainingEnabled, tasksEn
               )}>
                 {format(day, "d")}
               </span>
-              {/* Activity dots */}
               <div className="flex gap-0.5 h-2 items-center">
                 {dots.hasWorkout && (
                   <div className={cn(
@@ -192,62 +221,104 @@ export function DayStripCalendar({ clientId, daysAhead, trainingEnabled, tasksEn
         })}
       </div>
 
-      {/* Selected day preview (only for future days) */}
+      {/* Selected day preview (future days only) */}
       {selectedDate && !isViewingToday && (
-        <Card className="border-dashed">
+        <Card className="border-dashed overflow-hidden">
           <CardContent className="p-4 space-y-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               {format(viewDate, "EEEE, MMM d")}
             </p>
 
-            {!hasAnything && (
-              <p className="text-sm text-muted-foreground py-2">Nothing scheduled</p>
-            )}
-
-            {/* Sport Events */}
+            {/* Sport Event Cards with full imagery */}
             {viewData.sportEvents.map((event: any) => {
-              const isGame = event.event_type === "game";
+              const isGame = event.event_type === "game" || event.event_type === "event";
+              const customCard = isGame ? gameCard : practiceCard;
+              const EventIcon = isGame ? Swords : Trophy;
+              const label = isGame ? "Game Day" : "Practice";
+              const startTime = formatEventTime(event.start_time);
+              const endTime = event.end_time ? formatEventTime(event.end_time) : null;
+              const timeDisplay = endTime && endTime !== startTime ? `${startTime} - ${endTime}` : startTime;
+
               return (
-                <div
-                  key={event.id}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg p-3",
-                    isGame ? "bg-rose-500/10 border border-rose-500/20" : "bg-sky-500/10 border border-sky-500/20"
-                  )}
-                >
+                <div key={event.id} className="rounded-xl overflow-hidden border">
                   <div className={cn(
-                    "p-2 rounded-lg",
-                    isGame ? "bg-rose-500/20" : "bg-sky-500/20"
+                    "relative h-40",
+                    isGame ? "bg-gradient-to-br from-rose-500/20 to-rose-500/5" : "bg-gradient-to-br from-sky-500/20 to-sky-500/5"
                   )}>
-                    {isGame ? <Swords className="h-4 w-4 text-rose-500" /> : <Trophy className="h-4 w-4 text-sky-500" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">
-                      {event.title || (isGame ? "Game" : "Practice")}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatEventTime(event.start_time)} - {formatEventTime(event.end_time)}
-                      {event.location ? ` · ${event.location}` : ""}
-                    </p>
+                    {customCard?.image_url ? (
+                      <img src={customCard.image_url} alt={label} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <EventIcon className={cn("h-12 w-12", isGame ? "text-rose-400/30" : "text-sky-400/30")} />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <p className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">{label}</p>
+                      <p className="text-sm font-bold text-white">{event.title}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-xs text-white/80">{timeDisplay}</p>
+                        {event.location && (
+                          <p className="text-xs text-white/80 flex items-center gap-0.5">
+                            <MapPin className="h-3 w-3" />
+                            {event.location}
+                          </p>
+                        )}
+                      </div>
+                      {customCard?.message && (
+                        <p className="text-[10px] text-white/60 mt-0.5">{customCard.message}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
             })}
 
-            {/* Workouts */}
+            {/* Workout Cards with imagery */}
             {viewData.workouts.map((w: any) => (
-              <div key={w.id} className="flex items-center gap-3 rounded-lg p-3 bg-primary/5 border border-primary/10">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Dumbbell className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">
-                    {w.workout_plan?.name || "Workout"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Scheduled workout</p>
+              <div key={w.id} className="rounded-xl overflow-hidden border">
+                <div className="relative h-40 bg-gradient-to-br from-primary/20 to-primary/5">
+                  {w.workout_plan?.image_url ? (
+                    <img src={w.workout_plan.image_url} alt={w.workout_plan.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Dumbbell className="h-12 w-12 text-primary/20" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <p className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">Workout</p>
+                    <p className="text-sm font-bold text-white">{w.workout_plan?.name || "Workout"}</p>
+                  </div>
                 </div>
               </div>
             ))}
+
+            {/* Rest Day Card (only if no workouts or sport events) */}
+            {isRestDay && trainingEnabled && (
+              <div className="rounded-xl overflow-hidden border">
+                {restDayCard?.image_url ? (
+                  <div className="relative h-40">
+                    <img src={restDayCard.image_url} alt="Rest day" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <p className="text-[10px] font-semibold text-white/70 uppercase tracking-wider">Rest Day</p>
+                      <p className="text-sm font-bold text-white">
+                        {restDayCard?.message || "No workouts scheduled. Enjoy your rest!"}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 text-center">
+                    <Dumbbell className="h-8 w-8 text-muted-foreground/30 mx-auto mb-1" />
+                    <p className="text-sm font-semibold">Rest Day</p>
+                    <p className="text-xs text-muted-foreground">
+                      {restDayCard?.message || "No workouts scheduled. Enjoy your rest!"}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Tasks */}
             {viewData.tasks.map((t: any) => (
@@ -277,6 +348,11 @@ export function DayStripCalendar({ clientId, daysAhead, trainingEnabled, tasksEn
                   </p>
                 </div>
               </div>
+            )}
+
+            {/* Nothing scheduled at all */}
+            {!hasAnything && !trainingEnabled && (
+              <p className="text-sm text-muted-foreground py-2">Nothing scheduled</p>
             )}
           </CardContent>
         </Card>
