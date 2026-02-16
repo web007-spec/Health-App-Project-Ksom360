@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Pencil, Trash2, Download, Upload, Sparkles } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Download, Upload, Sparkles, Layers } from "lucide-react";
 import { CreateRecipeDialog } from "@/components/nutrition/CreateRecipeDialog";
 import { EditRecipeDialog } from "@/components/nutrition/EditRecipeDialog";
 import { DeleteRecipeDialog } from "@/components/nutrition/DeleteRecipeDialog";
 import { ExportRecipesDialog } from "@/components/nutrition/ExportRecipesDialog";
 import { ImportRecipesDialog } from "@/components/nutrition/ImportRecipesDialog";
 import { AIRecipeBuilderDialog } from "@/components/nutrition/AIRecipeBuilderDialog";
+import { BulkRecipeImportDialog } from "@/components/nutrition/BulkRecipeImportDialog";
 
 export default function Recipes() {
   const { user } = useAuth();
@@ -24,6 +25,7 @@ export default function Recipes() {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [aiBuilderOpen, setAiBuilderOpen] = useState(false);
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
 
   const { data: recipes, isLoading } = useQuery({
     queryKey: ["recipes", user?.id],
@@ -59,6 +61,10 @@ export default function Recipes() {
             <Button variant="outline" onClick={() => setAiBuilderOpen(true)}>
               <Sparkles className="h-4 w-4 mr-2" />
               AI Recipe Builder
+            </Button>
+            <Button variant="outline" onClick={() => setBulkImportOpen(true)}>
+              <Layers className="h-4 w-4 mr-2" />
+              Bulk Import
             </Button>
             <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
               <Upload className="h-4 w-4 mr-2" />
@@ -201,6 +207,11 @@ export default function Recipes() {
       <AIRecipeBuilderDialog
         open={aiBuilderOpen}
         onOpenChange={setAiBuilderOpen}
+      />
+
+      <BulkRecipeImportDialog
+        open={bulkImportOpen}
+        onOpenChange={setBulkImportOpen}
       />
     </DashboardLayout>
   );
