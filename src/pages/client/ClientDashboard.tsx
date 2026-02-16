@@ -365,7 +365,7 @@ export default function ClientDashboard() {
 
   return (
     <ClientLayout>
-      <div className="p-4 pb-8 space-y-5 max-w-5xl mx-auto w-full">
+      <div className="px-3 pt-4 pb-8 space-y-5 w-full">
         {/* Header */}
         <div className="flex items-center justify-between pt-2">
           <div>
