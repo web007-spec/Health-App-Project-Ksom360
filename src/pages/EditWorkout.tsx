@@ -148,14 +148,8 @@ export default function EditWorkout() {
   const { data: exercises } = useQuery({
     queryKey: ["exercises", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("exercises")
-        .select("*")
-        .eq("trainer_id", user?.id)
-        .order("name");
-
-      if (error) throw error;
-      return data;
+      const { fetchAllExercises } = await import("@/lib/fetchAllRows");
+      return fetchAllExercises(user!.id);
     },
     enabled: !!user?.id,
   });
