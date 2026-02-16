@@ -1592,80 +1592,125 @@ export type Database = {
       }
       game_stat_entries: {
         Row: {
+          assists: number | null
           at_bats: number | null
+          blocks: number | null
           client_id: string
           created_at: string
           doubles: number | null
           earned_runs: number | null
           errors: number | null
+          fg_attempted: number | null
+          fg_made: number | null
+          fouls: number | null
+          ft_attempted: number | null
+          ft_made: number | null
           game_date: string
           hits: number | null
           home_runs: number | null
           id: string
           innings_pitched: number | null
+          minutes_played: number | null
           notes: string | null
           opponent: string | null
           pitch_strikeouts: number | null
+          points: number | null
           rbis: number | null
+          rebounds: number | null
           result: string | null
           runs: number | null
           singles: number | null
+          sport: string
           sport_event_id: string | null
+          steals: number | null
           stolen_bases: number | null
           strikeouts: number | null
+          three_pt_attempted: number | null
+          three_pt_made: number | null
           triples: number | null
+          turnovers: number | null
           updated_at: string
           walks: number | null
         }
         Insert: {
+          assists?: number | null
           at_bats?: number | null
+          blocks?: number | null
           client_id: string
           created_at?: string
           doubles?: number | null
           earned_runs?: number | null
           errors?: number | null
+          fg_attempted?: number | null
+          fg_made?: number | null
+          fouls?: number | null
+          ft_attempted?: number | null
+          ft_made?: number | null
           game_date?: string
           hits?: number | null
           home_runs?: number | null
           id?: string
           innings_pitched?: number | null
+          minutes_played?: number | null
           notes?: string | null
           opponent?: string | null
           pitch_strikeouts?: number | null
+          points?: number | null
           rbis?: number | null
+          rebounds?: number | null
           result?: string | null
           runs?: number | null
           singles?: number | null
+          sport?: string
           sport_event_id?: string | null
+          steals?: number | null
           stolen_bases?: number | null
           strikeouts?: number | null
+          three_pt_attempted?: number | null
+          three_pt_made?: number | null
           triples?: number | null
+          turnovers?: number | null
           updated_at?: string
           walks?: number | null
         }
         Update: {
+          assists?: number | null
           at_bats?: number | null
+          blocks?: number | null
           client_id?: string
           created_at?: string
           doubles?: number | null
           earned_runs?: number | null
           errors?: number | null
+          fg_attempted?: number | null
+          fg_made?: number | null
+          fouls?: number | null
+          ft_attempted?: number | null
+          ft_made?: number | null
           game_date?: string
           hits?: number | null
           home_runs?: number | null
           id?: string
           innings_pitched?: number | null
+          minutes_played?: number | null
           notes?: string | null
           opponent?: string | null
           pitch_strikeouts?: number | null
+          points?: number | null
           rbis?: number | null
+          rebounds?: number | null
           result?: string | null
           runs?: number | null
           singles?: number | null
+          sport?: string
           sport_event_id?: string | null
+          steals?: number | null
           stolen_bases?: number | null
           strikeouts?: number | null
+          three_pt_attempted?: number | null
+          three_pt_made?: number | null
           triples?: number | null
+          turnovers?: number | null
           updated_at?: string
           walks?: number | null
         }

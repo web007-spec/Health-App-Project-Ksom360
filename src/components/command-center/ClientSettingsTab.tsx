@@ -9,6 +9,7 @@ import { Dumbbell, MessageSquare, Camera, CheckSquare, Utensils, Activity, Targe
 import { RestDayCardEditor } from "./RestDayCardEditor";
 import { SportDayCardEditor } from "./SportDayCardEditor";
 import { ClientSportScheduleCard } from "./ClientSportScheduleCard";
+import { ClientSportProfileEditor } from "./ClientSportProfileEditor";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 
@@ -142,6 +143,7 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
 
   return (
     <div className="space-y-6">
+      <ClientSportProfileEditor clientId={clientId} trainerId={trainerId} />
       <ClientSportScheduleCard clientId={clientId} trainerId={trainerId} />
       <SportDayCardEditor clientId={clientId} trainerId={trainerId} />
       <RestDayCardEditor clientId={clientId} trainerId={trainerId} />
