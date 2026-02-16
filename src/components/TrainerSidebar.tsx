@@ -56,7 +56,7 @@ export function TrainerSidebar() {
             <img src="/logo.png" alt="EverFit Stride" className="h-10 w-10 rounded-lg object-contain" />
             {open && (
               <div>
-                <h2 className="font-bold text-sidebar-foreground">EverFit Stride</h2>
+                <h2 className="font-bold text-sidebar-foreground">KSOM360</h2>
                 <p className="text-xs text-sidebar-foreground/60">Trainer Portal</p>
               </div>
             )}
