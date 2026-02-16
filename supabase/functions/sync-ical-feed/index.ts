@@ -78,7 +78,7 @@ function parseICalDate(dateStr?: string): string | undefined {
 // Detect event type from summary
 function detectEventType(summary: string): string {
   const lower = summary.toLowerCase();
-  if (lower.includes("game") || lower.includes("match") || lower.includes("tournament")) return "game";
+  if (lower.includes("game") || lower.includes("match") || lower.includes("tournament") || lower.includes(" vs ") || lower.includes(" vs.")) return "game";
   if (lower.includes("practice") || lower.includes("training") || lower.includes("drill")) return "practice";
   if (lower.includes("meeting") || lower.includes("team meeting")) return "meeting";
   return "event";

@@ -225,7 +225,7 @@ export function ClientCalendarTab({ clientId, trainerId }: ClientCalendarTabProp
                       );
                     })}
                     {daySportEvents.map((event: any) => {
-                      const isGame = event.event_type === "game";
+                      const isGame = event.event_type === "game" || event.event_type === "event";
                       return (
                         <div
                           key={event.id}
@@ -294,7 +294,7 @@ export function ClientCalendarTab({ clientId, trainerId }: ClientCalendarTabProp
             ) : (
               <div className="space-y-3">
                 {selectedDaySportEvents.map((event: any) => {
-                  const isGame = event.event_type === "game";
+                  const isGame = event.event_type === "game" || event.event_type === "event";
                   const startTime = formatEventTime(event.start_time);
                   const endTime = event.end_time ? formatEventTime(event.end_time) : null;
                   const timeDisplay = endTime && endTime !== startTime ? `${startTime} - ${endTime}` : startTime;

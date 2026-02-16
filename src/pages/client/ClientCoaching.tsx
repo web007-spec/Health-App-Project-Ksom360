@@ -316,7 +316,7 @@ export default function ClientCoaching() {
 
             {/* Sport Events */}
             {daySportEvents.map((event: any) => {
-              const isGame = event.event_type === "game";
+              const isGame = event.event_type === "game" || event.event_type === "event";
               const startTime = formatEventTime(event.start_time);
               const endTime = event.end_time ? formatEventTime(event.end_time) : null;
               const timeDisplay = endTime && endTime !== startTime ? `${startTime} - ${endTime}` : startTime;
