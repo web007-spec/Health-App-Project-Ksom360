@@ -238,6 +238,7 @@ export default function CreateWorkout() {
   const [groups, setGroups] = useState<ExerciseGroup[]>([]);
   const [exerciseSearch, setExerciseSearch] = useState("");
   const [sortBy, setSortBy] = useState("name");
+  const [visibleCount, setVisibleCount] = useState(60);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor));
@@ -269,16 +270,24 @@ export default function CreateWorkout() {
     return Math.max(1, Math.round(totalSeconds / 60));
   }, [exerciseItems]);
 
-  const filteredExercises = exercises
-    ?.filter((ex) =>
-      ex.name.toLowerCase().includes(exerciseSearch.toLowerCase()) ||
-      ex.muscle_group?.toLowerCase().includes(exerciseSearch.toLowerCase())
-    )
-    ?.sort((a, b) => {
-      if (sortBy === "name") return a.name.localeCompare(b.name);
-      if (sortBy === "muscle_group") return (a.muscle_group || "").localeCompare(b.muscle_group || "");
-      return 0;
-    });
+  const filteredExercises = useMemo(() => {
+    const filtered = exercises
+      ?.filter((ex) =>
+        ex.name.toLowerCase().includes(exerciseSearch.toLowerCase()) ||
+        ex.muscle_group?.toLowerCase().includes(exerciseSearch.toLowerCase())
+      )
+      ?.sort((a, b) => {
+        if (sortBy === "name") return a.name.localeCompare(b.name);
+        if (sortBy === "muscle_group") return (a.muscle_group || "").localeCompare(b.muscle_group || "");
+        return 0;
+      });
+    return filtered;
+  }, [exercises, exerciseSearch, sortBy]);
+
+  // Reset visible count when search changes
+  const visibleExercises = useMemo(() => {
+    return filteredExercises?.slice(0, visibleCount);
+  }, [filteredExercises, visibleCount]);
 
   const getExerciseById = (id: string) => exercises?.find((e) => e.id === id);
 
@@ -783,7 +792,7 @@ export default function CreateWorkout() {
               <Input
                 placeholder="Search for an exercise"
                 value={exerciseSearch}
-                onChange={(e) => setExerciseSearch(e.target.value)}
+                onChange={(e) => { setExerciseSearch(e.target.value); setVisibleCount(60); }}
                 className="pl-9"
               />
             </div>
@@ -810,9 +819,8 @@ export default function CreateWorkout() {
 
           <ScrollArea className="flex-1">
             <div className="p-3 grid grid-cols-3 gap-2">
-              {filteredExercises?.map((exercise) => {
+              {visibleExercises?.map((exercise) => {
                 const thumbnail = getExerciseThumbnail(exercise);
-                const hasVideo = exercise.video_url && isDirectVideo(exercise.video_url);
 
                 return (
                   <div
@@ -821,22 +829,8 @@ export default function CreateWorkout() {
                     onClick={() => addExercise(exercise.id)}
                   >
                     <div className="aspect-[4/3] bg-muted relative overflow-hidden">
-                      {hasVideo ? (
-                        <video
-                          src={exercise.video_url!}
-                          className="w-full h-full object-cover"
-                          muted
-                          loop
-                          playsInline
-                          onMouseEnter={(e) => (e.target as HTMLVideoElement).play()}
-                          onMouseLeave={(e) => {
-                            const vid = e.target as HTMLVideoElement;
-                            vid.pause();
-                            vid.currentTime = 0;
-                          }}
-                        />
-                      ) : thumbnail ? (
-                        <img src={thumbnail} alt={exercise.name} className="w-full h-full object-cover" />
+                      {thumbnail ? (
+                        <img src={thumbnail} alt={exercise.name} className="w-full h-full object-cover" loading="lazy" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                           <GripVertical className="h-8 w-8 opacity-20" />
@@ -853,7 +847,19 @@ export default function CreateWorkout() {
                 );
               })}
 
-              {filteredExercises?.length === 0 && (
+              {filteredExercises && visibleCount < filteredExercises.length && (
+                <div className="col-span-3 py-4 text-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setVisibleCount((prev) => prev + 60)}
+                  >
+                    Load More ({filteredExercises.length - visibleCount} remaining)
+                  </Button>
+                </div>
+              )}
+
+              {visibleExercises?.length === 0 && (
                 <div className="col-span-3 py-12 text-center">
                   <p className="text-sm text-muted-foreground">No exercises found</p>
                 </div>
