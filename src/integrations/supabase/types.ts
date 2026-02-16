@@ -914,6 +914,39 @@ export type Database = {
           },
         ]
       }
+      client_sport_day_cards: {
+        Row: {
+          card_type: string
+          client_id: string
+          created_at: string
+          id: string
+          image_url: string | null
+          message: string | null
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          card_type: string
+          client_id: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          message?: string | null
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          card_type?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          message?: string | null
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_studio_program_access: {
         Row: {
           client_id: string
