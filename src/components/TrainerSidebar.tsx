@@ -26,7 +26,7 @@ const mainItems = [
 const libraryItems = [
   { title: "Exercises", url: "/exercises", icon: Dumbbell },
   { title: "Workouts", url: "/workouts", icon: Calendar },
-  { title: "Programs", url: "/studio-programs", icon: GraduationCap },
+  { title: "Programs", url: "/programs", icon: GraduationCap },
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
   { title: "Goals", url: "/goals", icon: Target },
   { title: "Recipes", url: "/recipes", icon: FileText },
@@ -45,6 +45,7 @@ const studioItems = [
   { title: "Resource Collections", url: "/resource-collections", icon: FileText },
   { title: "On-Demand Workouts", url: "/ondemand-workouts", icon: Play },
   { title: "Workout Collections", url: "/workout-collections", icon: Play },
+  { title: "Studio Programs", url: "/studio-programs", icon: GraduationCap },
 ];
 
 const bottomItems = [
