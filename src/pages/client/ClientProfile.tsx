@@ -30,6 +30,7 @@ export default function ClientProfile() {
   });
 
   const menuItems = [
+    { label: "Sports Profile", to: "/client/sports" },
     { label: "Activity history", to: "/client/workouts" },
     { label: "Your exercises", to: "/client/workouts" },
     { label: "Progress photos", to: "/client/progress" },

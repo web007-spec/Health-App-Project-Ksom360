@@ -7,6 +7,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format, addDays } from "date-fns";
+import { GameStatsEntryDialog } from "@/components/GameStatsEntryDialog";
 
 type CompletionStatus = "completed" | "incomplete" | "missed";
 
@@ -21,6 +22,7 @@ export function SportEventCompletionDialog({ open, onOpenChange, event, clientId
   const [status, setStatus] = useState<CompletionStatus | null>(null);
   const [notes, setNotes] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showGameStats, setShowGameStats] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -82,8 +84,20 @@ export function SportEventCompletionDialog({ open, onOpenChange, event, clientId
     setStatus(null);
     setNotes("");
     setShowSuccess(false);
+    setShowGameStats(false);
     onOpenChange(false);
   };
+
+  if (showGameStats) {
+    return (
+      <GameStatsEntryDialog
+        open={open}
+        onOpenChange={handleClose}
+        event={event}
+        clientId={clientId}
+      />
+    );
+  }
 
   if (showSuccess) {
     return (
@@ -103,7 +117,16 @@ export function SportEventCompletionDialog({ open, onOpenChange, event, clientId
                   ? "Awesome practice! Heads up — you have a game coming up tomorrow. Make sure to get plenty of rest tonight! 💪"
                   : "Solid practice session! Make sure to hydrate, stretch, and get some good rest tonight. 💪"}
             </p>
-            <Button className="w-full" onClick={handleClose}>Done</Button>
+            {isGame ? (
+              <div className="space-y-2">
+                <Button className="w-full" onClick={() => { setShowSuccess(false); setShowGameStats(true); }}>
+                  Log Game Stats ⚾
+                </Button>
+                <Button variant="ghost" className="w-full" onClick={handleClose}>Skip for now</Button>
+              </div>
+            ) : (
+              <Button className="w-full" onClick={handleClose}>Done</Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
