@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Sparkles, Link, FileText, Loader2, Save, RotateCcw } from "lucide-react";
+import { Sparkles, Link, FileText, Loader2, Save, RotateCcw, FileUp } from "lucide-react";
 
 interface AIRecipeBuilderDialogProps {
   open: boolean;
@@ -41,11 +41,42 @@ interface ExtractedRecipe {
 export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDialogProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [inputMode, setInputMode] = useState<"url" | "text">("url");
+  const [inputMode, setInputMode] = useState<"url" | "text" | "pdf">("url");
   const [urlInput, setUrlInput] = useState("");
   const [textInput, setTextInput] = useState("");
+  const [pdfFileName, setPdfFileName] = useState("");
+  const [pdfText, setPdfText] = useState("");
   const [extractedRecipe, setExtractedRecipe] = useState<ExtractedRecipe | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      toast.error("Please upload a PDF file");
+      return;
+    }
+    setPdfFileName(file.name);
+    // Extract text from PDF using pdf.js via CDN
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdfjsLib = await import("https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs" as any);
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs";
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let text = "";
+      for (let i = 1; i <= Math.min(pdf.numPages, 50); i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map((item: any) => item.str).join(" ") + "\n";
+      }
+      setPdfText(text.trim());
+      toast.success(`Extracted text from ${pdf.numPages} pages`);
+    } catch {
+      toast.error("Failed to read PDF. Try pasting the text instead.");
+      setPdfFileName("");
+    }
+  };
 
   const handleGenerate = async () => {
     const payload: { url?: string; text?: string } = {};
@@ -55,6 +86,12 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
         return;
       }
       payload.url = urlInput.trim();
+    } else if (inputMode === "pdf") {
+      if (!pdfText.trim()) {
+        toast.error("Please upload a PDF first");
+        return;
+      }
+      payload.text = pdfText.trim();
     } else {
       if (!textInput.trim()) {
         toast.error("Please enter recipe text");
@@ -128,6 +165,8 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
     setExtractedRecipe(null);
     setUrlInput("");
     setTextInput("");
+    setPdfFileName("");
+    setPdfText("");
   };
 
   const updateField = (field: keyof ExtractedRecipe, value: any) => {
@@ -144,7 +183,7 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
             AI Recipe Builder
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Paste a URL or recipe text and AI will extract it into your library
+            Paste a URL, recipe text, or upload a PDF and AI will extract it into your library
           </p>
         </DialogHeader>
 
@@ -168,6 +207,14 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
                 <FileText className="h-4 w-4 mr-2" />
                 Text
               </Button>
+              <Button
+                variant={inputMode === "pdf" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setInputMode("pdf")}
+              >
+                <FileUp className="h-4 w-4 mr-2" />
+                PDF
+              </Button>
             </div>
 
             {inputMode === "url" ? (
@@ -178,6 +225,34 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                 />
+              </div>
+            ) : inputMode === "pdf" ? (
+              <div className="space-y-2">
+                <Label>Upload PDF</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf"
+                  onChange={handlePdfUpload}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  className="w-full h-24 border-dashed"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <FileUp className="h-6 w-6 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {pdfFileName || "Click to select a PDF file"}
+                    </span>
+                  </div>
+                </Button>
+                {pdfText && (
+                  <p className="text-xs text-muted-foreground">
+                    ✓ {pdfText.length.toLocaleString()} characters extracted
+                  </p>
+                )}
               </div>
             ) : (
               <div className="space-y-2">
