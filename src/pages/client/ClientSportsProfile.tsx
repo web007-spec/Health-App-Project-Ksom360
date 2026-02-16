@@ -52,7 +52,7 @@ export default function ClientSportsProfile() {
   });
 
   const sports = sportProfiles?.map(p => p.sport) || [];
-  const defaultSport = sports.includes("baseball") ? "baseball" : sports[0] || "baseball";
+  const defaultSport = sports.includes("softball") ? "softball" : sports[0] || "softball";
 
   return (
     <ClientLayout>
@@ -64,12 +64,12 @@ export default function ClientSportsProfile() {
         {sports.length > 1 ? (
           <Tabs defaultValue={defaultSport}>
             <TabsList className="w-full">
-              {sports.includes("baseball") && <TabsTrigger value="baseball" className="flex-1">⚾ Baseball</TabsTrigger>}
+            {sports.includes("softball") && <TabsTrigger value="softball" className="flex-1">🥎 Softball</TabsTrigger>}
               {sports.includes("basketball") && <TabsTrigger value="basketball" className="flex-1">🏀 Basketball</TabsTrigger>}
             </TabsList>
-            {sports.includes("baseball") && (
-              <TabsContent value="baseball">
-                <BaseballStats gameStats={(gameStats || []).filter((g: any) => g.sport === "baseball" || !g.sport)} />
+            {sports.includes("softball") && (
+              <TabsContent value="softball">
+                <BaseballStats gameStats={(gameStats || []).filter((g: any) => g.sport === "softball" || g.sport === "baseball" || !g.sport)} />
               </TabsContent>
             )}
             {sports.includes("basketball") && (
@@ -83,7 +83,7 @@ export default function ClientSportsProfile() {
             {defaultSport === "basketball" ? (
               <BasketballStats gameStats={(gameStats || []).filter((g: any) => g.sport === "basketball")} />
             ) : (
-              <BaseballStats gameStats={(gameStats || []).filter((g: any) => g.sport === "baseball" || !g.sport)} />
+              <BaseballStats gameStats={(gameStats || []).filter((g: any) => g.sport === "softball" || g.sport === "baseball" || !g.sport)} />
             )}
           </>
         )}
