@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Copy, Check, UserCheck } from "lucide-react";
+import { Loader2, Copy, Check, UserCheck, Share2, MessageSquare } from "lucide-react";
 
 interface AddClientDialogProps {
   open: boolean;
@@ -78,12 +78,32 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
     addClientMutation.mutate();
   };
 
+  const getShareText = () => {
+    if (!createdCredentials) return "";
+    return `Hey ${createdCredentials.name}! Your KSOM360 account is ready 💪\n\nLogin here: ${window.location.origin}/auth\nEmail: ${createdCredentials.email}\nPassword: ${createdCredentials.password}`;
+  };
+
   const handleCopy = async () => {
     if (!createdCredentials) return;
-    const text = `Login URL: ${window.location.origin}/auth\nEmail: ${createdCredentials.email}\nPassword: ${createdCredentials.password}`;
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(getShareText());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleShareViaText = async () => {
+    const text = getShareText();
+    if (navigator.share) {
+      try {
+        await navigator.share({ text });
+      } catch (err) {
+        // User cancelled or share failed, fall back to copy
+        await navigator.clipboard.writeText(text);
+        toast({ title: "Copied to clipboard!", description: "Paste it into your messaging app" });
+      }
+    } else {
+      await navigator.clipboard.writeText(text);
+      toast({ title: "Copied to clipboard!", description: "Paste it into your messaging app to send via text" });
+    }
   };
 
   return (
@@ -107,12 +127,18 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
               <div><span className="text-muted-foreground">Password:</span> {createdCredentials.password}</div>
             </div>
 
-            <DialogFooter className="flex gap-2 sm:gap-0">
-              <Button variant="outline" onClick={handleCopy} className="gap-2 flex-1">
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                {copied ? "Copied!" : "Copy Credentials"}
-              </Button>
-              <Button onClick={handleClose} className="flex-1">
+            <DialogFooter className="flex flex-col gap-2 sm:flex-col">
+              <div className="flex gap-2 w-full">
+                <Button variant="outline" onClick={handleCopy} className="gap-2 flex-1">
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {copied ? "Copied!" : "Copy"}
+                </Button>
+                <Button variant="outline" onClick={handleShareViaText} className="gap-2 flex-1">
+                  <MessageSquare className="h-4 w-4" />
+                  Share via Text
+                </Button>
+              </div>
+              <Button onClick={handleClose} className="w-full">
                 Done
               </Button>
             </DialogFooter>
