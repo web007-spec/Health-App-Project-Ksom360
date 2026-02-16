@@ -16,7 +16,7 @@ interface ClientSportProfileEditorProps {
 }
 
 const SPORTS = [
-  { value: "baseball", label: "Baseball / Softball ⚾" },
+  { value: "softball", label: "Softball 🥎" },
   { value: "basketball", label: "Basketball 🏀" },
 ];
 
@@ -130,7 +130,7 @@ export function ClientSportProfileEditor({ clientId, trainerId }: ClientSportPro
           <div key={profile.id} className="rounded-lg border p-4 space-y-4">
             <div className="flex items-center justify-between">
               <Badge variant="secondary" className="text-sm">
-                {profile.sport === "basketball" ? "🏀 Basketball" : "⚾ Baseball / Softball"}
+                {profile.sport === "basketball" ? "🏀 Basketball" : "🥎 Softball"}
               </Badge>
               <Button
                 variant="ghost"
