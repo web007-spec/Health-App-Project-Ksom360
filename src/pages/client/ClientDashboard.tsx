@@ -7,7 +7,7 @@ import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { format, isToday, parseISO } from "date-fns";
+import { format, isToday, parseISO, startOfWeek, addDays } from "date-fns";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useClientFeatureSettings } from "@/hooks/useClientFeatureSettings";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -214,6 +214,25 @@ export default function ClientDashboard() {
     enabled: !!clientId && settings.macros_enabled,
   });
 
+  // Fetch this week's nutrition logs for weekly macros card
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const weekDates = Array.from({ length: 7 }, (_, i) => format(addDays(weekStart, i), "yyyy-MM-dd"));
+
+  const { data: weeklyNutrition } = useQuery({
+    queryKey: ["nutrition-week", clientId, weekDates[0]],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("nutrition_logs")
+        .select("*")
+        .eq("client_id", clientId)
+        .gte("log_date", weekDates[0])
+        .lte("log_date", weekDates[6]);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clientId && settings.macros_enabled,
+  });
+
   // Quick macro edit mutation
   const saveMacrosMutation = useMutation({
     mutationFn: async (payload: { calories: number; protein: number; carbs: number; fats: number; diet_style: string }) => {
@@ -362,6 +381,21 @@ export default function ClientDashboard() {
   const todayProtein = todayNutrition?.reduce((sum, log) => sum + (log.protein || 0), 0) || 0;
   const todayCarbs = todayNutrition?.reduce((sum, log) => sum + (log.carbs || 0), 0) || 0;
   const todayFats = todayNutrition?.reduce((sum, log) => sum + (log.fats || 0), 0) || 0;
+
+  // Weekly macros stats
+  const weeklyCaloriesByDay = weekDates.map((date, i) => {
+    const dayLogs = weeklyNutrition?.filter((l) => l.log_date === date) || [];
+    return {
+      day: ["M", "T", "W", "T", "F", "S", "S"][i],
+      calories: dayLogs.reduce((sum, l) => sum + (l.calories || 0), 0),
+      isToday: date === format(new Date(), "yyyy-MM-dd"),
+    };
+  });
+  const weeklyTotalCalories = weeklyCaloriesByDay.reduce((sum, d) => sum + d.calories, 0);
+  const daysWithData = weeklyCaloriesByDay.filter((d) => d.calories > 0).length;
+  const weeklyAvgCalories = daysWithData > 0 ? Math.round(weeklyTotalCalories / daysWithData) : 0;
+  const dailyGoal = macroTargets?.target_calories || 0;
+  const maxChartVal = Math.max(dailyGoal * 1.2, ...weeklyCaloriesByDay.map((d) => d.calories), 1);
 
   return (
     <ClientLayout>
@@ -560,6 +594,77 @@ export default function ClientDashboard() {
                     </div>
                   );
                 })}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Macros This Week Card */}
+        {settings.macros_enabled && macroTargets && (
+          <div>
+            <Card
+              className="cursor-pointer hover:shadow-sm transition-shadow"
+              onClick={() => navigate("/client/nutrition")}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-baseline gap-2 mb-4">
+                  <h2 className="text-lg font-bold">Macros</h2>
+                  <span className="text-sm text-muted-foreground">(this week)</span>
+                </div>
+
+                {/* Mini calorie chart */}
+                <div className="relative h-[120px] mb-3">
+                  {/* Goal line */}
+                  {dailyGoal > 0 && (
+                    <div
+                      className="absolute left-0 right-0 flex items-center gap-1.5"
+                      style={{ bottom: `${(dailyGoal / maxChartVal) * 100}%` }}
+                    >
+                      <span className="text-[10px] font-semibold text-foreground shrink-0">
+                        {dailyGoal.toLocaleString()} ★
+                      </span>
+                      <div className="flex-1 border-t-2 border-foreground" />
+                    </div>
+                  )}
+
+                  {/* Bars */}
+                  <div className="flex items-end justify-between h-full gap-1 pt-4 pb-0">
+                    {weeklyCaloriesByDay.map((d, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+                        <div
+                          className="w-full max-w-[28px] rounded-t-sm transition-all"
+                          style={{
+                            height: d.calories > 0 ? `${Math.max((d.calories / maxChartVal) * 100, 4)}%` : "2px",
+                            backgroundColor: d.isToday
+                              ? "hsl(var(--primary))"
+                              : d.calories > 0
+                                ? "hsl(var(--primary) / 0.4)"
+                                : "hsl(var(--muted))",
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Day labels */}
+                <div className="flex justify-between px-0.5">
+                  {weeklyCaloriesByDay.map((d, i) => (
+                    <span
+                      key={i}
+                      className={`text-xs font-medium flex-1 text-center ${
+                        d.isToday ? "text-primary font-bold" : "text-muted-foreground"
+                      }`}
+                    >
+                      {d.day}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Average */}
+                <p className="text-sm text-muted-foreground mt-3 text-center">
+                  Average weekly calories is {weeklyAvgCalories.toLocaleString()} Cal
+                </p>
               </CardContent>
             </Card>
           </div>
