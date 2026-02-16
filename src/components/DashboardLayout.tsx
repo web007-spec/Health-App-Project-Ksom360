@@ -1,6 +1,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TrainerSidebar } from "./TrainerSidebar";
 import { Search, LogOut, RefreshCw, Eye } from "lucide-react";
+import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
@@ -86,6 +87,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <ThemeToggle />
               <HealthNotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
