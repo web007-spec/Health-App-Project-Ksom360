@@ -26,7 +26,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending welcome email to:", email);
 
     const emailResponse = await resend.emails.send({
-      from: "FitCoach Pro <onboarding@resend.dev>",
+      from: "KSOM360 <noreply@ksom360.com>",
       to: [email],
       subject: "Welcome to FitCoach Pro - Your Account Details",
       html: `
