@@ -7,7 +7,7 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format, addDays } from "date-fns";
-import { GameStatsEntryDialog } from "@/components/GameStatsEntryDialog";
+import { GameCompletionDialog } from "@/components/GameCompletionDialog";
 
 type CompletionStatus = "completed" | "incomplete" | "missed";
 
@@ -22,7 +22,6 @@ export function SportEventCompletionDialog({ open, onOpenChange, event, clientId
   const [status, setStatus] = useState<CompletionStatus | null>(null);
   const [notes, setNotes] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
-  const [showGameStats, setShowGameStats] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -43,7 +42,7 @@ export function SportEventCompletionDialog({ open, onOpenChange, event, clientId
       if (error) throw error;
       return data as any[];
     },
-    enabled: open && !!clientId,
+    enabled: open && !!clientId && !isGame,
   });
 
   const hasGameTomorrow = tomorrowEvents?.some((e: any) => e.event_type === "game" || e.event_type === "event");
@@ -84,20 +83,21 @@ export function SportEventCompletionDialog({ open, onOpenChange, event, clientId
     setStatus(null);
     setNotes("");
     setShowSuccess(false);
-    setShowGameStats(false);
     onOpenChange(false);
   };
 
-  if (showGameStats) {
+  // For games, delegate to the new GameCompletionDialog
+  if (isGame) {
     return (
-      <GameStatsEntryDialog
+      <GameCompletionDialog
         open={open}
-        onOpenChange={handleClose}
+        onOpenChange={onOpenChange}
         event={event}
         clientId={clientId}
       />
     );
   }
+
 
   if (showSuccess) {
     return (
@@ -111,22 +111,11 @@ export function SportEventCompletionDialog({ open, onOpenChange, event, clientId
             </div>
             <h2 className="text-xl font-bold">Great job! 🎉</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              {isGame
-                ? "Way to give it your all out there! Now make sure to rest up and recover."
-                : hasGameTomorrow
-                  ? "Awesome practice! Heads up — you have a game coming up tomorrow. Make sure to get plenty of rest tonight! 💪"
-                  : "Solid practice session! Make sure to hydrate, stretch, and get some good rest tonight. 💪"}
+              {hasGameTomorrow
+                ? "Awesome practice! Heads up — you have a game coming up tomorrow. Make sure to get plenty of rest tonight! 💪"
+                : "Solid practice session! Make sure to hydrate, stretch, and get some good rest tonight. 💪"}
             </p>
-            {isGame ? (
-              <div className="space-y-2">
-                <Button className="w-full" onClick={() => { setShowSuccess(false); setShowGameStats(true); }}>
-                  Log Game Stats ⚾
-                </Button>
-                <Button variant="ghost" className="w-full" onClick={handleClose}>Skip for now</Button>
-              </div>
-            ) : (
-              <Button className="w-full" onClick={handleClose}>Done</Button>
-            )}
+            <Button className="w-full" onClick={handleClose}>Done</Button>
           </div>
         </DialogContent>
       </Dialog>

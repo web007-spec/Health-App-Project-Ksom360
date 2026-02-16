@@ -848,6 +848,45 @@ export type Database = {
         }
         Relationships: []
       }
+      client_reminders: {
+        Row: {
+          client_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_dismissed: boolean
+          reference_id: string | null
+          remind_at: string
+          reminder_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_dismissed?: boolean
+          reference_id?: string | null
+          remind_at: string
+          reminder_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_dismissed?: boolean
+          reference_id?: string | null
+          remind_at?: string
+          reminder_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_rest_day_cards: {
         Row: {
           client_id: string
