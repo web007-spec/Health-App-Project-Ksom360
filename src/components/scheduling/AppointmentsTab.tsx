@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { CalendarIcon, Clock, User, XCircle, CheckCircle2, AlertCircle } from "lucide-react";
+import { CalendarIcon, Clock, User, XCircle, CheckCircle2, AlertCircle, Plus } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { CreateAppointmentDialog } from "./CreateAppointmentDialog";
 
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: any }> = {
   confirmed: { label: "Confirmed", variant: "default", icon: CheckCircle2 },
@@ -21,6 +22,7 @@ export function AppointmentsTab() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState("upcoming");
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const { data: appointments, isLoading } = useQuery({
     queryKey: ["trainer-appointments", user?.id, filter],
@@ -76,6 +78,9 @@ export function AppointmentsTab() {
             <SelectItem value="all">All</SelectItem>
           </SelectContent>
         </Select>
+        <Button onClick={() => setShowCreateDialog(true)}>
+          <Plus className="h-4 w-4 mr-2" /> New Appointment
+        </Button>
       </div>
 
       {appointments && appointments.length === 0 ? (
@@ -147,6 +152,7 @@ export function AppointmentsTab() {
           })}
         </div>
       )}
+      <CreateAppointmentDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} />
     </div>
   );
 }
