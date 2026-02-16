@@ -2097,6 +2097,42 @@ export type Database = {
         }
         Relationships: []
       }
+      programs: {
+        Row: {
+          created_at: string
+          days_per_week: number
+          description: string | null
+          duration_weeks: number
+          id: string
+          name: string
+          status: string
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          days_per_week?: number
+          description?: string | null
+          duration_weeks?: number
+          id?: string
+          name: string
+          status?: string
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          days_per_week?: number
+          description?: string | null
+          duration_weeks?: number
+          id?: string
+          name?: string
+          status?: string
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       progress_entries: {
         Row: {
           body_fat_percentage: number | null
