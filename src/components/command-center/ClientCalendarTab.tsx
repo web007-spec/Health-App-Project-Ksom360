@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle2, Circle, Trophy, MapPin, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle2, Circle, Trophy, Swords, MapPin, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
@@ -236,7 +236,7 @@ export function ClientCalendarTab({ clientId, trainerId }: ClientCalendarTabProp
                           }`}
                         >
                           <div className="font-medium truncate flex items-center gap-1">
-                            <Trophy className="h-3 w-3 shrink-0" />
+                            {isGame ? <Swords className="h-3 w-3 shrink-0" /> : <Trophy className="h-3 w-3 shrink-0" />}
                             {event.title}
                           </div>
                         </div>
@@ -309,7 +309,7 @@ export function ClientCalendarTab({ clientId, trainerId }: ClientCalendarTabProp
                       }`}
                     >
                       <div className="flex items-center gap-2 mb-1">
-                        <Trophy className={`h-4 w-4 ${isGame ? "text-rose-500" : "text-sky-500"}`} />
+                        {isGame ? <Swords className={`h-4 w-4 text-rose-500`} /> : <Trophy className={`h-4 w-4 text-sky-500`} />}
                         <span className="font-medium text-sm">{event.title}</span>
                         <Badge variant="outline" className="text-xs ml-auto">
                           {event.event_type === "game" ? "Game" : event.event_type === "practice" ? "Practice" : "Event"}

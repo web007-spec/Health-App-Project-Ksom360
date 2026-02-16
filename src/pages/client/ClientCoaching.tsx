@@ -2,7 +2,7 @@ import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Dumbbell, ListChecks, Target, Flame, UtensilsCrossed } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Dumbbell, ListChecks, Target, Flame, UtensilsCrossed, Trophy, Swords, MapPin, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useClientFeatureSettings } from "@/hooks/useClientFeatureSettings";
@@ -81,6 +81,23 @@ export default function ClientCoaching() {
     enabled: !!clientId,
   });
 
+  // Fetch sport schedule events
+  const { data: sportEvents } = useQuery({
+    queryKey: ["coaching-sport-events", clientId, format(monthStart, "yyyy-MM")],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sport_schedule_events")
+        .select("*")
+        .eq("client_id", clientId)
+        .gte("start_time", format(monthStart, "yyyy-MM-dd"))
+        .lte("start_time", format(monthEnd, "yyyy-MM-dd") + "T23:59:59")
+        .order("start_time");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clientId,
+  });
+
   // Fetch selected workout details
   const { data: selectedWorkout } = useQuery({
     queryKey: ["workout-detail", selectedWorkoutId],
@@ -138,14 +155,28 @@ export default function ClientCoaching() {
       return day.getDay() === startDay;
     });
   };
+  const getSportEventsForDay = (day: Date) =>
+    sportEvents?.filter((e: any) => e.start_time && isSameDay(parseISO(e.start_time), day)) || [];
 
   const hasDots = (day: Date) => {
-    return getWorkoutsForDay(day).length > 0 || getTasksForDay(day).length > 0 || getHabitsForDay(day).length > 0;
+    return getWorkoutsForDay(day).length > 0 || getTasksForDay(day).length > 0 || getHabitsForDay(day).length > 0 || getSportEventsForDay(day).length > 0;
   };
 
   const dayWorkouts = getWorkoutsForDay(selectedDay);
   const dayTasks = getTasksForDay(selectedDay);
   const dayHabits = getHabitsForDay(selectedDay);
+  const daySportEvents = getSportEventsForDay(selectedDay);
+
+  /** Extract raw hours/minutes from ISO string to avoid timezone shifting */
+  function formatEventTime(isoString: string): string {
+    const match = isoString.match(/T(\d{2}):(\d{2})/);
+    if (!match) return "";
+    const hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const ampm = hours >= 12 ? "PM" : "AM";
+    const displayHour = hours % 12 || 12;
+    return `${displayHour}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+  }
   const weekDays = ["M", "T", "W", "T", "F", "S", "S"];
 
   return (
@@ -208,7 +239,7 @@ export default function ClientCoaching() {
             {isSameDay(selectedDay, new Date()) ? "Today" : format(selectedDay, "EEEE, MMM d")}
           </h2>
 
-          {dayWorkouts.length === 0 && dayTasks.length === 0 && dayHabits.length === 0 && (
+          {dayWorkouts.length === 0 && dayTasks.length === 0 && dayHabits.length === 0 && daySportEvents.length === 0 && (
             <Card>
               <CardContent className="p-6 text-center text-muted-foreground text-sm">
                 No activities scheduled for this day
@@ -278,6 +309,45 @@ export default function ClientCoaching() {
                       <p className="font-medium text-foreground text-sm truncate">{habit.name}</p>
                       <p className="text-xs text-muted-foreground">{habit.goal_value} {habit.goal_unit} · {habit.frequency}</p>
                     </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+
+            {/* Sport Events */}
+            {daySportEvents.map((event: any) => {
+              const isGame = event.event_type === "game";
+              const startTime = formatEventTime(event.start_time);
+              const endTime = event.end_time ? formatEventTime(event.end_time) : null;
+              const timeDisplay = endTime && endTime !== startTime ? `${startTime} - ${endTime}` : startTime;
+              return (
+                <Card key={event.id}>
+                  <CardContent className="p-3 flex items-center gap-3">
+                    <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
+                      isGame ? "bg-rose-500/20 text-rose-600 dark:text-rose-400" : "bg-sky-500/20 text-sky-600 dark:text-sky-400"
+                    }`}>
+                      {isGame ? <Swords className="h-5 w-5" /> : <Trophy className="h-5 w-5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-foreground text-sm truncate">{event.title}</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {timeDisplay && (
+                          <span className="flex items-center gap-0.5">
+                            <Clock className="h-3 w-3" />
+                            {timeDisplay}
+                          </span>
+                        )}
+                        {event.location && (
+                          <span className="flex items-center gap-0.5">
+                            <MapPin className="h-3 w-3" />
+                            {event.location}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] shrink-0">
+                      {isGame ? "Game" : "Practice"}
+                    </Badge>
                   </CardContent>
                 </Card>
               );
