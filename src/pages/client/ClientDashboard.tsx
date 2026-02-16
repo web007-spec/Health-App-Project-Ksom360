@@ -546,17 +546,17 @@ export default function ClientDashboard() {
                   return (
                     <div
                       key={habit.id}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                      className="flex items-center gap-4 px-5 py-4 hover:bg-muted/30 transition-colors cursor-pointer"
                       onClick={() => navigate(`/client/habits/${habit.id}`)}
                     >
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-lg shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-xl shrink-0">
                         {icon}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium">{habit.name}</span>
-                        <p className="text-xs text-muted-foreground">{todayCompletionCount} of {habit.goal_value} {habit.goal_unit} today</p>
+                        <span className="text-sm font-semibold">{habit.name}</span>
+                        <p className="text-xs text-muted-foreground mt-0.5">{todayCompletionCount} of {habit.goal_value} {habit.goal_unit} today</p>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
                     </div>
                   );
                 })}
