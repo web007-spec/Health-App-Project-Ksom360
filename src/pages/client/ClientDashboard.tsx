@@ -1,7 +1,7 @@
 import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X, Plus, Pencil, Swords, Trophy, MapPin, Check, Activity } from "lucide-react";
+import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X, Plus, Pencil, Swords, Trophy, MapPin, Check, Activity, ScanBarcode, Camera, PenLine } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -20,6 +20,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { SportEventCompletionDialog } from "@/components/SportEventCompletionDialog";
 import { DayStripCalendar } from "@/components/DayStripCalendar";
 import { QuickCardioFlow } from "@/components/cardio/QuickCardioFlow";
+import { SpeedDialFAB } from "@/components/SpeedDialFAB";
 
 export default function ClientDashboard() {
   const { user } = useAuth();
@@ -975,14 +976,34 @@ export default function ClientDashboard() {
         )}
       </div>
 
-      {/* Cardio FAB */}
-      <button
-        onClick={() => setCardioFlowOpen(true)}
-        className="fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg flex items-center justify-center transition-colors"
-        aria-label="Quick Cardio"
-      >
-        <Activity className="h-6 w-6" />
-      </button>
+      {/* Speed Dial FAB */}
+      <SpeedDialFAB
+        items={[
+          {
+            label: "Workout",
+            icon: <Dumbbell className="h-5 w-5" />,
+            color: "hsl(217, 91%, 60%)",
+            onClick: () => navigate("/client/workouts"),
+          },
+          {
+            label: "Cardio",
+            icon: <Footprints className="h-5 w-5" />,
+            color: "hsl(142, 71%, 45%)",
+            onClick: () => setCardioFlowOpen(true),
+          },
+          {
+            label: "Meal",
+            icon: <UtensilsCrossed className="h-5 w-5" />,
+            color: "hsl(350, 89%, 60%)",
+            onClick: () => navigate("/client/log-meal"),
+            subItems: [
+              { label: "Scan Barcode", icon: <ScanBarcode className="h-4 w-4" />, onClick: () => navigate("/client/log-meal?tab=scan") },
+              { label: "Snap & Track", icon: <Camera className="h-4 w-4" />, onClick: () => navigate("/client/log-meal?tab=photo") },
+              { label: "Manual Log", icon: <PenLine className="h-4 w-4" />, onClick: () => navigate("/client/log-meal?tab=manual") },
+            ],
+          },
+        ]}
+      />
 
       <QuickCardioFlow
         open={cardioFlowOpen}

@@ -6,8 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { ArrowLeft, ScanBarcode, Search, Plus, Check, Loader2, Camera } from "lucide-react";
-import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -31,8 +31,13 @@ interface FoodItem {
 
 export default function ClientLogMeal() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // Handle deep-link query params
+  const tabParam = searchParams.get("tab");
+  const [initialTabHandled, setInitialTabHandled] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<FoodItem[]>([]);
@@ -50,6 +55,14 @@ export default function ClientLogMeal() {
   const [manualProtein, setManualProtein] = useState("");
   const [manualCarbs, setManualCarbs] = useState("");
   const [manualFats, setManualFats] = useState("");
+
+  // Handle deep-link tab param
+  useEffect(() => {
+    if (initialTabHandled || !tabParam) return;
+    setInitialTabHandled(true);
+    if (tabParam === "scan") setScannerOpen(true);
+    else if (tabParam === "photo") setPhotoAnalyzerOpen(true);
+  }, [tabParam, initialTabHandled]);
 
   const searchFoods = useCallback(async (query: string) => {
     if (!query.trim()) { setSearchResults([]); return; }
