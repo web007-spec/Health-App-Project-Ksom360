@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Square, Lock, Pause, Play, Heart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { getActivity } from "@/components/cardio/cardioActivities";
+import { getIconComponent, DEFAULT_ACTIVITIES } from "@/components/cardio/cardioActivities";
 
 export default function ClientCardioPlayer() {
   const navigate = useNavigate();
@@ -41,8 +41,12 @@ export default function ClientCardioPlayer() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const act = getActivity(activity);
-  const ActivityIcon = act.icon;
+  // Find the activity label/icon from defaults or use the raw id
+  const defaultMatch = DEFAULT_ACTIVITIES.find(
+    (a) => a.name.toLowerCase().replace(/\s+/g, "_") === activity
+  );
+  const activityLabel = defaultMatch?.name || activity.replace(/_/g, " ");
+  const ActivityIcon = getIconComponent(defaultMatch?.icon_name || "activity");
 
   const handleStop = useCallback(async () => {
     if (isSaving) return;
@@ -56,7 +60,7 @@ export default function ClientCardioPlayer() {
           .eq("id", sessionId);
       }
       queryClient.invalidateQueries({ queryKey: ["cardio-sessions-today"] });
-      toast({ title: "Activity logged!", description: `${act.label} completed • ${formatTime(seconds)}` });
+      toast({ title: "Activity logged!", description: `${activityLabel} completed • ${formatTime(seconds)}` });
       navigate("/client/dashboard");
     } catch {
       toast({ title: "Error saving", variant: "destructive" });
@@ -77,7 +81,7 @@ export default function ClientCardioPlayer() {
         <div className="w-24 h-24 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
           <ActivityIcon className="h-12 w-12 text-emerald-500" />
         </div>
-        <h2 className="text-2xl font-bold">{act.label}</h2>
+        <h2 className="text-2xl font-bold">{activityLabel}</h2>
         <p className="text-6xl font-bold tracking-tight font-mono tabular-nums">{formatTime(seconds)}</p>
         {targetType !== "none" && targetValue && (
           <p className={`text-sm font-semibold ${targetReached ? "text-emerald-500" : "text-muted-foreground"}`}>
