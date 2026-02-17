@@ -1,7 +1,7 @@
 import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X, Plus, Pencil, Swords, Trophy, MapPin, Check } from "lucide-react";
+import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X, Plus, Pencil, Swords, Trophy, MapPin, Check, Activity } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { SportEventCompletionDialog } from "@/components/SportEventCompletionDialog";
 import { DayStripCalendar } from "@/components/DayStripCalendar";
+import { QuickCardioFlow } from "@/components/cardio/QuickCardioFlow";
 
 export default function ClientDashboard() {
   const { user } = useAuth();
@@ -375,6 +376,7 @@ export default function ClientDashboard() {
   // Sport event completion dialog state
   const [selectedSportEvent, setSelectedSportEvent] = useState<any>(null);
   const [sportCompletionOpen, setSportCompletionOpen] = useState(false);
+  const [cardioFlowOpen, setCardioFlowOpen] = useState(false);
 
   // Fetch today's sport event completions
   const { data: sportEventCompletions } = useQuery({
@@ -390,6 +392,24 @@ export default function ClientDashboard() {
     enabled: !!clientId,
   });
 
+  // Fetch today's completed cardio sessions
+  const { data: todayCardioSessions } = useQuery({
+    queryKey: ["cardio-sessions-today", clientId],
+    queryFn: async () => {
+      const today = format(new Date(), "yyyy-MM-dd");
+      const { data, error } = await supabase
+        .from("cardio_sessions" as any)
+        .select("*")
+        .eq("client_id", clientId)
+        .gte("created_at", `${today}T00:00:00`)
+        .lte("created_at", `${today}T23:59:59`)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!clientId,
+  });
+
   function formatEventTime(isoString: string): string {
     const match = isoString.match(/T(\d{2}):(\d{2})/);
     if (!match) return "";
@@ -398,6 +418,48 @@ export default function ClientDashboard() {
     const ampm = hours >= 12 ? "PM" : "AM";
     return `${displayHour}:${match[2]} ${ampm}`;
   }
+
+  const formatCardioTime = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}m ${secs.toString().padStart(2, "0")}s`;
+  };
+
+  const handleCardioStart = async (activity: string, targetType: string, targetValue?: number) => {
+    if (!clientId) return;
+    const { data, error } = await supabase
+      .from("cardio_sessions" as any)
+      .insert({
+        client_id: clientId,
+        activity_type: activity,
+        target_type: targetType,
+        target_value: targetValue || null,
+        status: "in_progress",
+        started_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+    if (error) { toast({ title: "Error", variant: "destructive" }); return; }
+    navigate(`/client/cardio-player?activity=${activity}&targetType=${targetType}&targetValue=${targetValue || ""}&sessionId=${(data as any).id}`);
+  };
+
+  const handleCardioComplete = async (activity: string, targetType: string, targetValue?: number) => {
+    if (!clientId) return;
+    await supabase
+      .from("cardio_sessions" as any)
+      .insert({
+        client_id: clientId,
+        activity_type: activity,
+        target_type: targetType,
+        target_value: targetValue || null,
+        status: "completed",
+        duration_seconds: 0,
+        started_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
+      });
+    queryClient.invalidateQueries({ queryKey: ["cardio-sessions-today"] });
+    toast({ title: "Activity logged!", description: `${activity} marked as complete` });
+  };
 
   // Today's workouts
   const todaysWorkouts = clientWorkouts?.filter((w) => {
@@ -886,7 +948,48 @@ export default function ClientDashboard() {
             </Card>
           </div>
         )}
+
+        {/* Completed Cardio Activities */}
+        {todayCardioSessions && todayCardioSessions.filter((s: any) => s.status === "completed").length > 0 && (
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Activity</h2>
+            <Card>
+              <CardContent className="p-0 divide-y divide-border">
+                {todayCardioSessions.filter((s: any) => s.status === "completed").map((session: any) => (
+                  <div key={session.id} className="flex items-center gap-3 px-4 py-3">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold capitalize">{session.activity_type.replace(/_/g, " ")}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Completed.{" "}
+                        {session.distance_miles && `📍 ${session.distance_miles} miles `}
+                        {session.duration_seconds > 0 && `⏱ ${formatCardioTime(session.duration_seconds)}`}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
+
+      {/* Cardio FAB */}
+      <button
+        onClick={() => setCardioFlowOpen(true)}
+        className="fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg flex items-center justify-center transition-colors"
+        aria-label="Quick Cardio"
+      >
+        <Activity className="h-6 w-6" />
+      </button>
+
+      <QuickCardioFlow
+        open={cardioFlowOpen}
+        onOpenChange={setCardioFlowOpen}
+        onStart={handleCardioStart}
+        onMarkComplete={handleCardioComplete}
+      />
 
       {/* Quick Edit Macros Sheet */}
       <Sheet open={macroEditOpen} onOpenChange={setMacroEditOpen}>
