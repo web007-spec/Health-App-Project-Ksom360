@@ -1011,7 +1011,7 @@ export default function ClientDashboard() {
         className="fixed bottom-20 right-4 z-30 w-12 h-12 rounded-full bg-amber-400 hover:bg-amber-500 shadow-lg flex items-center justify-center transition-colors"
         aria-label="Messages"
       >
-        <MessageCircle className="h-6 w-6 text-white" />
+        <MessageCircle className="h-5 w-5 text-white" />
       </button>
 
       <QuickCardioFlow
