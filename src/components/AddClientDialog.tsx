@@ -121,10 +121,19 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-2 text-sm font-mono">
-              <div><span className="text-muted-foreground">Login URL:</span> {window.location.origin}/auth</div>
-              <div><span className="text-muted-foreground">Email:</span> {createdCredentials.email}</div>
-              <div><span className="text-muted-foreground">Password:</span> {createdCredentials.password}</div>
+            <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-3 text-sm font-mono">
+              <div>
+                <div className="text-muted-foreground text-xs mb-1">Login URL</div>
+                <div className="select-all break-all">{window.location.origin}/auth</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground text-xs mb-1">Email</div>
+                <div className="select-all break-all">{createdCredentials.email}</div>
+              </div>
+              <div>
+                <div className="text-muted-foreground text-xs mb-1">Password</div>
+                <div className="select-all">{createdCredentials.password}</div>
+              </div>
             </div>
 
             <DialogFooter className="flex flex-col gap-2 sm:flex-col">
