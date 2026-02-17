@@ -1848,6 +1848,161 @@ export type Database = {
           },
         ]
       }
+      group_class_bookings: {
+        Row: {
+          booked_at: string
+          cancelled_at: string | null
+          client_id: string
+          id: string
+          session_id: string
+          status: string
+        }
+        Insert: {
+          booked_at?: string
+          cancelled_at?: string | null
+          client_id: string
+          id?: string
+          session_id: string
+          status?: string
+        }
+        Update: {
+          booked_at?: string
+          cancelled_at?: string | null
+          client_id?: string
+          id?: string
+          session_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_class_bookings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_class_bookings_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "group_class_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_class_sessions: {
+        Row: {
+          class_id: string
+          created_at: string
+          end_time: string
+          id: string
+          is_cancelled: boolean
+          max_capacity: number
+          notes: string | null
+          start_time: string
+          trainer_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          end_time: string
+          id?: string
+          is_cancelled?: boolean
+          max_capacity?: number
+          notes?: string | null
+          start_time: string
+          trainer_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          end_time?: string
+          id?: string
+          is_cancelled?: boolean
+          max_capacity?: number
+          notes?: string | null
+          start_time?: string
+          trainer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_class_sessions_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "group_classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_class_sessions_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_classes: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          id: string
+          is_active: boolean
+          is_recurring: boolean
+          location: string | null
+          location_type: string
+          max_capacity: number
+          name: string
+          recurrence_day: number | null
+          recurrence_time: string | null
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          is_recurring?: boolean
+          location?: string | null
+          location_type?: string
+          max_capacity?: number
+          name: string
+          recurrence_day?: number | null
+          recurrence_time?: string | null
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          is_recurring?: boolean
+          location?: string | null
+          location_type?: string
+          max_capacity?: number
+          name?: string
+          recurrence_day?: number | null
+          recurrence_time?: string | null
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_classes_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       habit_comments: {
         Row: {
           content: string | null
