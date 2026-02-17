@@ -472,6 +472,41 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
                       </Button>
                     );
                   })}
+                  {/* Custom dietary tags */}
+                  {(extractedRecipe.dietary_info || [])
+                    .filter((d: string) => !DIETARY_OPTIONS.includes(d))
+                    .map((custom: string) => (
+                      <Button
+                        key={custom}
+                        variant="default"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => {
+                          updateField(
+                            "dietary_info",
+                            (extractedRecipe.dietary_info || []).filter((d: string) => d !== custom)
+                          );
+                        }}
+                      >
+                        {custom} ×
+                      </Button>
+                    ))}
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    placeholder="Add custom dietary info..."
+                    className="h-8 text-xs"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const val = (e.target as HTMLInputElement).value.trim();
+                        if (val && !(extractedRecipe.dietary_info || []).includes(val)) {
+                          updateField("dietary_info", [...(extractedRecipe.dietary_info || []), val]);
+                          (e.target as HTMLInputElement).value = "";
+                        }
+                      }
+                    }}
+                  />
                 </div>
               </div>
 
