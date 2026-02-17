@@ -45,6 +45,7 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
   const [textInput, setTextInput] = useState("");
   const [pdfFileNames, setPdfFileNames] = useState<string[]>([]);
   const [pdfText, setPdfText] = useState("");
+  const pdfTextRef = useRef("");
   const [recipes, setRecipes] = useState<(ExtractedRecipe & { saved?: boolean })[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -64,7 +65,7 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
     setPdfFileNames(prev => [...prev, ...validFiles.map(f => f.name)]);
 
     try {
-      let allText = pdfText;
+      let allText = pdfTextRef.current;
       for (const file of validFiles) {
         const arrayBuffer = await file.arrayBuffer();
         const pdfjsLib = await import("https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs" as any);
@@ -79,6 +80,7 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
         if (allText.trim()) allText += "\n\n";
         allText += text.trim();
       }
+      pdfTextRef.current = allText;
       setPdfText(allText);
       toast.success(`Extracted text from ${validFiles.length} PDF(s)`);
     } catch {
@@ -177,6 +179,7 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
     setTextInput("");
     setPdfFileNames([]);
     setPdfText("");
+    pdfTextRef.current = "";
     setError("");
   };
 
