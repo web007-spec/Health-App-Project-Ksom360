@@ -50,7 +50,7 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
   const queryClient = useQueryClient();
   const [inputMode, setInputMode] = useState<"text" | "pdf">("text");
   const [textInput, setTextInput] = useState("");
-  const [pdfFileName, setPdfFileName] = useState("");
+  const [pdfFileNames, setPdfFileNames] = useState<string[]>([]);
   const [pdfText, setPdfText] = useState("");
   const [results, setResults] = useState<RecipeResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -58,29 +58,38 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.type !== "application/pdf") {
-      toast.error("Please upload a PDF file");
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    const validFiles = Array.from(files).filter(f => f.type === "application/pdf");
+    if (validFiles.length === 0) {
+      toast.error("Please upload PDF files");
       return;
     }
-    setPdfFileName(file.name);
+
+    setPdfFileNames(prev => [...prev, ...validFiles.map(f => f.name)]);
+    
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const pdfjsLib = await import("https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs" as any);
-      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs";
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      let text = "";
-      for (let i = 1; i <= Math.min(pdf.numPages, 50); i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        text += content.items.map((item: any) => item.str).join(" ") + "\n";
+      let allText = pdfText;
+      for (const file of validFiles) {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdfjsLib = await import("https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs" as any);
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs";
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let text = "";
+        for (let i = 1; i <= Math.min(pdf.numPages, 50); i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          text += content.items.map((item: any) => item.str).join(" ") + "\n";
+        }
+        // Separate each PDF's content with --- so they split into separate recipes
+        if (allText.trim()) allText += "\n---\n";
+        allText += text.trim();
       }
-      setPdfText(text.trim());
-      toast.success(`Extracted text from ${pdf.numPages} pages`);
+      setPdfText(allText);
+      toast.success(`Extracted text from ${validFiles.length} PDF(s)`);
     } catch {
-      toast.error("Failed to read PDF. Try pasting the text instead.");
-      setPdfFileName("");
+      toast.error("Failed to read one or more PDFs. Try pasting the text instead.");
     }
   };
 
@@ -206,7 +215,7 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
   const handleReset = () => {
     setResults([]);
     setTextInput("");
-    setPdfFileName("");
+    setPdfFileNames([]);
     setPdfText("");
   };
 
@@ -256,6 +265,7 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
                   ref={fileInputRef}
                   type="file"
                   accept=".pdf"
+                  multiple
                   onChange={handlePdfUpload}
                   className="hidden"
                 />
@@ -267,7 +277,9 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
                   <div className="flex flex-col items-center gap-1">
                     <FileUp className="h-6 w-6 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
-                      {pdfFileName || "Click to select a PDF file"}
+                      {pdfFileNames.length > 0
+                        ? `${pdfFileNames.length} file(s): ${pdfFileNames.join(", ")}`
+                        : "Click to select one or more PDF files"}
                     </span>
                   </div>
                 </Button>
