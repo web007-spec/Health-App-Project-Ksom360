@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { url, text } = await req.json();
+    const { url, text, bulk } = await req.json();
 
     if (!url && !text) {
       return new Response(
@@ -34,7 +34,6 @@ serve(async (req) => {
         });
         if (!res.ok) throw new Error(`Failed to fetch URL: ${res.status}`);
         const html = await res.text();
-        // Strip HTML tags for a rough text extraction
         content = html
           .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
           .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
@@ -45,7 +44,7 @@ serve(async (req) => {
           .replace(/&gt;/g, ">")
           .replace(/\s+/g, " ")
           .trim()
-          .slice(0, 15000); // limit context size
+          .slice(0, 15000);
       } catch (fetchErr) {
         console.error("URL fetch error:", fetchErr);
         return new Response(
@@ -60,6 +59,101 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Bulk mode: extract ALL recipes from the text at once
+    if (bulk) {
+      const systemPrompt = `You are a recipe extraction assistant. Given text content (from PDFs, webpages, or user input), identify and extract ALL individual recipes found in the text. Return each recipe using the extract_recipes tool. Estimate any missing macro values based on the ingredients. If servings is not specified, default to 1. Make sure to capture every distinct recipe in the text.`;
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `Extract ALL recipes from this content. There may be one or many recipes:\n\n${content.slice(0, 50000)}` },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "extract_recipes",
+                description: "Extract all recipes found in the text",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    recipes: {
+                      type: "array",
+                      description: "Array of all recipes found in the text",
+                      items: {
+                        type: "object",
+                        properties: {
+                          name: { type: "string", description: "Recipe name" },
+                          description: { type: "string", description: "Brief description (1-2 sentences)" },
+                          instructions: { type: "string", description: "Step-by-step cooking instructions" },
+                          ingredients: { type: "string", description: "List of ingredients with quantities, one per line" },
+                          calories: { type: "number", description: "Total calories per serving" },
+                          protein: { type: "number", description: "Protein in grams per serving" },
+                          carbs: { type: "number", description: "Carbs in grams per serving" },
+                          fats: { type: "number", description: "Fat in grams per serving" },
+                          prep_time_minutes: { type: "number", description: "Prep time in minutes" },
+                          cook_time_minutes: { type: "number", description: "Cook time in minutes" },
+                          servings: { type: "number", description: "Number of servings" },
+                          tags: {
+                            type: "array",
+                            items: { type: "string" },
+                            description: "Relevant tags like dietary style, meal type, etc.",
+                          },
+                        },
+                        required: ["name", "calories", "protein", "carbs", "fats"],
+                      },
+                    },
+                  },
+                  required: ["recipes"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          ],
+          tool_choice: { type: "function", function: { name: "extract_recipes" } },
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (response.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "AI credits exhausted. Please add credits." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        const errText = await response.text();
+        console.error("AI gateway error:", response.status, errText);
+        throw new Error("AI processing failed");
+      }
+
+      const data = await response.json();
+      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+
+      if (!toolCall?.function?.arguments) {
+        throw new Error("AI did not return recipe data");
+      }
+
+      const parsed = JSON.parse(toolCall.function.arguments);
+
+      return new Response(JSON.stringify({ success: true, recipes: parsed.recipes || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Single recipe mode (original behavior)
     const systemPrompt = `You are a recipe extraction assistant. Given text content (from a webpage, PDF, or user input), extract the recipe information and return it using the extract_recipe tool. If the text contains multiple recipes, extract only the first/main one. Estimate any missing macro values based on the ingredients. If servings is not specified, default to 1.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
