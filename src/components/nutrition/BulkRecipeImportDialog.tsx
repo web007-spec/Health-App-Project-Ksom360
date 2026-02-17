@@ -63,13 +63,22 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
       return;
     }
 
-    const newNames = [...pdfFileNamesRef.current, ...validFiles.map(f => f.name)];
+    const duplicates = validFiles.filter(f => pdfFileNamesRef.current.includes(f.name));
+    const uniqueFiles = validFiles.filter(f => !pdfFileNamesRef.current.includes(f.name));
+
+    if (duplicates.length > 0) {
+      toast.warning(`Already added: ${duplicates.map(f => f.name).join(", ")}`);
+    }
+
+    if (uniqueFiles.length === 0) return;
+
+    const newNames = [...pdfFileNamesRef.current, ...uniqueFiles.map(f => f.name)];
     pdfFileNamesRef.current = newNames;
     setPdfFileNames(newNames);
 
     try {
       let allText = pdfTextRef.current;
-      for (const file of validFiles) {
+      for (const file of uniqueFiles) {
         const arrayBuffer = await file.arrayBuffer();
         const pdfjsLib = await import("https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs" as any);
         pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs";
@@ -85,7 +94,7 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
       }
       pdfTextRef.current = allText;
       setPdfText(allText);
-      toast.success(`Extracted text from ${validFiles.length} PDF(s)`);
+      toast.success(`Extracted text from ${uniqueFiles.length} PDF(s)`);
     } catch {
       toast.error("Failed to read one or more PDFs. Try pasting the text instead.");
     }
