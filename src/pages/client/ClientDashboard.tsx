@@ -1007,7 +1007,7 @@ export default function ClientDashboard() {
 
       {/* Floating Message Button */}
       <button
-        onClick={() => navigate("/client/coaching?tab=inbox")}
+        onClick={() => navigate("/client/messages")}
         className="fixed bottom-20 right-4 z-30 w-12 h-12 rounded-full bg-amber-400 hover:bg-amber-500 shadow-lg flex items-center justify-center transition-colors"
         aria-label="Messages"
       >
