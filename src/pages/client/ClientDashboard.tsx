@@ -1,7 +1,7 @@
 import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X, Plus, Pencil, Swords, Trophy, MapPin, Check, Activity, ScanBarcode, Camera, PenLine } from "lucide-react";
+import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X, Plus, Pencil, Swords, Trophy, MapPin, Check, Activity, ScanBarcode, Camera, PenLine, MessageCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -1004,6 +1004,15 @@ export default function ClientDashboard() {
           },
         ]}
       />
+
+      {/* Floating Message Button */}
+      <button
+        onClick={() => navigate("/client/coaching?tab=inbox")}
+        className="fixed bottom-20 right-4 z-30 w-12 h-12 rounded-full bg-amber-400 hover:bg-amber-500 shadow-lg flex items-center justify-center transition-colors"
+        aria-label="Messages"
+      >
+        <MessageCircle className="h-6 w-6 text-white" />
+      </button>
 
       <QuickCardioFlow
         open={cardioFlowOpen}
