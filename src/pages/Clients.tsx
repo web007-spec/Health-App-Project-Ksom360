@@ -12,6 +12,8 @@ import { Search, MessageSquare, TrendingUp, Plus, Settings, CheckSquare, Mail, H
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { AddClientDialog } from "@/components/AddClientDialog";
+import { ClientListItem } from "@/components/ClientListItem";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { ClientStatusDialog } from "@/components/ClientStatusDialog";
 import { AssignTaskDialog } from "@/components/AssignTaskDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +30,7 @@ export default function Clients() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const isMobile = useIsMobile();
   const [addClientDialogOpen, setAddClientDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [assignTaskDialogOpen, setAssignTaskDialogOpen] = useState(false);
@@ -270,6 +273,14 @@ export default function Clients() {
                   <p className="text-muted-foreground">No clients found</p>
                 </CardContent>
               </Card>
+            ) : isMobile ? (
+              <Card>
+                <CardContent className="p-1 divide-y divide-border">
+                  {allClients.map((client) => (
+                    <ClientListItem key={client.id} client={client} />
+                  ))}
+                </CardContent>
+              </Card>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {allClients.map((client) => (
@@ -286,6 +297,14 @@ export default function Clients() {
                   <p className="text-muted-foreground">No active clients</p>
                 </CardContent>
               </Card>
+            ) : isMobile ? (
+              <Card>
+                <CardContent className="p-1 divide-y divide-border">
+                  {activeClients.map((client) => (
+                    <ClientListItem key={client.id} client={client} />
+                  ))}
+                </CardContent>
+              </Card>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {activeClients.map((client) => (
@@ -300,6 +319,14 @@ export default function Clients() {
               <Card>
                 <CardContent className="py-12 text-center">
                   <p className="text-muted-foreground">No paused clients</p>
+                </CardContent>
+              </Card>
+            ) : isMobile ? (
+              <Card>
+                <CardContent className="p-1 divide-y divide-border">
+                  {pausedClients.map((client) => (
+                    <ClientListItem key={client.id} client={client} />
+                  ))}
                 </CardContent>
               </Card>
             ) : (
