@@ -214,6 +214,57 @@ export type Database = {
           },
         ]
       }
+      cardio_sessions: {
+        Row: {
+          activity_type: string
+          calories: number | null
+          client_id: string
+          completed_at: string | null
+          created_at: string
+          distance_miles: number | null
+          duration_seconds: number | null
+          heart_rate_avg: number | null
+          id: string
+          started_at: string | null
+          status: string
+          target_type: string
+          target_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          activity_type: string
+          calories?: number | null
+          client_id: string
+          completed_at?: string | null
+          created_at?: string
+          distance_miles?: number | null
+          duration_seconds?: number | null
+          heart_rate_avg?: number | null
+          id?: string
+          started_at?: string | null
+          status?: string
+          target_type?: string
+          target_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          activity_type?: string
+          calories?: number | null
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string
+          distance_miles?: number | null
+          duration_seconds?: number | null
+          heart_rate_avg?: number | null
+          id?: string
+          started_at?: string | null
+          status?: string
+          target_type?: string
+          target_value?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       category_workouts: {
         Row: {
           category_id: string

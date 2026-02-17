@@ -63,6 +63,7 @@ import ClientCoaching from "./pages/client/ClientCoaching";
 import ClientProfile from "./pages/client/ClientProfile";
 import ClientSportsProfile from "./pages/client/ClientSportsProfile";
 import ClientBooking from "./pages/client/ClientBooking";
+import ClientCardioPlayer from "./pages/client/ClientCardioPlayer";
 import ClientAppointments from "./pages/client/ClientAppointments";
 import ClientRecipeDetail from "./pages/client/ClientRecipeDetail";
 import ClientWorkoutHistory from "./pages/ClientWorkoutHistory";
@@ -149,6 +150,7 @@ const App = () => (
           <Route path="/client/booking" element={<ProtectedRoute allowedRoles={["client"]}><ClientBooking /></ProtectedRoute>} />
           <Route path="/client/appointments" element={<ProtectedRoute allowedRoles={["client"]}><ClientAppointments /></ProtectedRoute>} />
           <Route path="/client/sports" element={<ProtectedRoute allowedRoles={["client"]}><ClientSportsProfile /></ProtectedRoute>} />
+          <Route path="/client/cardio-player" element={<ProtectedRoute allowedRoles={["client"]}><ClientCardioPlayer /></ProtectedRoute>} />
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
