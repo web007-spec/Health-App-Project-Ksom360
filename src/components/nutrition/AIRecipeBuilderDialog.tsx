@@ -36,7 +36,18 @@ interface ExtractedRecipe {
   cook_time_minutes?: number;
   servings?: number;
   tags?: string[];
+  dish_type?: string;
+  category?: string;
+  dietary_info?: string[];
 }
+
+const CATEGORIES = ["Breakfast", "Lunch", "Dinner", "Snack", "Soup", "Salad/Bowl", "Others"];
+
+const DIETARY_OPTIONS = [
+  "Dairy-Free", "Gluten-Free", "High Protein", "Keto Diet", "Low Calorie",
+  "Low Carb", "Low Sodium", "Low Sugar", "Nut-Free", "Pescatarian",
+  "Shellfish-Free", "Vegan", "Vegetarian",
+];
 
 export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDialogProps) {
   const { user } = useAuth();
@@ -114,7 +125,7 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
       if (data?.error) throw new Error(data.error);
       if (!data?.recipe) throw new Error("No recipe data returned");
 
-      setExtractedRecipe(data.recipe);
+      setExtractedRecipe({ ...data.recipe, dish_type: "Main dish", category: "", dietary_info: [] });
       toast.success("Recipe extracted successfully!");
     } catch (err: any) {
       toast.error(err.message || "Failed to extract recipe");
@@ -162,6 +173,14 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
 
       const imageUrl = await uploadImage();
 
+      // Merge all tags: original + dish_type + category + dietary_info
+      const allTags = [
+        ...(extractedRecipe.tags || []),
+        ...(extractedRecipe.dish_type ? [extractedRecipe.dish_type] : []),
+        ...(extractedRecipe.category ? [extractedRecipe.category] : []),
+        ...(extractedRecipe.dietary_info || []),
+      ];
+
       // Combine ingredients into instructions if present
       let fullInstructions = "";
       if (extractedRecipe.ingredients) {
@@ -183,7 +202,7 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
         prep_time_minutes: extractedRecipe.prep_time_minutes || null,
         cook_time_minutes: extractedRecipe.cook_time_minutes || null,
         servings: extractedRecipe.servings || 1,
-        tags: extractedRecipe.tags || [],
+        tags: allTags,
         image_url: imageUrl,
       });
 
@@ -393,6 +412,67 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
                   onChange={(e) => updateField("description", e.target.value)}
                   className="min-h-[60px]"
                 />
+              </div>
+
+              {/* Dish Type */}
+              <div>
+                <Label>Dish Type</Label>
+                <div className="flex gap-2 mt-1">
+                  {["Main dish", "Side dish"].map((type) => (
+                    <Button
+                      key={type}
+                      variant={extractedRecipe.dish_type === type ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => updateField("dish_type", type)}
+                    >
+                      {type}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Category */}
+              <div>
+                <Label>Category</Label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {CATEGORIES.map((cat) => (
+                    <Button
+                      key={cat}
+                      variant={extractedRecipe.category === cat ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => updateField("category", extractedRecipe.category === cat ? "" : cat)}
+                    >
+                      {cat}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dietary Information */}
+              <div>
+                <Label>Dietary Information</Label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {DIETARY_OPTIONS.map((diet) => {
+                    const selected = extractedRecipe.dietary_info?.includes(diet);
+                    return (
+                      <Button
+                        key={diet}
+                        variant={selected ? "default" : "outline"}
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => {
+                          const current = extractedRecipe.dietary_info || [];
+                          updateField(
+                            "dietary_info",
+                            selected ? current.filter((d: string) => d !== diet) : [...current, diet]
+                          );
+                        }}
+                      >
+                        {diet}
+                      </Button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="grid grid-cols-4 gap-2">
