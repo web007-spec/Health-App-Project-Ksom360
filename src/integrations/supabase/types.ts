@@ -214,6 +214,36 @@ export type Database = {
           },
         ]
       }
+      cardio_activity_types: {
+        Row: {
+          created_at: string
+          icon_name: string
+          id: string
+          is_default: boolean
+          name: string
+          order_index: number
+          trainer_id: string
+        }
+        Insert: {
+          created_at?: string
+          icon_name?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          order_index?: number
+          trainer_id: string
+        }
+        Update: {
+          created_at?: string
+          icon_name?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          order_index?: number
+          trainer_id?: string
+        }
+        Relationships: []
+      }
       cardio_sessions: {
         Row: {
           activity_type: string

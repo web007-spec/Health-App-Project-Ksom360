@@ -1,48 +1,68 @@
 import {
   Bike, PersonStanding, Waves, Footprints, Dumbbell, Mountain,
   Zap, Swords, Trophy, Goal, CircleDot, Activity,
-  HeartPulse, StretchHorizontal, Music, Timer,
+  HeartPulse, StretchHorizontal, Music, Timer, Flame, Wind,
+  type LucideIcon,
 } from "lucide-react";
-import { type LucideIcon } from "lucide-react";
 
 export type TargetType = "distance" | "time" | "none";
 
-export interface CardioActivity {
-  id: string;
-  label: string;
-  icon: LucideIcon;
-}
-
-export const CARDIO_ACTIVITIES: CardioActivity[] = [
-  { id: "american_football", label: "American football", icon: Trophy },
-  { id: "australian_football", label: "Australian football", icon: Trophy },
-  { id: "badminton", label: "Badminton", icon: Activity },
-  { id: "baseball", label: "Baseball", icon: CircleDot },
-  { id: "basketball", label: "Basketball", icon: Goal },
-  { id: "core_training", label: "Core training", icon: HeartPulse },
-  { id: "cricket", label: "Cricket", icon: CircleDot },
-  { id: "crossfit", label: "CrossFit", icon: Dumbbell },
-  { id: "cycling", label: "Cycling", icon: Bike },
-  { id: "dancing", label: "Dancing", icon: Music },
-  { id: "elliptical", label: "Elliptical", icon: Activity },
-  { id: "flexibility", label: "Flexibility", icon: StretchHorizontal },
-  { id: "golf", label: "Golf", icon: CircleDot },
-  { id: "hiking", label: "Hiking", icon: Mountain },
-  { id: "hiit", label: "HIIT", icon: Zap },
-  { id: "jump_rope", label: "Jump rope", icon: Timer },
-  { id: "kickboxing", label: "Kickboxing", icon: Swords },
-  { id: "pilates", label: "Pilates", icon: StretchHorizontal },
-  { id: "rowing", label: "Rowing", icon: Waves },
-  { id: "running", label: "Running", icon: Footprints },
-  { id: "soccer", label: "Soccer", icon: Goal },
-  { id: "stair_climbing", label: "Stair climbing", icon: Activity },
-  { id: "swimming", label: "Swimming", icon: Waves },
-  { id: "tennis", label: "Tennis", icon: CircleDot },
-  { id: "walking", label: "Walking", icon: PersonStanding },
-  { id: "yoga", label: "Yoga", icon: HeartPulse },
-  { id: "general", label: "General", icon: Activity },
+// All available icons a trainer can pick from when adding an activity
+export const ICON_OPTIONS: { name: string; icon: LucideIcon; label: string }[] = [
+  { name: "activity", icon: Activity, label: "Activity" },
+  { name: "bike", icon: Bike, label: "Bike" },
+  { name: "circle-dot", icon: CircleDot, label: "Ball" },
+  { name: "dumbbell", icon: Dumbbell, label: "Dumbbell" },
+  { name: "flame", icon: Flame, label: "Flame" },
+  { name: "footprints", icon: Footprints, label: "Footprints" },
+  { name: "goal", icon: Goal, label: "Goal/Net" },
+  { name: "heart-pulse", icon: HeartPulse, label: "Heart" },
+  { name: "mountain", icon: Mountain, label: "Mountain" },
+  { name: "music", icon: Music, label: "Music" },
+  { name: "person-standing", icon: PersonStanding, label: "Person" },
+  { name: "stretch-horizontal", icon: StretchHorizontal, label: "Stretch" },
+  { name: "swords", icon: Swords, label: "Combat" },
+  { name: "timer", icon: Timer, label: "Timer" },
+  { name: "trophy", icon: Trophy, label: "Trophy" },
+  { name: "waves", icon: Waves, label: "Water" },
+  { name: "wind", icon: Wind, label: "Wind" },
+  { name: "zap", icon: Zap, label: "Lightning" },
 ];
 
-export function getActivity(id: string) {
-  return CARDIO_ACTIVITIES.find((a) => a.id === id) || { id, label: id, icon: Activity };
+const iconMap: Record<string, LucideIcon> = {};
+ICON_OPTIONS.forEach((o) => { iconMap[o.name] = o.icon; });
+
+export function getIconComponent(iconName: string): LucideIcon {
+  return iconMap[iconName] || Activity;
 }
+
+// Default seed activities with best-matching icons
+export const DEFAULT_ACTIVITIES = [
+  { name: "American football", icon_name: "trophy" },
+  { name: "Australian football", icon_name: "trophy" },
+  { name: "Badminton", icon_name: "wind" },
+  { name: "Baseball", icon_name: "circle-dot" },
+  { name: "Basketball", icon_name: "circle-dot" },
+  { name: "Core training", icon_name: "heart-pulse" },
+  { name: "Cricket", icon_name: "circle-dot" },
+  { name: "CrossFit", icon_name: "dumbbell" },
+  { name: "Cycling", icon_name: "bike" },
+  { name: "Dancing", icon_name: "music" },
+  { name: "Elliptical", icon_name: "activity" },
+  { name: "Flexibility", icon_name: "stretch-horizontal" },
+  { name: "Golf", icon_name: "circle-dot" },
+  { name: "Hiking", icon_name: "mountain" },
+  { name: "HIIT", icon_name: "zap" },
+  { name: "Jump rope", icon_name: "timer" },
+  { name: "Kickboxing", icon_name: "swords" },
+  { name: "Pilates", icon_name: "stretch-horizontal" },
+  { name: "Rowing", icon_name: "waves" },
+  { name: "Running", icon_name: "footprints" },
+  { name: "Soccer", icon_name: "goal" },
+  { name: "Stair climbing", icon_name: "flame" },
+  { name: "Swimming", icon_name: "waves" },
+  { name: "Tennis", icon_name: "circle-dot" },
+  { name: "Walking", icon_name: "person-standing" },
+  { name: "Yoga", icon_name: "heart-pulse" },
+  { name: "General", icon_name: "activity" },
+];
