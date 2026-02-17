@@ -84,6 +84,8 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
     } catch {
       toast.error("Failed to read one or more PDFs. Try pasting the text instead.");
     }
+    // Reset input so the same or new files can be selected again
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleExtractAll = async () => {
