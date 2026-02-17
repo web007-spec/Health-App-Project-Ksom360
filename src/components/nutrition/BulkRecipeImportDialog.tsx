@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Save, RotateCcw, CheckCircle2, XCircle, Layers } from "lucide-react";
+import { Loader2, Sparkles, Save, RotateCcw, CheckCircle2, XCircle, Layers, FileUp, FileText } from "lucide-react";
 
 interface BulkRecipeImportDialogProps {
   open: boolean;
@@ -48,10 +48,41 @@ interface RecipeResult {
 export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportDialogProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [inputMode, setInputMode] = useState<"text" | "pdf">("text");
   const [textInput, setTextInput] = useState("");
+  const [pdfFileName, setPdfFileName] = useState("");
+  const [pdfText, setPdfText] = useState("");
   const [results, setResults] = useState<RecipeResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      toast.error("Please upload a PDF file");
+      return;
+    }
+    setPdfFileName(file.name);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdfjsLib = await import("https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs" as any);
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs";
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let text = "";
+      for (let i = 1; i <= Math.min(pdf.numPages, 50); i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map((item: any) => item.str).join(" ") + "\n";
+      }
+      setPdfText(text.trim());
+      toast.success(`Extracted text from ${pdf.numPages} pages`);
+    } catch {
+      toast.error("Failed to read PDF. Try pasting the text instead.");
+      setPdfFileName("");
+    }
+  };
 
   const splitRecipes = (text: string): string[] => {
     // Split on common dividers: ---, ===, or blank lines between recipes
@@ -63,7 +94,12 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
   };
 
   const handleExtractAll = async () => {
-    const chunks = splitRecipes(textInput);
+    const sourceText = inputMode === "pdf" ? pdfText : textInput;
+    if (!sourceText.trim()) {
+      toast.error(inputMode === "pdf" ? "Please upload a PDF first" : "No text entered");
+      return;
+    }
+    const chunks = splitRecipes(sourceText);
     if (chunks.length === 0) {
       toast.error("No recipes detected. Separate recipes with --- on its own line.");
       return;
@@ -170,6 +206,8 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
   const handleReset = () => {
     setResults([]);
     setTextInput("");
+    setPdfFileName("");
+    setPdfText("");
   };
 
   const doneCount = results.filter((r) => r.status === "done" && !r.saved).length;
@@ -185,32 +223,84 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
             Bulk Recipe Import
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Paste multiple recipes separated by <code className="bg-muted px-1 rounded">---</code> and AI will extract them all
+            Upload a PDF or paste multiple recipes separated by <code className="bg-muted px-1 rounded">---</code> and AI will extract them all
           </p>
         </DialogHeader>
 
         {results.length === 0 ? (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Paste all your recipes below</Label>
-              <Textarea
-                placeholder={`Omad Iron Bowl\n770 Calories, 49g Protein, 12g Carbs, 59g Fat\n1 avocado, hass\n1 tbsp Butter salted\n2 large eggs\n6 oz Beef ground 90% lean\nBrown ground beef thoroughly then drain grease...\n\n---\n\n4-Ingredient Chicken Parmesan\n363 Calories, 42g Protein, 8g Carbs, 18g Fat\n...`}
-                value={textInput}
-                onChange={(e) => setTextInput(e.target.value)}
-                className="min-h-[300px] text-sm font-mono"
-              />
+            {/* Mode Toggle */}
+            <div className="flex gap-2">
+              <Button
+                variant={inputMode === "text" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setInputMode("text")}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Paste Text
+              </Button>
+              <Button
+                variant={inputMode === "pdf" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setInputMode("pdf")}
+              >
+                <FileUp className="h-4 w-4 mr-2" />
+                Upload PDF
+              </Button>
             </div>
+
+            {inputMode === "pdf" ? (
+              <div className="space-y-2">
+                <Label>Upload PDF with recipes</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf"
+                  onChange={handlePdfUpload}
+                  className="hidden"
+                />
+                <Button
+                  variant="outline"
+                  className="w-full h-24 border-dashed"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <FileUp className="h-6 w-6 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {pdfFileName || "Click to select a PDF file"}
+                    </span>
+                  </div>
+                </Button>
+                {pdfText && (
+                  <p className="text-xs text-muted-foreground">
+                    ✓ {pdfText.length.toLocaleString()} characters extracted
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Paste all your recipes below</Label>
+                <Textarea
+                  placeholder={`Omad Iron Bowl\n770 Calories, 49g Protein, 12g Carbs, 59g Fat\n1 avocado, hass\n1 tbsp Butter salted\n2 large eggs\n6 oz Beef ground 90% lean\nBrown ground beef thoroughly then drain grease...\n\n---\n\n4-Ingredient Chicken Parmesan\n363 Calories, 42g Protein, 8g Carbs, 18g Fat\n...`}
+                  value={textInput}
+                  onChange={(e) => setTextInput(e.target.value)}
+                  className="min-h-[300px] text-sm font-mono"
+                />
+              </div>
+            )}
 
             <Alert>
               <Sparkles className="h-4 w-4" />
               <AlertDescription>
-                Copy each recipe's name, macros, ingredients & directions from Trainerize. Separate recipes with <strong>---</strong> on its own line.
+                {inputMode === "pdf"
+                  ? "Upload a PDF containing your recipes. Separate recipes with --- on its own line within the PDF."
+                  : "Copy each recipe's name, macros, ingredients & directions. Separate recipes with --- on its own line."}
               </AlertDescription>
             </Alert>
 
             <Button
               onClick={handleExtractAll}
-              disabled={isProcessing || !textInput.trim()}
+              disabled={isProcessing || (inputMode === "pdf" ? !pdfText.trim() : !textInput.trim())}
               className="w-full"
               size="lg"
             >
