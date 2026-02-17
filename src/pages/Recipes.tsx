@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +18,7 @@ import { AIRecipeBuilderDialog } from "@/components/nutrition/AIRecipeBuilderDia
 import { BulkRecipeImportDialog } from "@/components/nutrition/BulkRecipeImportDialog";
 
 export default function Recipes() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -100,7 +102,7 @@ export default function Recipes() {
         ) : filteredRecipes && filteredRecipes.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredRecipes.map((recipe) => (
-              <Card key={recipe.id} className="hover:border-primary transition-colors">
+              <Card key={recipe.id} className="hover:border-primary transition-colors cursor-pointer" onClick={() => navigate(`/recipes/${recipe.id}`)}>
                 <CardContent className="p-4">
                   {recipe.image_url && (
                     <img
@@ -134,7 +136,7 @@ export default function Recipes() {
                     </div>
                   )}
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                     <Button
                       size="sm"
                       variant="outline"
