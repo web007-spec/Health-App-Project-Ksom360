@@ -37,7 +37,7 @@ interface ExtractedRecipe {
   servings?: number;
   tags?: string[];
   dish_type?: string;
-  category?: string;
+  category?: string[];
   dietary_info?: string[];
 }
 
@@ -125,7 +125,7 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
       if (data?.error) throw new Error(data.error);
       if (!data?.recipe) throw new Error("No recipe data returned");
 
-      setExtractedRecipe({ ...data.recipe, dish_type: "Main dish", category: "", dietary_info: [] });
+      setExtractedRecipe({ ...data.recipe, dish_type: "Main dish", category: [], dietary_info: [] });
       toast.success("Recipe extracted successfully!");
     } catch (err: any) {
       toast.error(err.message || "Failed to extract recipe");
@@ -177,7 +177,7 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
       const allTags = [
         ...(extractedRecipe.tags || []),
         ...(extractedRecipe.dish_type ? [extractedRecipe.dish_type] : []),
-        ...(extractedRecipe.category ? [extractedRecipe.category] : []),
+        ...(extractedRecipe.category || []),
         ...(extractedRecipe.dietary_info || []),
       ];
 
@@ -435,16 +435,22 @@ export function AIRecipeBuilderDialog({ open, onOpenChange }: AIRecipeBuilderDia
               <div>
                 <Label>Category</Label>
                 <div className="flex flex-wrap gap-2 mt-1">
-                  {CATEGORIES.map((cat) => (
-                    <Button
-                      key={cat}
-                      variant={extractedRecipe.category === cat ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => updateField("category", extractedRecipe.category === cat ? "" : cat)}
-                    >
-                      {cat}
-                    </Button>
-                  ))}
+                  {CATEGORIES.map((cat) => {
+                    const selected = (extractedRecipe.category || []).includes(cat);
+                    return (
+                      <Button
+                        key={cat}
+                        variant={selected ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          const current = extractedRecipe.category || [];
+                          updateField("category", selected ? current.filter((c: string) => c !== cat) : [...current, cat]);
+                        }}
+                      >
+                        {cat}
+                      </Button>
+                    );
+                  })}
                 </div>
               </div>
 
