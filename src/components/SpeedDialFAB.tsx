@@ -50,12 +50,12 @@ export function SpeedDialFAB({ items }: SpeedDialFABProps) {
       )}
 
       {/* Menu items */}
-      <div className="fixed bottom-36 right-4 z-50 flex flex-col-reverse items-end gap-3">
+      <div className="fixed bottom-[calc(5rem+3.5rem+0.75rem)] right-4 z-50 flex flex-col-reverse items-end gap-3">
         {/* FAB Button */}
         <button
           onClick={() => (open ? handleClose() : setOpen(true))}
           className={cn(
-            "w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-200",
+            "w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-200",
             open
               ? "bg-muted-foreground text-background rotate-0"
               : "bg-primary text-primary-foreground"
