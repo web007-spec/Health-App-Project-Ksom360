@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Square, Lock, Pause, Play, Heart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { getActivity } from "@/components/cardio/cardioActivities";
 
 export default function ClientCardioPlayer() {
   const navigate = useNavigate();
@@ -25,115 +26,65 @@ export default function ClientCardioPlayer() {
   const [isSaving, setIsSaving] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Timer
   useEffect(() => {
     if (!isPaused) {
-      intervalRef.current = setInterval(() => {
-        setSeconds((s) => s + 1);
-      }, 1000);
+      intervalRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
     }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isPaused]);
 
   const formatTime = (totalSeconds: number) => {
     const hrs = Math.floor(totalSeconds / 3600);
     const mins = Math.floor((totalSeconds % 3600) / 60);
     const secs = totalSeconds % 60;
-    if (hrs > 0) {
-      return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-    }
+    if (hrs > 0) return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
+
+  const act = getActivity(activity);
+  const ActivityIcon = act.icon;
 
   const handleStop = useCallback(async () => {
     if (isSaving) return;
     setIsSaving(true);
     if (intervalRef.current) clearInterval(intervalRef.current);
-
     try {
       if (sessionId) {
         await supabase
           .from("cardio_sessions" as any)
-          .update({
-            status: "completed",
-            duration_seconds: seconds,
-            completed_at: new Date().toISOString(),
-          })
+          .update({ status: "completed", duration_seconds: seconds, completed_at: new Date().toISOString() })
           .eq("id", sessionId);
       }
-
       queryClient.invalidateQueries({ queryKey: ["cardio-sessions-today"] });
-      toast({ title: "Activity logged!", description: `${activityLabel} completed • ${formatTime(seconds)}` });
+      toast({ title: "Activity logged!", description: `${act.label} completed • ${formatTime(seconds)}` });
       navigate("/client/dashboard");
-    } catch (err) {
+    } catch {
       toast({ title: "Error saving", variant: "destructive" });
       setIsSaving(false);
     }
   }, [sessionId, seconds, isSaving]);
 
-  const ACTIVITY_MAP: Record<string, { label: string; emoji: string }> = {
-    running: { label: "Running", emoji: "🏃" },
-    walking: { label: "Walking", emoji: "🚶" },
-    cycling: { label: "Cycling", emoji: "🚴" },
-    rowing: { label: "Rowing", emoji: "🚣" },
-    elliptical: { label: "Elliptical", emoji: "🏋️" },
-    stair_climbing: { label: "Stair climbing", emoji: "🪜" },
-    swimming: { label: "Swimming", emoji: "🏊" },
-    hiking: { label: "Hiking", emoji: "🥾" },
-    jump_rope: { label: "Jump rope", emoji: "🤸" },
-    dancing: { label: "Dancing", emoji: "💃" },
-    yoga: { label: "Yoga", emoji: "🧘" },
-    pilates: { label: "Pilates", emoji: "🤸‍♀️" },
-    hiit: { label: "HIIT", emoji: "⚡" },
-    crossfit: { label: "CrossFit", emoji: "🏋️‍♂️" },
-    flexibility: { label: "Flexibility", emoji: "🧘‍♂️" },
-    kickboxing: { label: "Kickboxing", emoji: "🥊" },
-    tennis: { label: "Tennis", emoji: "🎾" },
-    basketball: { label: "Basketball", emoji: "🏀" },
-    soccer: { label: "Soccer", emoji: "⚽" },
-    golf: { label: "Golf", emoji: "⛳" },
-    general: { label: "General", emoji: "🏃‍♂️" },
-  };
-
-  const activityLabel = ACTIVITY_MAP[activity]?.label || activity;
-  const activityEmoji = ACTIVITY_MAP[activity]?.emoji || "🏃";
-
-  // Target progress
   const targetMins = targetType === "time" && targetValue ? parseFloat(targetValue) : null;
   const currentMins = seconds / 60;
   const targetReached = targetMins ? currentMins >= targetMins : false;
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-background">
-      {/* Header */}
       <div className="text-center pt-8 pb-2">
         <p className="text-sm text-muted-foreground font-medium">Today</p>
       </div>
-
-      {/* Main content */}
       <div className="flex-1 flex flex-col items-center justify-center gap-6 px-6">
         <div className="w-24 h-24 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
-          <span className="text-5xl">{activityEmoji}</span>
+          <ActivityIcon className="h-12 w-12 text-emerald-500" />
         </div>
-        <h2 className="text-2xl font-bold">{activityLabel}</h2>
-
-        {/* Timer */}
-        <p className="text-6xl font-bold tracking-tight font-mono tabular-nums">
-          {formatTime(seconds)}
-        </p>
-
-        {/* Target info */}
+        <h2 className="text-2xl font-bold">{act.label}</h2>
+        <p className="text-6xl font-bold tracking-tight font-mono tabular-nums">{formatTime(seconds)}</p>
         {targetType !== "none" && targetValue && (
           <p className={`text-sm font-semibold ${targetReached ? "text-emerald-500" : "text-muted-foreground"}`}>
-            Target: {targetValue} {targetType === "distance" ? "miles" : "min"}
-            {targetReached && " ✓"}
+            Target: {targetValue} {targetType === "distance" ? "miles" : "min"}{targetReached && " ✓"}
           </p>
         )}
       </div>
-
-      {/* Bottom bar */}
       <div className="bg-card border-t border-border">
         <div className="flex items-center justify-between px-6 py-3">
           <div className="text-center">
@@ -146,30 +97,13 @@ export default function ClientCardioPlayer() {
           </div>
         </div>
         <div className="flex items-center justify-around pb-8 pt-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-14 w-14 rounded-full"
-            onClick={handleStop}
-            disabled={isLocked || isSaving}
-          >
+          <Button variant="outline" size="icon" className="h-14 w-14 rounded-full" onClick={handleStop} disabled={isLocked || isSaving}>
             <Square className="h-5 w-5" />
           </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className={`h-14 w-14 rounded-full ${isLocked ? "bg-primary text-primary-foreground" : ""}`}
-            onClick={() => setIsLocked(!isLocked)}
-          >
+          <Button variant="outline" size="icon" className={`h-14 w-14 rounded-full ${isLocked ? "bg-primary text-primary-foreground" : ""}`} onClick={() => setIsLocked(!isLocked)}>
             <Lock className="h-5 w-5" />
           </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-14 w-14 rounded-full"
-            onClick={() => setIsPaused(!isPaused)}
-            disabled={isLocked}
-          >
+          <Button variant="outline" size="icon" className="h-14 w-14 rounded-full" onClick={() => setIsPaused(!isPaused)} disabled={isLocked}>
             {isPaused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
           </Button>
         </div>

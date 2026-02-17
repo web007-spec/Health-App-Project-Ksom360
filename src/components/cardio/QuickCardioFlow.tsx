@@ -2,34 +2,8 @@ import { useState } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-const CARDIO_ACTIVITIES = [
-  { id: "running", label: "Running", emoji: "🏃" },
-  { id: "walking", label: "Walking", emoji: "🚶" },
-  { id: "cycling", label: "Cycling", emoji: "🚴" },
-  { id: "rowing", label: "Rowing", emoji: "🚣" },
-  { id: "elliptical", label: "Elliptical", emoji: "🏋️" },
-  { id: "stair_climbing", label: "Stair climbing", emoji: "🪜" },
-  { id: "swimming", label: "Swimming", emoji: "🏊" },
-  { id: "hiking", label: "Hiking", emoji: "🥾" },
-  { id: "jump_rope", label: "Jump rope", emoji: "🤸" },
-  { id: "dancing", label: "Dancing", emoji: "💃" },
-  { id: "yoga", label: "Yoga", emoji: "🧘" },
-  { id: "pilates", label: "Pilates", emoji: "🤸‍♀️" },
-  { id: "hiit", label: "HIIT", emoji: "⚡" },
-  { id: "crossfit", label: "CrossFit", emoji: "🏋️‍♂️" },
-  { id: "flexibility", label: "Flexibility", emoji: "🧘‍♂️" },
-  { id: "kickboxing", label: "Kickboxing", emoji: "🥊" },
-  { id: "tennis", label: "Tennis", emoji: "🎾" },
-  { id: "basketball", label: "Basketball", emoji: "🏀" },
-  { id: "soccer", label: "Soccer", emoji: "⚽" },
-  { id: "golf", label: "Golf", emoji: "⛳" },
-  { id: "general", label: "General", emoji: "🏃‍♂️" },
-];
-
-type TargetType = "distance" | "time" | "none";
+import { ChevronLeft, ChevronRight, MoreVertical } from "lucide-react";
+import { CARDIO_ACTIVITIES, getActivity, type TargetType } from "./cardioActivities";
 
 interface QuickCardioFlowProps {
   open: boolean;
@@ -59,18 +33,12 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
 
   const handleSelectTarget = (type: TargetType) => {
     setTargetType(type);
-    if (type === "distance") {
-      setStep("distance");
-    } else if (type === "time") {
-      setStep("time");
-    } else {
-      setStep("detail");
-    }
+    if (type === "distance") setStep("distance");
+    else if (type === "time") setStep("time");
+    else setStep("detail");
   };
 
-  const handleConfirmTarget = () => {
-    setStep("detail");
-  };
+  const handleConfirmTarget = () => setStep("detail");
 
   const handleStart = () => {
     const val = targetValue ? parseFloat(targetValue) : undefined;
@@ -94,8 +62,8 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
     }
   };
 
-  const activityLabel = CARDIO_ACTIVITIES.find(a => a.id === selectedActivity)?.label || selectedActivity;
-  const activityEmoji = CARDIO_ACTIVITIES.find(a => a.id === selectedActivity)?.emoji || "🏃";
+  const activity = getActivity(selectedActivity);
+  const ActivityIcon = activity.icon;
 
   return (
     <Sheet open={open} onOpenChange={(v) => { if (!v) resetAndClose(); }}>
@@ -103,48 +71,52 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
         {/* Header */}
         <div className="flex items-center gap-3 p-4 border-b border-border">
           {step !== "pick" && (
-            <button onClick={goBack} className="p-1">
-              <ChevronLeft className="h-5 w-5" />
-            </button>
+            <button onClick={goBack} className="p-1"><ChevronLeft className="h-5 w-5" /></button>
           )}
           <h2 className="text-lg font-bold flex-1">
             {step === "pick" && "Quick Cardio"}
             {step === "target" && "Set Target"}
             {step === "distance" && "Distance"}
             {step === "time" && "Time"}
-            {step === "detail" && activityLabel}
+            {step === "detail" && activity.label}
           </h2>
         </div>
 
         {/* Step: Pick Activity */}
         {step === "pick" && (
           <div className="p-4 space-y-2 pb-8">
-            {CARDIO_ACTIVITIES.map((activity) => (
-              <button
-                key={activity.id}
-                onClick={() => handleSelectActivity(activity.id)}
-                className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-emerald-500/90 hover:bg-emerald-500 text-white transition-colors"
-              >
-                <span className="text-2xl w-10 text-center">{activity.emoji}</span>
-                <span className="text-sm font-semibold flex-1 text-left">{activity.label}</span>
-                <ChevronRight className="h-4 w-4 opacity-60" />
-              </button>
-            ))}
+            {CARDIO_ACTIVITIES.map((act) => {
+              const Icon = act.icon;
+              return (
+                <button
+                  key={act.id}
+                  onClick={() => handleSelectActivity(act.id)}
+                  className="w-full flex items-center gap-0 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white transition-colors overflow-hidden"
+                >
+                  <div className="flex items-center justify-center w-16 h-14 bg-emerald-600/50">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <div className="h-14 w-px bg-emerald-400/40" />
+                  <div className="flex items-center justify-center w-10 h-14">
+                    <MoreVertical className="h-4 w-4 opacity-70" />
+                  </div>
+                  <span className="text-sm font-semibold flex-1 text-left pl-2">{act.label}</span>
+                </button>
+              );
+            })}
           </div>
         )}
 
         {/* Step: Choose Target Type */}
         {step === "target" && (
           <div className="p-6 space-y-4 pb-8">
-            <p className="text-center text-base font-semibold text-foreground">
-              Set a target for this cardio activity?
-            </p>
+            <p className="text-center text-base font-semibold text-foreground">Set a target for this cardio activity?</p>
             <div className="space-y-3">
-              {[
+              {([
                 { type: "distance" as TargetType, label: "Distance" },
                 { type: "time" as TargetType, label: "Time" },
                 { type: "none" as TargetType, label: "None" },
-              ].map((opt) => (
+              ]).map((opt) => (
                 <button
                   key={opt.type}
                   onClick={() => handleSelectTarget(opt.type)}
@@ -163,20 +135,10 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
           <div className="p-6 space-y-6 pb-8">
             <p className="text-center text-2xl font-bold">Distance</p>
             <div className="flex flex-col items-center gap-2">
-              <Input
-                type="number"
-                inputMode="decimal"
-                value={targetValue}
-                onChange={(e) => setTargetValue(e.target.value)}
-                className="text-center text-3xl font-bold h-20 w-48 border-2"
-                placeholder="0"
-                autoFocus
-              />
+              <Input type="number" inputMode="decimal" value={targetValue} onChange={(e) => setTargetValue(e.target.value)} className="text-center text-3xl font-bold h-20 w-48 border-2" placeholder="0" autoFocus />
               <span className="text-sm text-muted-foreground font-medium">Miles</span>
             </div>
-            <Button className="w-full h-12 text-base font-semibold" onClick={handleConfirmTarget} disabled={!targetValue}>
-              Continue
-            </Button>
+            <Button className="w-full h-12 text-base font-semibold" onClick={handleConfirmTarget} disabled={!targetValue}>Continue</Button>
           </div>
         )}
 
@@ -185,20 +147,10 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
           <div className="p-6 space-y-6 pb-8">
             <p className="text-center text-2xl font-bold">Time</p>
             <div className="flex flex-col items-center gap-2">
-              <Input
-                type="number"
-                inputMode="numeric"
-                value={targetValue}
-                onChange={(e) => setTargetValue(e.target.value)}
-                className="text-center text-3xl font-bold h-20 w-48 border-2"
-                placeholder="0"
-                autoFocus
-              />
+              <Input type="number" inputMode="numeric" value={targetValue} onChange={(e) => setTargetValue(e.target.value)} className="text-center text-3xl font-bold h-20 w-48 border-2" placeholder="0" autoFocus />
               <span className="text-sm text-muted-foreground font-medium">Minutes</span>
             </div>
-            <Button className="w-full h-12 text-base font-semibold" onClick={handleConfirmTarget} disabled={!targetValue}>
-              Continue
-            </Button>
+            <Button className="w-full h-12 text-base font-semibold" onClick={handleConfirmTarget} disabled={!targetValue}>Continue</Button>
           </div>
         )}
 
@@ -207,9 +159,9 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
           <div className="p-6 flex flex-col items-center gap-6 pb-8 min-h-[400px]">
             <div className="flex-1 flex flex-col items-center justify-center gap-4">
               <div className="w-24 h-24 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
-                <span className="text-5xl">{activityEmoji}</span>
+                <ActivityIcon className="h-12 w-12 text-emerald-500" />
               </div>
-              <h3 className="text-2xl font-bold">{activityLabel}</h3>
+              <h3 className="text-2xl font-bold">{activity.label}</h3>
               <p className="text-sm text-muted-foreground">Scheduled</p>
               {targetType !== "none" && targetValue && (
                 <p className="text-sm text-primary font-semibold">
@@ -218,18 +170,8 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
               )}
             </div>
             <div className="w-full space-y-3">
-              <button
-                onClick={handleMarkComplete}
-                className="w-full text-center text-primary font-semibold text-sm py-2"
-              >
-                Mark as Complete
-              </button>
-              <Button
-                className="w-full h-12 text-base font-bold bg-amber-500 hover:bg-amber-600 text-white"
-                onClick={handleStart}
-              >
-                Start Now
-              </Button>
+              <button onClick={handleMarkComplete} className="w-full text-center text-primary font-semibold text-sm py-2">Mark as Complete</button>
+              <Button className="w-full h-12 text-base font-bold bg-amber-500 hover:bg-amber-600 text-white" onClick={handleStart}>Start Now</Button>
             </div>
           </div>
         )}
