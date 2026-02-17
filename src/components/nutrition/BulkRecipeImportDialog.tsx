@@ -44,6 +44,7 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
   const [inputMode, setInputMode] = useState<"text" | "pdf">("text");
   const [textInput, setTextInput] = useState("");
   const [pdfFileNames, setPdfFileNames] = useState<string[]>([]);
+  const pdfFileNamesRef = useRef<string[]>([]);
   const [pdfText, setPdfText] = useState("");
   const pdfTextRef = useRef("");
   const [recipes, setRecipes] = useState<(ExtractedRecipe & { saved?: boolean })[]>([]);
@@ -62,7 +63,9 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
       return;
     }
 
-    setPdfFileNames(prev => [...prev, ...validFiles.map(f => f.name)]);
+    const newNames = [...pdfFileNamesRef.current, ...validFiles.map(f => f.name)];
+    pdfFileNamesRef.current = newNames;
+    setPdfFileNames(newNames);
 
     try {
       let allText = pdfTextRef.current;
@@ -178,6 +181,7 @@ export function BulkRecipeImportDialog({ open, onOpenChange }: BulkRecipeImportD
     setRecipes([]);
     setTextInput("");
     setPdfFileNames([]);
+    pdfFileNamesRef.current = [];
     setPdfText("");
     pdfTextRef.current = "";
     setError("");
