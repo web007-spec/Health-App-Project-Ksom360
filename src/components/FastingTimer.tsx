@@ -21,6 +21,7 @@ interface FastingTimerProps {
   fastStartAt: string;
   targetHours: number;
   now: Date;
+  demoProgress?: number; // 0-1 override for demo mode
 }
 
 // Helper: create an SVG arc path for a segment of a circle
@@ -36,14 +37,15 @@ function describeArc(cx: number, cy: number, r: number, startDeg: number, endDeg
   return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
 }
 
-export function FastingTimer({ fastStartAt, targetHours, now }: FastingTimerProps) {
+export function FastingTimer({ fastStartAt, targetHours, now, demoProgress }: FastingTimerProps) {
   const fastStart = new Date(fastStartAt);
   const fastEnd = new Date(fastStart.getTime() + targetHours * 3600000);
   const elapsed = now.getTime() - fastStart.getTime();
   const total = fastEnd.getTime() - fastStart.getTime();
-  const progress = Math.min(Math.max(elapsed / total, 0), 1);
-  const elapsedHours = elapsed / 3600000;
-  const remainingMs = Math.max(fastEnd.getTime() - now.getTime(), 0);
+  const realProgress = Math.min(Math.max(elapsed / total, 0), 1);
+  const progress = demoProgress !== undefined ? demoProgress : realProgress;
+  const elapsedHours = progress * targetHours;
+  const remainingMs = Math.max(total * (1 - progress), 0);
   const remainH = Math.floor(remainingMs / 3600000);
   const remainM = Math.floor((remainingMs % 3600000) / 60000);
   const remainS = Math.floor((remainingMs % 60000) / 1000);
