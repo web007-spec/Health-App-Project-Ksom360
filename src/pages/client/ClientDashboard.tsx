@@ -867,205 +867,6 @@ export default function ClientDashboard() {
           </Card>
         )}
 
-        {/* Today's Workouts & Sport Events */}
-        {settings.training_enabled && (
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-              {isRestDay ? "Today" : hasSportEvents && todaysWorkouts.length === 0 ? "Today's Schedule" : `Today's Workout${hasMultiple ? "s" : ""}`}
-            </h2>
-            {isRestDay ? (
-              <Card className="overflow-hidden">
-                {restDayCard?.image_url ? (
-                  <div className="relative h-56">
-                    <img src={restDayCard.image_url} alt="Rest day" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Rest Day</p>
-                      <p className="text-base font-bold text-white">
-                        {restDayCard?.message || "No workouts scheduled for today. Enjoy your rest!"}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <CardContent className="p-6 text-center">
-                    <Dumbbell className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
-                    <p className="text-lg font-semibold">Rest Day</p>
-                    <p className="text-sm text-muted-foreground">
-                      {restDayCard?.message || "No workouts scheduled for today. Enjoy your rest!"}
-                    </p>
-                  </CardContent>
-                )}
-              </Card>
-            ) : (
-              <div>
-                <div ref={scrollRef} className={hasMultiple ? "flex overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-hide" : ""}>
-                  {/* Workout cards */}
-                  {todaysWorkouts.map((workout) => (
-                    <Card
-                      key={workout.id}
-                      className={`overflow-hidden cursor-pointer hover:shadow-md transition-all duration-300 shrink-0 snap-center ${hasMultiple ? "w-full min-w-full" : "w-full"}`}
-                      onClick={() => navigate(`/client/workouts/${workout.workout_plan_id}`)}
-                    >
-                      <div className="relative h-56 bg-gradient-to-br from-primary/20 to-primary/5">
-                        {workout.workout_plan?.image_url ? (
-                          <img src={workout.workout_plan.image_url} alt={workout.workout_plan.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Dumbbell className="h-16 w-16 text-primary/20" />
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                        <div className="absolute bottom-0 left-0 right-0 p-4">
-                          <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Today's Workout</p>
-                          <p className="text-lg font-bold text-white">{workout.workout_plan?.name}</p>
-                        </div>
-                      </div>
-                      <CardContent className="p-3">
-                        <Button className="w-full" size="lg" variant="outline" onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/client/workouts/${workout.workout_plan_id}`);
-                        }}>
-                          View Workout
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-
-                  {/* Sport event cards */}
-                  {todaySportEvents?.map((event: any) => {
-                    const isGame = event.event_type === "game" || event.event_type === "event";
-                    const customCard = isGame ? gameCard : practiceCard;
-                    const EventIcon = isGame ? Swords : Trophy;
-                    const gradientFrom = isGame ? "from-rose-500/20" : "from-sky-500/20";
-                    const gradientTo = isGame ? "to-rose-500/5" : "to-sky-500/5";
-                    const iconColor = isGame ? "text-rose-400/30" : "text-sky-400/30";
-                    const label = isGame ? "Game Day" : "Practice";
-                    const startTime = formatEventTime(event.start_time);
-                    const endTime = event.end_time ? formatEventTime(event.end_time) : null;
-                    const timeDisplay = endTime && endTime !== startTime ? `${startTime} - ${endTime}` : startTime;
-                    const completion = sportEventCompletions?.find((c: any) => c.sport_event_id === event.id);
-                    const isEventCompleted = !!completion;
-
-                    return (
-                      <Card
-                        key={event.id}
-                        className={`overflow-hidden shrink-0 snap-center cursor-pointer hover:shadow-md transition-all ${hasMultiple ? "w-full min-w-full" : "w-full"} ${isEventCompleted ? "opacity-75" : ""}`}
-                        onClick={() => {
-                          if (!isEventCompleted) {
-                            setSelectedSportEvent(event);
-                            setSportCompletionOpen(true);
-                          }
-                        }}
-                      >
-                        <div className={`relative h-56 bg-gradient-to-br ${gradientFrom} ${gradientTo}`}>
-                          {customCard?.image_url ? (
-                            <img src={customCard.image_url} alt={label} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <EventIcon className={`h-16 w-16 ${iconColor}`} />
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                          {isEventCompleted && (
-                            <div className="absolute top-3 right-3">
-                              <div className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
-                                completion.status === 'completed' ? 'bg-emerald-500 text-white' :
-                                completion.status === 'incomplete' ? 'bg-amber-500 text-white' :
-                                'bg-destructive text-white'
-                              }`}>
-                                <Check className="h-3 w-3" />
-                                {completion.status === 'completed' ? 'Done' : completion.status === 'incomplete' ? 'Partial' : 'Missed'}
-                              </div>
-                            </div>
-                          )}
-                          <div className="absolute bottom-0 left-0 right-0 p-4">
-                            <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">{label}</p>
-                            <p className="text-lg font-bold text-white">{event.title}</p>
-                            <div className="flex items-center gap-3 mt-1">
-                              <p className="text-sm text-white/80">{timeDisplay}</p>
-                              {event.location && (
-                                <p className="text-sm text-white/80 flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {event.location}
-                                </p>
-                              )}
-                            </div>
-                            {customCard?.message && (
-                              <p className="text-xs text-white/70 mt-1">{customCard.message}</p>
-                            )}
-                          </div>
-                        </div>
-                        {!isEventCompleted && (
-                          <CardContent className="p-3">
-                            <Button className="w-full" size="lg" variant="outline" onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedSportEvent(event);
-                              setSportCompletionOpen(true);
-                            }}>
-                              Log {isGame ? "Game" : "Practice"}
-                            </Button>
-                          </CardContent>
-                        )}
-                      </Card>
-                    );
-                  })}
-                </div>
-                {hasMultiple && (
-                  <div className="flex justify-center gap-1.5 mt-3">
-                    {Array.from({ length: totalCards }).map((_, i) => (
-                      <button
-                        key={i}
-                        className={`h-2 rounded-full transition-all duration-300 ${i === activeIndex ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30"}`}
-                        onClick={() => {
-                          scrollRef.current?.scrollTo({ left: i * (scrollRef.current?.clientWidth || 0), behavior: "smooth" });
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Tasks - only if tasks enabled */}
-        {settings.tasks_enabled && tasks && tasks.length > 0 && (
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-              Tasks ({completedTaskCount}/{totalTaskCount})
-            </h2>
-            <Card>
-              <CardContent className="p-0 divide-y divide-border">
-                {tasks.slice(0, 5).map((task) => {
-                  const isCompleted = !!task.completed_at;
-                  return (
-                    <div
-                      key={task.id}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
-                      onClick={() => { if (!isCompleted) completeMutation.mutate(task.id); }}
-                    >
-                      {isCompleted ? (
-                        <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                      ) : (
-                        <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
-                      )}
-                      <span className={`text-sm flex-1 ${isCompleted ? "line-through text-muted-foreground" : "font-medium"}`}>
-                        {task.name}
-                      </span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-            {tasks.length > 5 && (
-              <Button variant="ghost" size="sm" className="w-full mt-1 text-xs" onClick={() => navigate("/client/tasks")}>
-                View all tasks
-              </Button>
-            )}
-          </div>
-        )}
-
         {/* Habits - only if tasks enabled */}
         {settings.tasks_enabled && habits && habits.length > 0 && (
           <div>
@@ -1100,10 +901,7 @@ export default function ClientDashboard() {
           </div>
         )}
 
-        {/* Latest Game Stats Card */}
-        <LatestGameStatsCard clientId={clientId} navigate={navigate} />
-
-
+        {/* Nutrition (Macros card) */}
         {settings.macros_enabled && !macroTargets && (
           <div>
             <Card className="overflow-hidden cursor-pointer hover:shadow-sm transition-shadow" onClick={() => navigate("/client/macro-setup")}>
@@ -1308,6 +1106,208 @@ export default function ClientDashboard() {
             </Card>
           </div>
         )}
+
+        {/* Today's Workouts & Sport Events */}
+        {settings.training_enabled && (
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+              {isRestDay ? "Today" : hasSportEvents && todaysWorkouts.length === 0 ? "Today's Schedule" : `Today's Workout${hasMultiple ? "s" : ""}`}
+            </h2>
+            {isRestDay ? (
+              <Card className="overflow-hidden">
+                {restDayCard?.image_url ? (
+                  <div className="relative h-56">
+                    <img src={restDayCard.image_url} alt="Rest day" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Rest Day</p>
+                      <p className="text-base font-bold text-white">
+                        {restDayCard?.message || "No workouts scheduled for today. Enjoy your rest!"}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <CardContent className="p-6 text-center">
+                    <Dumbbell className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-lg font-semibold">Rest Day</p>
+                    <p className="text-sm text-muted-foreground">
+                      {restDayCard?.message || "No workouts scheduled for today. Enjoy your rest!"}
+                    </p>
+                  </CardContent>
+                )}
+              </Card>
+            ) : (
+              <div>
+                <div ref={scrollRef} className={hasMultiple ? "flex overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-hide" : ""}>
+                  {/* Workout cards */}
+                  {todaysWorkouts.map((workout) => (
+                    <Card
+                      key={workout.id}
+                      className={`overflow-hidden cursor-pointer hover:shadow-md transition-all duration-300 shrink-0 snap-center ${hasMultiple ? "w-full min-w-full" : "w-full"}`}
+                      onClick={() => navigate(`/client/workouts/${workout.workout_plan_id}`)}
+                    >
+                      <div className="relative h-56 bg-gradient-to-br from-primary/20 to-primary/5">
+                        {workout.workout_plan?.image_url ? (
+                          <img src={workout.workout_plan.image_url} alt={workout.workout_plan.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Dumbbell className="h-16 w-16 text-primary/20" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                          <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Today's Workout</p>
+                          <p className="text-lg font-bold text-white">{workout.workout_plan?.name}</p>
+                        </div>
+                      </div>
+                      <CardContent className="p-3">
+                        <Button className="w-full" size="lg" variant="outline" onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/client/workouts/${workout.workout_plan_id}`);
+                        }}>
+                          View Workout
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  {/* Sport event cards */}
+                  {todaySportEvents?.map((event: any) => {
+                    const isGame = event.event_type === "game" || event.event_type === "event";
+                    const customCard = isGame ? gameCard : practiceCard;
+                    const EventIcon = isGame ? Swords : Trophy;
+                    const gradientFrom = isGame ? "from-rose-500/20" : "from-sky-500/20";
+                    const gradientTo = isGame ? "to-rose-500/5" : "to-sky-500/5";
+                    const iconColor = isGame ? "text-rose-400/30" : "text-sky-400/30";
+                    const label = isGame ? "Game Day" : "Practice";
+                    const startTime = formatEventTime(event.start_time);
+                    const endTime = event.end_time ? formatEventTime(event.end_time) : null;
+                    const timeDisplay = endTime && endTime !== startTime ? `${startTime} - ${endTime}` : startTime;
+                    const completion = sportEventCompletions?.find((c: any) => c.sport_event_id === event.id);
+                    const isEventCompleted = !!completion;
+
+                    return (
+                      <Card
+                        key={event.id}
+                        className={`overflow-hidden shrink-0 snap-center cursor-pointer hover:shadow-md transition-all ${hasMultiple ? "w-full min-w-full" : "w-full"} ${isEventCompleted ? "opacity-75" : ""}`}
+                        onClick={() => {
+                          if (!isEventCompleted) {
+                            setSelectedSportEvent(event);
+                            setSportCompletionOpen(true);
+                          }
+                        }}
+                      >
+                        <div className={`relative h-56 bg-gradient-to-br ${gradientFrom} ${gradientTo}`}>
+                          {customCard?.image_url ? (
+                            <img src={customCard.image_url} alt={label} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <EventIcon className={`h-16 w-16 ${iconColor}`} />
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                          {isEventCompleted && (
+                            <div className="absolute top-3 right-3">
+                              <div className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
+                                completion.status === 'completed' ? 'bg-emerald-500 text-white' :
+                                completion.status === 'incomplete' ? 'bg-amber-500 text-white' :
+                                'bg-destructive text-white'
+                              }`}>
+                                <Check className="h-3 w-3" />
+                                {completion.status === 'completed' ? 'Done' : completion.status === 'incomplete' ? 'Partial' : 'Missed'}
+                              </div>
+                            </div>
+                          )}
+                          <div className="absolute bottom-0 left-0 right-0 p-4">
+                            <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">{label}</p>
+                            <p className="text-lg font-bold text-white">{event.title}</p>
+                            <div className="flex items-center gap-3 mt-1">
+                              <p className="text-sm text-white/80">{timeDisplay}</p>
+                              {event.location && (
+                                <p className="text-sm text-white/80 flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {event.location}
+                                </p>
+                              )}
+                            </div>
+                            {customCard?.message && (
+                              <p className="text-xs text-white/70 mt-1">{customCard.message}</p>
+                            )}
+                          </div>
+                        </div>
+                        {!isEventCompleted && (
+                          <CardContent className="p-3">
+                            <Button className="w-full" size="lg" variant="outline" onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedSportEvent(event);
+                              setSportCompletionOpen(true);
+                            }}>
+                              Log {isGame ? "Game" : "Practice"}
+                            </Button>
+                          </CardContent>
+                        )}
+                      </Card>
+                    );
+                  })}
+                </div>
+                {hasMultiple && (
+                  <div className="flex justify-center gap-1.5 mt-3">
+                    {Array.from({ length: totalCards }).map((_, i) => (
+                      <button
+                        key={i}
+                        className={`h-2 rounded-full transition-all duration-300 ${i === activeIndex ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30"}`}
+                        onClick={() => {
+                          scrollRef.current?.scrollTo({ left: i * (scrollRef.current?.clientWidth || 0), behavior: "smooth" });
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tasks - only if tasks enabled */}
+        {settings.tasks_enabled && tasks && tasks.length > 0 && (
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+              Tasks ({completedTaskCount}/{totalTaskCount})
+            </h2>
+            <Card>
+              <CardContent className="p-0 divide-y divide-border">
+                {tasks.slice(0, 5).map((task) => {
+                  const isCompleted = !!task.completed_at;
+                  return (
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={() => { if (!isCompleted) completeMutation.mutate(task.id); }}
+                    >
+                      {isCompleted ? (
+                        <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                      ) : (
+                        <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
+                      )}
+                      <span className={`text-sm flex-1 ${isCompleted ? "line-through text-muted-foreground" : "font-medium"}`}>
+                        {task.name}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+            {tasks.length > 5 && (
+              <Button variant="ghost" size="sm" className="w-full mt-1 text-xs" onClick={() => navigate("/client/tasks")}>
+                View all tasks
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Latest Game Stats Card */}
+        <LatestGameStatsCard clientId={clientId} navigate={navigate} />
 
         {/* Completed Cardio Activities */}
         {todayCardioSessions && todayCardioSessions.filter((s: any) => s.status === "completed").length > 0 && (
