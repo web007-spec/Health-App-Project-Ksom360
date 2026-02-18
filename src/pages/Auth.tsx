@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,38 @@ export default function Auth() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<"main" | "signin" | "admin">("main");
+
+  // Redirect already-authenticated users (e.g. arriving via magic link)
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role, full_name")
+          .eq("id", session.user.id)
+          .single();
+
+        if (profile?.role === "client") {
+          if (!profile.full_name || profile.full_name.trim() === "") {
+            navigate("/client/onboarding");
+          } else {
+            navigate("/client/dashboard");
+          }
+        } else {
+          navigate("/");
+        }
+      }
+    };
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        checkSession();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const [signInData, setSignInData] = useState({ email: "", password: "" });
   const [adminPin, setAdminPin] = useState("");
