@@ -830,7 +830,7 @@ export default function ClientDashboard() {
 
         {/* Break Your Fast Card — only during active eating window */}
         {settings.fasting_enabled && mealGateStatus === "allowed" && fastingState?.eating_window_ends_at && new Date(fastingState.eating_window_ends_at) > new Date() && (
-          <BreakYourFastCard hasMealPlan={settings.meal_plan_type !== "none"} />
+          <BreakYourFastCard hasFlexibleMealPlan={settings.meal_plan_type === "flexible"} />
         )}
 
         {/* Install App Banner */}
