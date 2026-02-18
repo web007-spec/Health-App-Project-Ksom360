@@ -20,12 +20,12 @@ export default function Auth() {
       if (session?.user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("role, full_name")
+          .select("role, onboarding_completed")
           .eq("id", session.user.id)
           .single();
 
         if (profile?.role === "client") {
-          if (!profile.full_name || profile.full_name.trim() === "") {
+          if (!profile.onboarding_completed) {
             navigate("/client/onboarding");
           } else {
             navigate("/client/dashboard");
@@ -62,13 +62,13 @@ export default function Auth() {
       if (data.user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("role, full_name")
+          .select("role, onboarding_completed")
           .eq("id", data.user.id)
           .single();
 
         toast.success("Signed in successfully!");
         if (profile?.role === "client") {
-          if (!profile.full_name || profile.full_name.trim() === "") {
+          if (!profile.onboarding_completed) {
             navigate("/client/onboarding");
           } else {
             navigate("/client/dashboard");
