@@ -69,6 +69,7 @@ import ClientRecipeDetail from "./pages/client/ClientRecipeDetail";
 import ClientPrograms from "./pages/client/ClientPrograms";
 import ClientChooseProtocol from "./pages/client/ClientChooseProtocol";
 import ClientQuickPlans from "./pages/client/ClientQuickPlans";
+import ClientProtocolDetail from "./pages/client/ClientProtocolDetail";
 import ClientWorkoutHistory from "./pages/ClientWorkoutHistory";
 import ClientCommandCenter from "./pages/ClientCommandCenter";
 import Scheduling from "./pages/Scheduling";
@@ -157,6 +158,7 @@ const App = () => (
           <Route path="/client/programs" element={<ProtectedRoute allowedRoles={["client"]}><ClientPrograms /></ProtectedRoute>} />
           <Route path="/client/choose-protocol" element={<ProtectedRoute allowedRoles={["client"]}><ClientChooseProtocol /></ProtectedRoute>} />
           <Route path="/client/quick-plans" element={<ProtectedRoute allowedRoles={["client"]}><ClientQuickPlans /></ProtectedRoute>} />
+          <Route path="/client/protocol/:id" element={<ProtectedRoute allowedRoles={["client"]}><ClientProtocolDetail /></ProtectedRoute>} />
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
