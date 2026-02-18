@@ -29,6 +29,7 @@ import { FastingTimer } from "@/components/FastingTimer";
 import { FastingStagesGuide } from "@/components/FastingStagesGuide";
 import { CreatePinDialog, VerifyPinDialog, HoldToEndButton } from "@/components/FastingPinLock";
 import { FastingCoachTipCard } from "@/components/FastingCoachTipCard";
+import { ProtocolCompletionDialog } from "@/components/ProtocolCompletionDialog";
 
 // Fasting Protocol Card sub-component
 function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; navigate: (path: string) => void }) {
@@ -36,13 +37,14 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
   const [now, setNow] = useState(new Date());
   const [showCreatePin, setShowCreatePin] = useState(false);
   const [showVerifyPin, setShowVerifyPin] = useState(false);
+  const [showCompletion, setShowCompletion] = useState(false);
 
   const { data: featureSettings } = useQuery({
     queryKey: ["my-feature-settings-fasting", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_feature_settings")
-        .select("selected_protocol_id, selected_quick_plan_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at, eating_window_ends_at, eating_window_hours, fasting_strict_mode, protocol_assigned_by, fasting_card_subtitle, fasting_card_image_url, fast_lock_pin")
+        .select("selected_protocol_id, selected_quick_plan_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at, eating_window_ends_at, eating_window_hours, fasting_strict_mode, protocol_assigned_by, fasting_card_subtitle, fasting_card_image_url, fast_lock_pin, protocol_completed")
         .eq("client_id", clientId)
         .maybeSingle();
       if (error) throw error;
@@ -60,6 +62,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
         fasting_card_subtitle: string | null;
         fasting_card_image_url: string | null;
         fast_lock_pin: string | null;
+        protocol_completed: boolean;
       } | null;
     },
     enabled: !!clientId,
@@ -169,7 +172,38 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
   // No protocol selected — empty state
   const hasQuickPlan = !!featureSettings?.selected_quick_plan_id;
   const hasProtocol = !!featureSettings?.selected_protocol_id && !!activeProtocol;
-  
+
+  const isCoachAssigned = !!featureSettings?.protocol_assigned_by;
+  const planName = activeProtocol?.name || `${featureSettings?.active_fast_target_hours || 16}h Fast`;
+  const hasDuration = !!activeProtocol?.duration_days;
+
+  const startDate = featureSettings?.protocol_start_date ? new Date(featureSettings.protocol_start_date + "T00:00:00") : new Date();
+  const dayNumber = hasDuration ? Math.min(differenceInCalendarDays(new Date(), startDate) + 1, activeProtocol!.duration_days) : 0;
+
+  // Protocol completion detection
+  const isProtocolComplete = hasProtocol && hasDuration && dayNumber >= activeProtocol!.duration_days && !featureSettings?.protocol_completed;
+
+  // Auto-show completion dialog when protocol day reaches duration
+  useEffect(() => {
+    if (isProtocolComplete && !showCompletion) {
+      setShowCompletion(true);
+    }
+  }, [isProtocolComplete]);
+
+  // Continue current routine mutation
+  const continueRoutineMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("client_feature_settings")
+        .update({ protocol_completed: true })
+        .eq("client_id", clientId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
+    },
+  });
+
   // No protocol or quick plan selected — empty state (but if actively fasting via quick plan, skip to timer)
   if (!hasProtocol && !hasQuickPlan && !isFasting && !hasEatingWindow) {
     const fastingCardBg = featureSettings?.fasting_card_image_url;
@@ -213,12 +247,31 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     );
   }
 
-  const isCoachAssigned = !!featureSettings?.protocol_assigned_by;
-  const planName = activeProtocol?.name || `${featureSettings?.active_fast_target_hours || 16}h Fast`;
-  const hasDuration = !!activeProtocol?.duration_days;
-
-  const startDate = featureSettings.protocol_start_date ? new Date(featureSettings.protocol_start_date + "T00:00:00") : new Date();
-  const dayNumber = hasDuration ? Math.min(differenceInCalendarDays(new Date(), startDate) + 1, activeProtocol!.duration_days) : 0;
+  // If protocol is completed (user chose "continue routine"), show maintenance card
+  if (featureSettings?.protocol_completed && hasProtocol && !isFasting && !hasEatingWindow) {
+    return (
+      <Card className="overflow-hidden border-primary/20 shadow-lg">
+        <CardContent className="px-5 pt-8 pb-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
+              <h3 className="text-base font-bold mt-0.5">{planName}</h3>
+            </div>
+            <Badge variant="secondary" className="text-xs">Complete ✓</Badge>
+          </div>
+          <div className="text-center py-4">
+            <p className="text-sm text-muted-foreground">Protocol complete — maintain your routine.</p>
+          </div>
+          <Button className="w-full h-12 text-base" onClick={() => startFastMutation.mutate()}>
+            <Clock className="h-4 w-4 mr-2" /> Start Fast
+          </Button>
+          <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => navigate("/client/programs")}>
+            Start a new protocol
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Timer calculations
   if (isFasting && featureSettings.active_fast_start_at && featureSettings.active_fast_target_hours) {
@@ -333,41 +386,54 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
 
   // Not fasting — ready state
   return (
-    <Card className="overflow-hidden border-primary/20 shadow-lg">
-      <CardContent className="px-5 pt-8 pb-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
-              {isCoachAssigned && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Coach Assigned</Badge>}
+    <>
+      <Card className="overflow-hidden border-primary/20 shadow-lg">
+        <CardContent className="px-5 pt-8 pb-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
+                {isCoachAssigned && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Coach Assigned</Badge>}
+              </div>
+              <h3 className="text-base font-bold mt-0.5">{planName}</h3>
             </div>
-            <h3 className="text-base font-bold mt-0.5">{planName}</h3>
+            {hasDuration && <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol!.duration_days}</Badge>}
           </div>
-          {hasDuration && <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol!.duration_days}</Badge>}
-        </div>
-        <div className="text-center py-6">
-          <p className="text-lg text-muted-foreground">Ready to start your next fast</p>
-        </div>
-        <Button className="w-full h-12 text-base" onClick={() => startFastMutation.mutate()}>
-          <Clock className="h-4 w-4 mr-2" /> Start Fast
-        </Button>
-        {isCoachAssigned && (
-          <p className="text-[11px] text-muted-foreground text-center">
-            Need a different plan? Message your coach.
-          </p>
-        )}
-        {!isCoachAssigned && (
-          <div className="flex items-center justify-center gap-2">
-            <Button variant="ghost" size="sm" className="text-xs" onClick={() => navigate("/client/programs")}>
-              Change protocol
-            </Button>
-            <Button variant="ghost" size="sm" className="text-xs text-destructive" onClick={() => cancelProtocolMutation.mutate()}>
-              Cancel protocol
-            </Button>
+          <div className="text-center py-6">
+            <p className="text-lg text-muted-foreground">Ready to start your next fast</p>
           </div>
-        )}
-      </CardContent>
-    </Card>
+          <Button className="w-full h-12 text-base" onClick={() => startFastMutation.mutate()}>
+            <Clock className="h-4 w-4 mr-2" /> Start Fast
+          </Button>
+          {isCoachAssigned && (
+            <p className="text-[11px] text-muted-foreground text-center">
+              Need a different plan? Message your coach.
+            </p>
+          )}
+          {!isCoachAssigned && (
+            <div className="flex items-center justify-center gap-2">
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => navigate("/client/programs")}>
+                Change protocol
+              </Button>
+              <Button variant="ghost" size="sm" className="text-xs text-destructive" onClick={() => cancelProtocolMutation.mutate()}>
+                Cancel protocol
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Protocol Completion Dialog */}
+      {hasProtocol && hasDuration && (
+        <ProtocolCompletionDialog
+          open={showCompletion}
+          onOpenChange={setShowCompletion}
+          protocolName={planName}
+          durationDays={activeProtocol!.duration_days}
+          onContinueRoutine={() => continueRoutineMutation.mutate()}
+        />
+      )}
+    </>
   );
 }
 
