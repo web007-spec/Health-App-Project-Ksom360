@@ -210,7 +210,7 @@ export function FastingTimer({ fastStartAt, targetHours, now, demoProgress }: Fa
             {currentStage.label}
           </span>
           <span className="text-4xl font-bold tabular-nums tracking-tight mt-1 text-foreground">{timeStr}</span>
-          <span className="text-xs text-foreground font-medium mt-1 uppercase tracking-wider">
+          <span className="text-xs text-foreground font-bold mt-1 uppercase tracking-wider">
             Elapsed ({elapsedPct}%)
           </span>
         </div>
