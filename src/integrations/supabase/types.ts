@@ -439,6 +439,7 @@ export type Database = {
           messages_enabled: boolean
           progress_photos_enabled: boolean
           protocol_assigned_by: string | null
+          protocol_completed: boolean
           protocol_start_date: string | null
           selected_protocol_id: string | null
           selected_quick_plan_id: string | null
@@ -481,6 +482,7 @@ export type Database = {
           messages_enabled?: boolean
           progress_photos_enabled?: boolean
           protocol_assigned_by?: string | null
+          protocol_completed?: boolean
           protocol_start_date?: string | null
           selected_protocol_id?: string | null
           selected_quick_plan_id?: string | null
@@ -523,6 +525,7 @@ export type Database = {
           messages_enabled?: boolean
           progress_photos_enabled?: boolean
           protocol_assigned_by?: string | null
+          protocol_completed?: boolean
           protocol_start_date?: string | null
           selected_protocol_id?: string | null
           selected_quick_plan_id?: string | null
