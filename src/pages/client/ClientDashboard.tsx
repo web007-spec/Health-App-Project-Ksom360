@@ -26,11 +26,16 @@ import { SpeedDialFAB } from "@/components/SpeedDialFAB";
 import { BreakYourFastCard } from "@/components/BreakYourFastCard";
 import { ProgramsSelector } from "@/components/ProgramsSelector";
 import { FastingTimer } from "@/components/FastingTimer";
+import { FastingStagesGuide } from "@/components/FastingStagesGuide";
+import { CreatePinDialog, VerifyPinDialog, HoldToEndButton } from "@/components/FastingPinLock";
 
 // Fasting Protocol Card sub-component
 function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; navigate: (path: string) => void }) {
   const queryClient = useQueryClient();
   const [now, setNow] = useState(new Date());
+  const [fastPin, setFastPin] = useState<string | null>(null);
+  const [showCreatePin, setShowCreatePin] = useState(false);
+  const [showVerifyPin, setShowVerifyPin] = useState(false);
 
   const { data: featureSettings } = useQuery({
     queryKey: ["my-feature-settings-fasting", clientId],
@@ -98,6 +103,8 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
+      // Show PIN creation dialog after starting fast
+      setShowCreatePin(true);
     },
   });
 
@@ -227,9 +234,35 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
           </div>
 
 
-          <Button variant="destructive" className="w-full h-12 text-base" onClick={() => endFastMutation.mutate()}>
-            End Fast
-          </Button>
+          {fastPin ? (
+            <HoldToEndButton onHoldComplete={() => setShowVerifyPin(true)} />
+          ) : (
+            <Button variant="destructive" className="w-full h-12 text-base" onClick={() => endFastMutation.mutate()}>
+              End Fast
+            </Button>
+          )}
+
+          {/* Fasting Stages Educational Guide */}
+          <FastingStagesGuide />
+
+          {/* PIN Dialogs */}
+          <CreatePinDialog
+            open={showCreatePin}
+            onPinCreated={(pin) => {
+              setFastPin(pin);
+              setShowCreatePin(false);
+            }}
+          />
+          <VerifyPinDialog
+            open={showVerifyPin}
+            onClose={() => setShowVerifyPin(false)}
+            storedPin={fastPin || ""}
+            onVerified={() => {
+              setShowVerifyPin(false);
+              setFastPin(null);
+              endFastMutation.mutate();
+            }}
+          />
         </CardContent>
       </Card>
     );
