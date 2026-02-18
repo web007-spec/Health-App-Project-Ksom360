@@ -3,12 +3,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Dumbbell, ListChecks, Target, Flame, UtensilsCrossed, Trophy, Swords, MapPin, Clock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useClientFeatureSettings } from "@/hooks/useClientFeatureSettings";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths, parseISO, startOfWeek, endOfWeek, addDays } from "date-fns";
 import { WorkoutDetailDialog } from "@/components/WorkoutDetailDialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -16,14 +16,26 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function ClientCoaching() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const clientId = useEffectiveClientId();
   const { settings } = useClientFeatureSettings();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const mealOptionsRef = useRef<HTMLDivElement>(null);
+  const highlightMealType = searchParams.get("mealType") || null;
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
+
+  // Auto-scroll to Meal Options when mealType param is present
+  useEffect(() => {
+    if (highlightMealType && mealOptionsRef.current) {
+      setTimeout(() => {
+        mealOptionsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 300);
+    }
+  }, [highlightMealType]);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -359,7 +371,9 @@ export default function ClientCoaching() {
         <MacrosThisWeekSection clientId={clientId} onNavigate={() => navigate("/client/nutrition")} />
 
         {/* Meal Options Section */}
-        <MealOptionsSection clientId={clientId} onNavigate={() => navigate("/client/meal-plan")} />
+        <div ref={mealOptionsRef}>
+          <MealOptionsSection clientId={clientId} onNavigate={() => navigate("/client/meal-plan")} highlightMealType={highlightMealType} onHighlightConsumed={() => setSearchParams({}, { replace: true })} />
+        </div>
       </div>
 
       {selectedWorkoutId && (
@@ -376,7 +390,20 @@ export default function ClientCoaching() {
   );
 }
 
-function MealOptionsSection({ clientId, onNavigate }: { clientId: string; onNavigate: () => void }) {
+function MealOptionsSection({ clientId, onNavigate, highlightMealType, onHighlightConsumed }: { clientId: string; onNavigate: () => void; highlightMealType?: string | null; onHighlightConsumed?: () => void }) {
+  const [highlighted, setHighlighted] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (highlightMealType) {
+      setHighlighted(highlightMealType);
+      const timer = setTimeout(() => {
+        setHighlighted(null);
+        onHighlightConsumed?.();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightMealType, onHighlightConsumed]);
+
   const { data: assignment } = useQuery({
     queryKey: ["client-meal-assignment", clientId],
     queryFn: async () => {
@@ -416,12 +443,10 @@ function MealOptionsSection({ clientId, onNavigate }: { clientId: string; onNavi
   const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"];
   const mealGroups = MEAL_TYPES.map((type) => {
     const items = options.filter((o: any) => o.meal_type === type);
-    // Get first recipe image as thumbnail
     const firstRecipe = items[0]?.recipes;
     return { type, count: items.length, image: firstRecipe?.image_url, name: type };
   }).filter((g) => g.count > 0);
 
-  // Weekly nutrition averages
   const allRecipes = options.map((o: any) => o.recipes).filter(Boolean);
   const avgCalories = allRecipes.length > 0 ? Math.round(allRecipes.reduce((s: number, r: any) => s + (r.calories || 0), 0) / Math.max(allRecipes.length / mealGroups.length, 1)) : 0;
   const avgProtein = allRecipes.length > 0 ? Math.round(allRecipes.reduce((s: number, r: any) => s + Number(r.protein || 0), 0) / Math.max(allRecipes.length / mealGroups.length, 1)) : 0;
@@ -459,23 +484,26 @@ function MealOptionsSection({ clientId, onNavigate }: { clientId: string; onNavi
 
         {/* Meal category thumbnails */}
         <div className="grid grid-cols-4 gap-3">
-          {mealGroups.map((group) => (
-            <div key={group.type} className="text-center">
-              <p className="text-xs font-medium capitalize mb-1.5 text-foreground">{group.type}</p>
-              <div className="relative">
-                {group.image ? (
-                  <img src={group.image} alt={group.type} className="w-full aspect-square object-cover rounded-lg" />
-                ) : (
-                  <div className="w-full aspect-square bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg flex items-center justify-center">
-                    <UtensilsCrossed className="h-6 w-6 text-primary/40" />
-                  </div>
-                )}
-                <Badge className="absolute -bottom-1 -right-1 h-5 w-5 p-0 flex items-center justify-center rounded-full text-[10px]">
-                  {group.count}
-                </Badge>
+          {mealGroups.map((group) => {
+            const isHighlighted = highlighted === group.type;
+            return (
+              <div key={group.type} className="text-center">
+                <p className={`text-xs font-medium capitalize mb-1.5 transition-colors duration-500 ${isHighlighted ? "text-primary font-bold" : "text-foreground"}`}>{group.type}</p>
+                <div className={`relative transition-all duration-500 ${isHighlighted ? "ring-2 ring-primary ring-offset-2 rounded-lg scale-105" : ""}`}>
+                  {group.image ? (
+                    <img src={group.image} alt={group.type} className="w-full aspect-square object-cover rounded-lg" />
+                  ) : (
+                    <div className="w-full aspect-square bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg flex items-center justify-center">
+                      <UtensilsCrossed className="h-6 w-6 text-primary/40" />
+                    </div>
+                  )}
+                  <Badge className="absolute -bottom-1 -right-1 h-5 w-5 p-0 flex items-center justify-center rounded-full text-[10px]">
+                    {group.count}
+                  </Badge>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>

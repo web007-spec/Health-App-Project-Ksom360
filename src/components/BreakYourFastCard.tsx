@@ -3,20 +3,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { UtensilsCrossed, Egg, Salad, ChefHat, Info } from "lucide-react";
+import { UtensilsCrossed, Egg, Salad, ChefHat, Cookie, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface BreakYourFastCardProps {
-  hasMealPlan: boolean;
+  hasFlexibleMealPlan: boolean;
 }
 
-export function BreakYourFastCard({ hasMealPlan }: BreakYourFastCardProps) {
+export function BreakYourFastCard({ hasFlexibleMealPlan }: BreakYourFastCardProps) {
   const navigate = useNavigate();
   const [whyOpen, setWhyOpen] = useState(false);
 
   const handleMealAction = (mealType: string) => {
-    if (hasMealPlan) {
-      navigate(`/client/meal-plan?highlight=${mealType}`);
+    if (hasFlexibleMealPlan) {
+      navigate(`/client/coaching?mealType=${mealType}`);
     } else {
       navigate("/client/log-meal");
     }
@@ -50,7 +50,7 @@ export function BreakYourFastCard({ hasMealPlan }: BreakYourFastCardProps) {
             Start with protein + hydration. Keep carbs low.
           </p>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -77,6 +77,15 @@ export function BreakYourFastCard({ hasMealPlan }: BreakYourFastCardProps) {
             >
               <ChefHat className="h-4 w-4 text-orange-500" />
               Dinner
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-col h-auto py-2.5 gap-1 text-xs"
+              onClick={() => handleMealAction("snack")}
+            >
+              <Cookie className="h-4 w-4 text-primary" />
+              Snack
             </Button>
           </div>
         </CardContent>
