@@ -1,8 +1,10 @@
 import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X, Plus, Pencil, Swords, Trophy, MapPin, Check, Activity, ScanBarcode, Camera, PenLine, MessageCircle, Clock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { differenceInCalendarDays } from "date-fns";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +23,83 @@ import { SportEventCompletionDialog } from "@/components/SportEventCompletionDia
 import { DayStripCalendar } from "@/components/DayStripCalendar";
 import { QuickCardioFlow } from "@/components/cardio/QuickCardioFlow";
 import { SpeedDialFAB } from "@/components/SpeedDialFAB";
+
+// Fasting Protocol Card sub-component
+function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; navigate: (path: string) => void }) {
+  const { data: featureSettings } = useQuery({
+    queryKey: ["my-feature-settings-fasting", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_feature_settings")
+        .select("selected_protocol_id, protocol_start_date")
+        .eq("client_id", clientId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { selected_protocol_id: string | null; protocol_start_date: string | null } | null;
+    },
+    enabled: !!clientId,
+  });
+
+  const { data: activeProtocol } = useQuery({
+    queryKey: ["active-fasting-protocol", featureSettings?.selected_protocol_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fasting_protocols")
+        .select("*")
+        .eq("id", featureSettings!.selected_protocol_id!)
+        .single();
+      if (error) throw error;
+      return data as { id: string; name: string; duration_days: number; fast_target_hours: number };
+    },
+    enabled: !!featureSettings?.selected_protocol_id,
+  });
+
+  if (!featureSettings?.selected_protocol_id || !activeProtocol) {
+    // No protocol selected — show empty state
+    return (
+      <Card className="overflow-hidden border-primary/20">
+        <CardContent className="p-6 text-center space-y-3">
+          <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+            <Clock className="h-7 w-7 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold">Start Your Fasting Protocol</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Fasting is the foundation of your KSOM360 plan.
+            </p>
+          </div>
+          <Button className="w-full" onClick={() => navigate("/client/programs")}>
+            Choose Protocol
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const startDate = featureSettings.protocol_start_date ? new Date(featureSettings.protocol_start_date + "T00:00:00") : new Date();
+  const dayNumber = differenceInCalendarDays(new Date(), startDate) + 1;
+  const clampedDay = Math.min(dayNumber, activeProtocol.duration_days);
+
+  return (
+    <Card className="overflow-hidden border-primary/20">
+      <CardContent className="p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
+            <h3 className="text-base font-bold mt-0.5">{activeProtocol.name}</h3>
+          </div>
+          <Badge variant="secondary" className="text-xs">
+            Day {clampedDay} / {activeProtocol.duration_days}
+          </Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">Ready to start your fast</p>
+        <Button className="w-full" onClick={() => navigate("/client/programs")}>
+          <Clock className="h-4 w-4 mr-2" /> Start Fast
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function ClientDashboard() {
   const { user } = useAuth();
@@ -521,22 +600,7 @@ export default function ClientDashboard() {
 
         {/* Fasting Protocol Card */}
         {settings.fasting_enabled && (
-          <Card className="overflow-hidden border-primary/20">
-            <CardContent className="p-6 text-center space-y-3">
-              <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                <Clock className="h-7 w-7 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold">Start Your Fasting Protocol</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Fasting is the foundation of your KSOM360 plan.
-                </p>
-              </div>
-              <Button className="w-full" onClick={() => navigate("/client/programs")}>
-                Choose Protocol
-              </Button>
-            </CardContent>
-          </Card>
+          <FastingProtocolCard clientId={clientId} navigate={navigate} />
         )}
 
         {/* Install App Banner */}
