@@ -95,6 +95,12 @@ const FEATURES = [
     description: "Enable fasting protocol assignments for this client",
     icon: Clock,
   },
+  {
+    key: "sport_schedule_enabled",
+    label: "Sport Schedule",
+    description: "Show synced sport schedule events (games, practices) on the client's dashboard",
+    icon: Activity,
+  },
 ] as const;
 
 // Strict Mode sub-settings shown when fasting is enabled

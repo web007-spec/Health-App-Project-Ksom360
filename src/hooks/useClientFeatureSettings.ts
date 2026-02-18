@@ -21,6 +21,7 @@ export interface ClientFeatureSettings {
   fasting_enabled: boolean;
   fasting_strict_mode: boolean;
   eating_window_hours: number;
+  sport_schedule_enabled: boolean;
 }
 
 const DEFAULT_SETTINGS: ClientFeatureSettings = {
@@ -42,6 +43,7 @@ const DEFAULT_SETTINGS: ClientFeatureSettings = {
   fasting_enabled: false,
   fasting_strict_mode: false,
   eating_window_hours: 8,
+  sport_schedule_enabled: true,
 };
 
 export function useClientFeatureSettings() {

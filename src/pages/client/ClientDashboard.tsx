@@ -660,7 +660,7 @@ export default function ClientDashboard() {
       if (error) throw error;
       return data as any[];
     },
-    enabled: !!clientId,
+    enabled: !!clientId && settings.sport_schedule_enabled !== false,
   });
 
   // Fetch custom sport day cards (practice/game)
