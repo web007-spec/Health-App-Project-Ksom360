@@ -44,7 +44,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_feature_settings")
-        .select("selected_protocol_id, selected_quick_plan_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at, eating_window_ends_at, eating_window_hours, fasting_strict_mode, protocol_assigned_by, fasting_card_subtitle, fasting_card_image_url, fast_lock_pin, protocol_completed")
+        .select("selected_protocol_id, selected_quick_plan_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at, eating_window_ends_at, eating_window_hours, fasting_strict_mode, protocol_assigned_by, fasting_card_subtitle, fasting_card_image_url, fast_lock_pin, protocol_completed, maintenance_mode, maintenance_schedule_type")
         .eq("client_id", clientId)
         .maybeSingle();
       if (error) throw error;
@@ -63,6 +63,8 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
         fasting_card_image_url: string | null;
         fast_lock_pin: string | null;
         protocol_completed: boolean;
+        maintenance_mode: boolean;
+        maintenance_schedule_type: string | null;
       } | null;
     },
     enabled: !!clientId,
@@ -204,6 +206,60 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     },
   });
 
+  // Switch to maintenance schedule mutation
+  const switchToMaintenanceMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("client_feature_settings")
+        .update({
+          maintenance_mode: true,
+          selected_protocol_id: null,
+          protocol_start_date: null,
+          protocol_assigned_by: null,
+          protocol_completed: false,
+        })
+        .eq("client_id", clientId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
+      queryClient.invalidateQueries({ queryKey: ["my-feature-settings"] });
+      navigate("/client/choose-protocol");
+    },
+  });
+
+  const isMaintenanceMode = !!featureSettings?.maintenance_mode;
+
+  const maintenanceLabel = featureSettings?.maintenance_schedule_type
+    ? ({ "16:8_daily": "16:8 Daily", "16:8_weekdays": "16:8 Weekdays", "14:10_daily": "14:10 Daily", "flexible": "Flexible Fasting" } as Record<string, string>)[featureSettings.maintenance_schedule_type] || featureSettings.maintenance_schedule_type
+    : null;
+
+  // Maintenance mode idle state
+  if (isMaintenanceMode && !isFasting && !hasEatingWindow) {
+    return (
+      <Card className="overflow-hidden border-primary/20 shadow-lg">
+        <CardContent className="px-5 pt-8 pb-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Maintenance Schedule</p>
+              <h3 className="text-base font-bold mt-0.5">{maintenanceLabel || "Maintenance"}</h3>
+            </div>
+            <Badge variant="secondary" className="text-xs">Maintenance</Badge>
+          </div>
+          <div className="text-center py-4">
+            <p className="text-sm text-muted-foreground">Maintain your fasting routine at your own pace.</p>
+          </div>
+          <Button className="w-full h-12 text-base" onClick={() => startFastMutation.mutate()}>
+            <Clock className="h-4 w-4 mr-2" /> Start Fast
+          </Button>
+          <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => navigate("/client/programs")}>
+            Start a new protocol
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // No protocol or quick plan selected — empty state (but if actively fasting via quick plan, skip to timer)
   if (!hasProtocol && !hasQuickPlan && !isFasting && !hasEatingWindow) {
     const fastingCardBg = featureSettings?.fasting_card_image_url;
@@ -287,12 +343,13 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <p className="text-xs font-bold text-foreground uppercase tracking-wider">Fasting Protocol</p>
-                {isCoachAssigned && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Coach Assigned</Badge>}
+                <p className="text-xs font-bold text-foreground uppercase tracking-wider">{isMaintenanceMode ? "Maintenance Schedule" : "Fasting Protocol"}</p>
+                {isCoachAssigned && !isMaintenanceMode && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Coach Assigned</Badge>}
               </div>
-              <h3 className="text-base font-bold mt-0.5">{planName}</h3>
+              <h3 className="text-base font-bold mt-0.5">{isMaintenanceMode ? (maintenanceLabel || "Maintenance") : planName}</h3>
             </div>
-            {hasDuration && <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol!.duration_days}</Badge>}
+            {hasDuration && !isMaintenanceMode && <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol!.duration_days}</Badge>}
+            {isMaintenanceMode && <Badge variant="secondary" className="text-xs">Maintenance</Badge>}
           </div>
 
           {/* Hero Dynamic Timer */}
@@ -357,12 +414,13 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
-                {isCoachAssigned && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Coach Assigned</Badge>}
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{isMaintenanceMode ? "Maintenance Schedule" : "Fasting Protocol"}</p>
+                {isCoachAssigned && !isMaintenanceMode && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Coach Assigned</Badge>}
               </div>
-              <h3 className="text-base font-bold mt-0.5">{planName}</h3>
+              <h3 className="text-base font-bold mt-0.5">{isMaintenanceMode ? (maintenanceLabel || "Maintenance") : planName}</h3>
             </div>
-            {hasDuration && <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol!.duration_days}</Badge>}
+            {hasDuration && !isMaintenanceMode && <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol!.duration_days}</Badge>}
+            {isMaintenanceMode && <Badge variant="secondary" className="text-xs">Maintenance</Badge>}
           </div>
           <div className="text-center py-6">
             <Badge className="mb-3 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10">Eating Window</Badge>
@@ -392,12 +450,13 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
-                {isCoachAssigned && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Coach Assigned</Badge>}
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{isMaintenanceMode ? "Maintenance Schedule" : "Fasting Protocol"}</p>
+                {isCoachAssigned && !isMaintenanceMode && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Coach Assigned</Badge>}
               </div>
-              <h3 className="text-base font-bold mt-0.5">{planName}</h3>
+              <h3 className="text-base font-bold mt-0.5">{isMaintenanceMode ? (maintenanceLabel || "Maintenance") : planName}</h3>
             </div>
-            {hasDuration && <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol!.duration_days}</Badge>}
+            {hasDuration && !isMaintenanceMode && <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol!.duration_days}</Badge>}
+            {isMaintenanceMode && <Badge variant="secondary" className="text-xs">Maintenance</Badge>}
           </div>
           <div className="text-center py-6">
             <p className="text-lg text-muted-foreground">Ready to start your next fast</p>
@@ -431,6 +490,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
           protocolName={planName}
           durationDays={activeProtocol!.duration_days}
           onContinueRoutine={() => continueRoutineMutation.mutate()}
+          onSwitchToMaintenance={() => switchToMaintenanceMutation.mutate()}
         />
       )}
     </>
@@ -623,7 +683,7 @@ export default function ClientDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_feature_settings")
-        .select("selected_protocol_id, active_fast_start_at, active_fast_target_hours, fasting_strict_mode, eating_window_ends_at, eating_window_hours, protocol_start_date")
+        .select("selected_protocol_id, active_fast_start_at, active_fast_target_hours, fasting_strict_mode, eating_window_ends_at, eating_window_hours, protocol_start_date, maintenance_mode, maintenance_schedule_type")
         .eq("client_id", clientId)
         .maybeSingle();
       if (error) throw error;
@@ -635,6 +695,8 @@ export default function ClientDashboard() {
         eating_window_ends_at: string | null;
         eating_window_hours: number;
         protocol_start_date: string | null;
+        maintenance_mode: boolean;
+        maintenance_schedule_type: string | null;
       } | null;
     },
     enabled: !!clientId && settings.fasting_enabled,
@@ -1081,11 +1143,12 @@ export default function ClientDashboard() {
           <BreakYourFastCard hasFlexibleMealPlan={settings.meal_plan_type === "flexible"} />
         )}
 
-        {/* Coach Tip & Protocol Progress — below fasting card when protocol is active */}
-        {settings.fasting_enabled && fastingState?.selected_protocol_id && (
+        {/* Coach Tip & Protocol Progress — below fasting card when protocol is active or maintenance mode */}
+        {settings.fasting_enabled && (fastingState?.selected_protocol_id || fastingState?.maintenance_mode) && (
           <FastingCoachTipCard
-            protocolStartDate={fastingState.protocol_start_date}
+            protocolStartDate={fastingState?.protocol_start_date ?? null}
             protocolDurationDays={coachTipProtocol?.duration_days ?? null}
+            hideProtocolProgress={!!fastingState?.maintenance_mode}
           />
         )}
 
