@@ -26,9 +26,10 @@ const MILESTONE_MESSAGES: Record<number, string> = {
 interface FastingCoachTipCardProps {
   protocolStartDate: string | null;
   protocolDurationDays: number | null;
+  hideProtocolProgress?: boolean;
 }
 
-export function FastingCoachTipCard({ protocolStartDate, protocolDurationDays }: FastingCoachTipCardProps) {
+export function FastingCoachTipCard({ protocolStartDate, protocolDurationDays, hideProtocolProgress }: FastingCoachTipCardProps) {
   // Daily rotating tip
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
   const tipIndex = dayOfYear % COACH_TIPS.length;
@@ -65,7 +66,7 @@ export function FastingCoachTipCard({ protocolStartDate, protocolDurationDays }:
       </Card>
 
       {/* Protocol Progress Milestone */}
-      {milestoneMessage && (
+      {milestoneMessage && !hideProtocolProgress && (
         <Card className="border-primary/15">
           <CardContent className="p-4 flex items-start gap-3">
             <div className="p-1.5 bg-primary/10 rounded-lg shrink-0 mt-0.5">

@@ -432,6 +432,8 @@ export type Database = {
           last_fast_completed_at: string | null
           last_fast_ended_at: string | null
           macros_enabled: boolean
+          maintenance_mode: boolean
+          maintenance_schedule_type: string | null
           meal_plan_add_recipe_books: boolean
           meal_plan_allow_recipe_replacement: boolean
           meal_plan_header_label: string
@@ -475,6 +477,8 @@ export type Database = {
           last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
           macros_enabled?: boolean
+          maintenance_mode?: boolean
+          maintenance_schedule_type?: string | null
           meal_plan_add_recipe_books?: boolean
           meal_plan_allow_recipe_replacement?: boolean
           meal_plan_header_label?: string
@@ -518,6 +522,8 @@ export type Database = {
           last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
           macros_enabled?: boolean
+          maintenance_mode?: boolean
+          maintenance_schedule_type?: string | null
           meal_plan_add_recipe_books?: boolean
           meal_plan_allow_recipe_replacement?: boolean
           meal_plan_header_label?: string

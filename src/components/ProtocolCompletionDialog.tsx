@@ -22,6 +22,7 @@ interface ProtocolCompletionDialogProps {
   protocolName: string;
   durationDays: number;
   onContinueRoutine: () => void;
+  onSwitchToMaintenance?: () => void;
 }
 
 export function ProtocolCompletionDialog({
@@ -30,6 +31,7 @@ export function ProtocolCompletionDialog({
   protocolName,
   durationDays,
   onContinueRoutine,
+  onSwitchToMaintenance,
 }: ProtocolCompletionDialogProps) {
   const navigate = useNavigate();
   const suggestedNext = NEXT_PROTOCOL_MAP[protocolName] || null;
@@ -94,6 +96,18 @@ export function ProtocolCompletionDialog({
           >
             Continue Current Routine
           </Button>
+          {onSwitchToMaintenance && (
+            <Button
+              variant="outline"
+              className="w-full h-11 text-sm"
+              onClick={() => {
+                onSwitchToMaintenance();
+                onOpenChange(false);
+              }}
+            >
+              Switch to Maintenance Schedule
+            </Button>
+          )}
           <p className="text-[10px] text-muted-foreground text-center pt-1">
             Your coach can assign your next protocol anytime.
           </p>

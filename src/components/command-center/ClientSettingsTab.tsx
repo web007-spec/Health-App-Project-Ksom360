@@ -546,10 +546,118 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
       </Card>
 
       <FastingProtocolAssignment clientId={clientId} trainerId={trainerId} settings={settings} />
+      <MaintenanceScheduleAssignment clientId={clientId} trainerId={trainerId} settings={settings} />
       <FastingStrictModeSettings settings={settings} toggleMutation={toggleMutation} />
 
       <ClientRemindersSection clientId={clientId} />
     </div>
+  );
+}
+
+const MAINTENANCE_SCHEDULES = [
+  { value: "16:8_daily", label: "16:8 Daily" },
+  { value: "16:8_weekdays", label: "16:8 Weekdays" },
+  { value: "14:10_daily", label: "14:10 Daily" },
+  { value: "flexible", label: "Flexible Fasting" },
+];
+
+function MaintenanceScheduleAssignment({ clientId, trainerId, settings }: { clientId: string; trainerId: string; settings: any }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [selectedSchedule, setSelectedSchedule] = useState<string>(settings?.maintenance_schedule_type || "");
+
+  const assignMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("client_feature_settings")
+        .update({
+          maintenance_mode: true,
+          maintenance_schedule_type: selectedSchedule,
+          selected_protocol_id: null,
+          protocol_start_date: null,
+          protocol_assigned_by: null,
+          protocol_completed: false,
+        })
+        .eq("client_id", clientId)
+        .eq("trainer_id", trainerId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client-feature-settings", clientId] });
+      toast({ title: "Maintenance schedule assigned", description: "Client is now in maintenance mode." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to assign maintenance schedule", variant: "destructive" });
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("client_feature_settings")
+        .update({ maintenance_mode: false, maintenance_schedule_type: null })
+        .eq("client_id", clientId)
+        .eq("trainer_id", trainerId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client-feature-settings", clientId] });
+      toast({ title: "Maintenance mode removed" });
+    },
+  });
+
+  if (!settings?.fasting_enabled) return null;
+
+  const currentLabel = MAINTENANCE_SCHEDULES.find(s => s.value === settings?.maintenance_schedule_type)?.label;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Clock className="h-5 w-5" />
+          Maintenance Schedule
+        </CardTitle>
+        <CardDescription>
+          Assign a maintenance fasting schedule. This replaces the active protocol and puts the client in maintenance mode.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {settings?.maintenance_mode && currentLabel && (
+          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Current Schedule</p>
+            <p className="text-sm font-bold mt-1">{currentLabel}</p>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Schedule Type</Label>
+          <Select value={selectedSchedule} onValueChange={setSelectedSchedule}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a schedule..." />
+            </SelectTrigger>
+            <SelectContent>
+              {MAINTENANCE_SCHEDULES.map(s => (
+                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Button
+          className="w-full"
+          disabled={!selectedSchedule || assignMutation.isPending}
+          onClick={() => assignMutation.mutate()}
+        >
+          {assignMutation.isPending ? "Saving..." : "Assign Schedule"}
+        </Button>
+
+        {settings?.maintenance_mode && (
+          <Button variant="ghost" size="sm" className="w-full text-xs text-destructive" onClick={() => removeMutation.mutate()}>
+            Remove Maintenance Mode
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

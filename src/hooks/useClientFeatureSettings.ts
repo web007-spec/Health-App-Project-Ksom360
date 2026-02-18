@@ -28,6 +28,8 @@ export interface ClientFeatureSettings {
   dashboard_hero_image_url: string | null;
   dashboard_hero_message: string | null;
   fasting_card_image_url: string | null;
+  maintenance_mode: boolean;
+  maintenance_schedule_type: string | null;
 }
 
 const DEFAULT_SETTINGS: ClientFeatureSettings = {
@@ -56,6 +58,8 @@ const DEFAULT_SETTINGS: ClientFeatureSettings = {
   dashboard_hero_image_url: null,
   dashboard_hero_message: null,
   fasting_card_image_url: null,
+  maintenance_mode: false,
+  maintenance_schedule_type: null,
 };
 
 export function useClientFeatureSettings() {
