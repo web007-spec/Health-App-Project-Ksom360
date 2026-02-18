@@ -209,8 +209,8 @@ export function FastingTimer({ fastStartAt, targetHours, now, demoProgress }: Fa
           >
             {currentStage.label}
           </span>
-          <span className="text-4xl font-bold tabular-nums tracking-tight mt-1">{timeStr}</span>
-          <span className="text-xs text-muted-foreground mt-1 uppercase tracking-wider">
+          <span className="text-4xl font-bold tabular-nums tracking-tight mt-1 text-foreground">{timeStr}</span>
+          <span className="text-xs text-foreground font-medium mt-1 uppercase tracking-wider">
             Elapsed ({elapsedPct}%)
           </span>
         </div>
@@ -219,12 +219,12 @@ export function FastingTimer({ fastStartAt, targetHours, now, demoProgress }: Fa
       {/* Start / Goal timestamps */}
       <div className="w-full grid grid-cols-2 gap-3 mt-5">
         <div className="bg-muted/40 rounded-lg px-3 py-2.5 text-center">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">Started</p>
-          <p className="text-xs font-medium">{format(fastStart, "EEE, h:mm a")}</p>
+          <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-0.5">Started</p>
+          <p className="text-xs font-medium text-foreground">{format(fastStart, "EEE, h:mm a")}</p>
         </div>
         <div className="bg-muted/40 rounded-lg px-3 py-2.5 text-center">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">{targetHours}h Goal</p>
-          <p className="text-xs font-medium">{format(fastEnd, "EEE, h:mm a")}</p>
+          <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-0.5">{targetHours}h Goal</p>
+          <p className="text-xs font-medium text-foreground">{format(fastEnd, "EEE, h:mm a")}</p>
         </div>
       </div>
 
