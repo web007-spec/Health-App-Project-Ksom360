@@ -23,6 +23,7 @@ import { SportEventCompletionDialog } from "@/components/SportEventCompletionDia
 import { DayStripCalendar } from "@/components/DayStripCalendar";
 import { QuickCardioFlow } from "@/components/cardio/QuickCardioFlow";
 import { SpeedDialFAB } from "@/components/SpeedDialFAB";
+import { BreakYourFastCard } from "@/components/BreakYourFastCard";
 
 // Fasting Protocol Card sub-component
 function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; navigate: (path: string) => void }) {
@@ -825,6 +826,11 @@ export default function ClientDashboard() {
         {/* Fasting Protocol Card */}
         {settings.fasting_enabled && (
           <FastingProtocolCard clientId={clientId} navigate={navigate} />
+        )}
+
+        {/* Break Your Fast Card — only during active eating window */}
+        {settings.fasting_enabled && mealGateStatus === "allowed" && fastingState?.eating_window_ends_at && new Date(fastingState.eating_window_ends_at) > new Date() && (
+          <BreakYourFastCard hasMealPlan={settings.meal_plan_type !== "none"} />
         )}
 
         {/* Install App Banner */}
