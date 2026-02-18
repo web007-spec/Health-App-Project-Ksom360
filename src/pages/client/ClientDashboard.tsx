@@ -226,10 +226,9 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
       <Card className="overflow-hidden border-primary/20 shadow-lg relative">
         {/* Blurred logo background */}
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-15 blur-xl scale-110"
-          style={{ backgroundImage: `url(/logo.png)` }}
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(/logo.png)`, opacity: 0.25 }}
         />
-        <div className="absolute inset-0 bg-background/60" />
         <CardContent className="px-5 pt-8 pb-6 space-y-5 relative z-10">
           <div className="flex items-center justify-between">
             <div>
