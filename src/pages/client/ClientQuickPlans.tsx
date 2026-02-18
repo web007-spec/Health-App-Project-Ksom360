@@ -110,7 +110,7 @@ export default function ClientQuickPlans() {
                     <CardContent className="p-4 space-y-1.5">
                       <h3 className="font-semibold text-base">{plan.name}</h3>
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <Hourglass className="h-3.5 w-3.5" />
+                        <Hourglass className="h-3.5 w-3.5 text-blue-400" />
                         <span>{plan.fast_hours}h</span>
                         {plan.eat_hours > 0 && (
                           <>
