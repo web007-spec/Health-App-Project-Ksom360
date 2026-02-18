@@ -61,21 +61,30 @@ export default function ClientProtocolDetail() {
   });
 
   const selectProtocolMutation = useMutation({
-    mutationFn: async (protocolId: string) => {
+    mutationFn: async ({ protocolId, startNow }: { protocolId: string; startNow: boolean }) => {
       const today = format(new Date(), "yyyy-MM-dd");
+      const updates: Record<string, any> = {
+        selected_protocol_id: protocolId,
+        protocol_start_date: today,
+        selected_quick_plan_id: null,
+      };
+      if (startNow) {
+        updates.active_fast_start_at = new Date().toISOString();
+        updates.active_fast_target_hours = protocol?.fast_target_hours || 16;
+        updates.last_fast_ended_at = null;
+        updates.eating_window_ends_at = null;
+      }
       const { error } = await supabase
         .from("client_feature_settings")
-        .update({
-          selected_protocol_id: protocolId,
-          protocol_start_date: today,
-        })
+        .update(updates)
         .eq("client_id", clientId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, { startNow }) => {
       queryClient.invalidateQueries({ queryKey: ["my-feature-settings"] });
       queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
-      toast.success("Protocol selected!");
+      queryClient.invalidateQueries({ queryKey: ["fasting-gate-state"] });
+      toast.success(startNow ? "Fast started!" : "Protocol selected!");
       navigate("/client/dashboard");
     },
     onError: () => toast.error("Failed to select protocol"),
@@ -334,14 +343,21 @@ export default function ClientProtocolDetail() {
         </div>
       </div>
 
-      {/* Sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-t p-4 safe-area-bottom">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-t p-4 safe-area-bottom space-y-2">
         <Button
           className="w-full h-12 text-base font-semibold"
-          onClick={() => selectProtocolMutation.mutate(protocol.id)}
+          onClick={() => selectProtocolMutation.mutate({ protocolId: protocol.id, startNow: true })}
           disabled={selectProtocolMutation.isPending}
         >
-          {selectProtocolMutation.isPending ? "Starting..." : "Ready To Start"}
+          {selectProtocolMutation.isPending ? "Starting..." : "Start This Program Now"}
+        </Button>
+        <Button
+          variant="outline"
+          className="w-full h-10 text-sm"
+          onClick={() => selectProtocolMutation.mutate({ protocolId: protocol.id, startNow: false })}
+          disabled={selectProtocolMutation.isPending}
+        >
+          Save program for later
         </Button>
       </div>
     </ClientLayout>
