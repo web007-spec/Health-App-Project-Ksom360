@@ -123,7 +123,7 @@ export function FastingTimer({ fastStartAt, targetHours, now, demoProgress }: Fa
           <circle
             cx={cx} cy={cy} r={radius}
             fill="none"
-            stroke="white"
+            stroke="black"
             strokeWidth={bandWidth}
             opacity={0.5}
           />
@@ -148,7 +148,7 @@ export function FastingTimer({ fastStartAt, targetHours, now, demoProgress }: Fa
           <circle
             cx={cx} cy={cy} r={radius}
             fill="none"
-            stroke="black"
+            stroke="white"
             strokeWidth={1.5}
             opacity={0.7}
           />
