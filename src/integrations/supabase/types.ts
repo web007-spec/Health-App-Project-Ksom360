@@ -413,6 +413,7 @@ export type Database = {
           calendar_days_ahead: number
           client_id: string
           created_at: string
+          fasting_enabled: boolean
           food_journal_enabled: boolean
           goals_enabled: boolean
           id: string
@@ -435,6 +436,7 @@ export type Database = {
           calendar_days_ahead?: number
           client_id: string
           created_at?: string
+          fasting_enabled?: boolean
           food_journal_enabled?: boolean
           goals_enabled?: boolean
           id?: string
@@ -457,6 +459,7 @@ export type Database = {
           calendar_days_ahead?: number
           client_id?: string
           created_at?: string
+          fasting_enabled?: boolean
           food_journal_enabled?: boolean
           goals_enabled?: boolean
           id?: string

@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Dumbbell, MessageSquare, Camera, CheckSquare, Utensils, Activity, Target, Scale, BookOpen, CalendarDays, List, ChefHat, Eye } from "lucide-react";
+import { Dumbbell, MessageSquare, Camera, CheckSquare, Utensils, Activity, Target, Scale, BookOpen, CalendarDays, List, ChefHat, Eye, Clock } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { RestDayCardEditor } from "./RestDayCardEditor";
 import { SportDayCardEditor } from "./SportDayCardEditor";
@@ -80,6 +80,12 @@ const FEATURES = [
     label: "Goals & Countdowns",
     description: "Set and track goals and countdowns for the client",
     icon: Target,
+  },
+  {
+    key: "fasting_enabled",
+    label: "Fasting Protocols",
+    description: "Enable fasting protocol assignments for this client",
+    icon: Clock,
   },
 ] as const;
 
