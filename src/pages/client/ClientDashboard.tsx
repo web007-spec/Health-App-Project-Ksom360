@@ -25,6 +25,7 @@ import { QuickCardioFlow } from "@/components/cardio/QuickCardioFlow";
 import { SpeedDialFAB } from "@/components/SpeedDialFAB";
 import { BreakYourFastCard } from "@/components/BreakYourFastCard";
 import { ProgramsSelector } from "@/components/ProgramsSelector";
+import { FastingTimer } from "@/components/FastingTimer";
 
 // Fasting Protocol Card sub-component
 function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; navigate: (path: string) => void }) {
@@ -201,24 +202,6 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
 
   // Timer calculations
   if (isFasting && featureSettings.active_fast_start_at && featureSettings.active_fast_target_hours) {
-    const fastStart = new Date(featureSettings.active_fast_start_at);
-    const fastEnd = new Date(fastStart.getTime() + featureSettings.active_fast_target_hours * 3600000);
-    const elapsed = now.getTime() - fastStart.getTime();
-    const total = fastEnd.getTime() - fastStart.getTime();
-    const progress = Math.min(Math.max(elapsed / total, 0), 1);
-    const remainingMs = Math.max(fastEnd.getTime() - now.getTime(), 0);
-    const remainH = Math.floor(remainingMs / 3600000);
-    const remainM = Math.floor((remainingMs % 3600000) / 60000);
-    const remainS = Math.floor((remainingMs % 60000) / 1000);
-    const timeStr = `${String(remainH).padStart(2, "0")}:${String(remainM).padStart(2, "0")}:${String(remainS).padStart(2, "0")}`;
-    const endTimeStr = fastEnd.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-
-    // SVG ring params — hero-sized like Apple Activity / Zero
-    const size = 240;
-    const stroke = 14;
-    const radius = (size - stroke) / 2;
-    const circumference = 2 * Math.PI * radius;
-    const dashOffset = circumference * (1 - progress);
 
     return (
       <Card className="overflow-hidden border-primary/20 shadow-lg">
@@ -234,35 +217,13 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
             {hasDuration && <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol!.duration_days}</Badge>}
           </div>
 
-          {/* Hero Circular Timer */}
-          <div className="flex flex-col items-center py-4">
-            <div className="relative" style={{ width: size, height: size }}>
-              <svg width={size} height={size} className="-rotate-90">
-                <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(var(--muted))" strokeWidth={stroke} opacity={0.4} />
-                <circle
-                  cx={size / 2} cy={size / 2} r={radius} fill="none"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={stroke}
-                  strokeLinecap="round"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={dashOffset}
-                  className="transition-[stroke-dashoffset] duration-1000 ease-linear"
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl font-bold tabular-nums tracking-tight">{timeStr}</span>
-                <span className="text-sm text-muted-foreground mt-1.5">remaining</span>
-              </div>
-            </div>
-            <div className="mt-4 space-y-1 text-center">
-              <p className="text-sm text-muted-foreground">
-                {remainingMs > 0 ? `Eating window opens at ${endTimeStr}` : "Fast complete! 🎉"}
-              </p>
-              <div className="flex justify-center gap-4 text-xs text-muted-foreground">
-                <span>Started: {format(fastStart, "MMM d, h:mm a")}</span>
-                <span>Opens: {format(fastEnd, "MMM d, h:mm a")}</span>
-              </div>
-            </div>
+          {/* Hero Dynamic Timer */}
+          <div className="py-2">
+            <FastingTimer
+              fastStartAt={featureSettings.active_fast_start_at!}
+              targetHours={featureSettings.active_fast_target_hours!}
+              now={now}
+            />
           </div>
 
           <Button variant="destructive" className="w-full h-12 text-base" onClick={() => endFastMutation.mutate()}>
