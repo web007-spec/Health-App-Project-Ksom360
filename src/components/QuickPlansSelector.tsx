@@ -58,10 +58,10 @@ export function QuickPlansSelector({ navigate }: { navigate: (path: string) => v
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-base">{plan.name}</h3>
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Hourglass className="h-3.5 w-3.5" />
+                  <Hourglass className="h-3.5 w-3.5 text-blue-400" />
                   <span>{plan.fast_hours}h</span>
                   <span className="mx-0.5">•</span>
-                  <UtensilsCrossed className="h-3.5 w-3.5" />
+                  <UtensilsCrossed className="h-3.5 w-3.5 text-blue-400" />
                   <span>{plan.eat_hours}h</span>
                 </div>
               </div>
