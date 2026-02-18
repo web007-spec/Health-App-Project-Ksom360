@@ -33,7 +33,6 @@ import { CreatePinDialog, VerifyPinDialog, HoldToEndButton } from "@/components/
 function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; navigate: (path: string) => void }) {
   const queryClient = useQueryClient();
   const [now, setNow] = useState(new Date());
-  const [fastPin, setFastPin] = useState<string | null>(null);
   const [showCreatePin, setShowCreatePin] = useState(false);
   const [showVerifyPin, setShowVerifyPin] = useState(false);
 
@@ -42,7 +41,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_feature_settings")
-        .select("selected_protocol_id, selected_quick_plan_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at, eating_window_ends_at, eating_window_hours, fasting_strict_mode, protocol_assigned_by, fasting_card_subtitle, fasting_card_image_url")
+        .select("selected_protocol_id, selected_quick_plan_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at, eating_window_ends_at, eating_window_hours, fasting_strict_mode, protocol_assigned_by, fasting_card_subtitle, fasting_card_image_url, fast_lock_pin")
         .eq("client_id", clientId)
         .maybeSingle();
       if (error) throw error;
@@ -59,6 +58,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
         protocol_assigned_by: string | null;
         fasting_card_subtitle: string | null;
         fasting_card_image_url: string | null;
+        fast_lock_pin: string | null;
       } | null;
     },
     enabled: !!clientId,
@@ -120,6 +120,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
           active_fast_start_at: null,
           active_fast_target_hours: null,
           eating_window_ends_at: eatingWindowEnd,
+          fast_lock_pin: null,
         })
         .eq("client_id", clientId);
       if (error) throw error;
@@ -129,6 +130,17 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
       queryClient.invalidateQueries({ queryKey: ["fasting-gate-state"] });
     },
   });
+
+  // Auto-end fast when timer reaches 100%
+  const fastCompleted = isFasting && featureSettings?.active_fast_start_at && featureSettings?.active_fast_target_hours
+    ? (now.getTime() - new Date(featureSettings.active_fast_start_at).getTime()) >= featureSettings.active_fast_target_hours * 3600000
+    : false;
+
+  useEffect(() => {
+    if (fastCompleted && !endFastMutation.isPending) {
+      endFastMutation.mutate();
+    }
+  }, [fastCompleted]);
 
   const cancelProtocolMutation = useMutation({
     mutationFn: async () => {
@@ -234,7 +246,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
           </div>
 
 
-          {fastPin ? (
+          {featureSettings.fast_lock_pin ? (
             <HoldToEndButton onHoldComplete={() => setShowVerifyPin(true)} />
           ) : (
             <Button variant="destructive" className="w-full h-12 text-base" onClick={() => endFastMutation.mutate()}>
@@ -248,18 +260,21 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
           {/* PIN Dialogs */}
           <CreatePinDialog
             open={showCreatePin}
-            onPinCreated={(pin) => {
-              setFastPin(pin);
+            onPinCreated={async (pin) => {
+              await supabase
+                .from("client_feature_settings")
+                .update({ fast_lock_pin: pin })
+                .eq("client_id", clientId);
+              queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
               setShowCreatePin(false);
             }}
           />
           <VerifyPinDialog
             open={showVerifyPin}
             onClose={() => setShowVerifyPin(false)}
-            storedPin={fastPin || ""}
+            storedPin={featureSettings.fast_lock_pin || ""}
             onVerified={() => {
               setShowVerifyPin(false);
-              setFastPin(null);
               endFastMutation.mutate();
             }}
           />
