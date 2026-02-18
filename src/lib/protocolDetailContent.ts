@@ -340,4 +340,50 @@ export const PROTOCOL_DETAIL_COPY: Record<string, ProtocolDetailCopy> = {
       "Ideal starting point for beginners or clients returning to structure.",
     ],
   },
+
+  // 28-Day Health Reset
+  "9c73c6aa-a024-4eee-8889-b9a6786a9f28": {
+    statsLabel: "14–16h",
+    difficultyLabel: "Beg–Int",
+    descriptionOverride: "A comprehensive four-week reset to normalize insulin sensitivity and restore natural hunger cues.",
+    howItWorks: [
+      "The 28-Day Health Reset focuses on rebuilding metabolic rhythm through consistent fasting windows and balanced meals.",
+      "Over four weeks, fasting duration gradually increases to support insulin regulation, digestion, and appetite awareness.",
+      "This protocol is designed to help clients reconnect with natural hunger patterns.",
+    ],
+    progression: [
+      { label: "Week 1", fastHours: "14h", eatHours: "10h" },
+      { label: "Week 2", fastHours: "15h", eatHours: "9h" },
+      { label: "Week 3", fastHours: "16h", eatHours: "8h" },
+      { label: "Week 4", fastHours: "16h", eatHours: "8h" },
+    ],
+    schedule: {
+      stopEating: "8:00 PM",
+      breakFast: "10:00 AM–12:00 PM",
+    },
+    scheduleMeals: ["Lunch", "Dinner", "Optional protein snack"],
+    scheduleNote: "Avoid late-night eating during this protocol.",
+    mealStrategy: [
+      "Prioritize simple, nutrient-dense meals.",
+      "Focus on: protein-rich foods, vegetables, healthy fats, and whole foods.",
+      "Reduce: processed foods, sugar-heavy snacks, and frequent grazing.",
+    ],
+    whatToExpect: [
+      "Week 1: Digestive rhythm improves",
+      "Week 2: Appetite becomes more predictable",
+      "Week 3: Energy stabilizes",
+      "Week 4: Natural hunger cues strengthen",
+    ],
+    coachGuidance: [
+      "Hydration supports fasting comfort.",
+      "Keep meals consistent.",
+      "Start meals with protein.",
+      "Avoid overeating during the eating window.",
+      "Prioritize sleep.",
+    ],
+    whoThisIsFor: [
+      "Clients wanting a full metabolic reset focused on long-term health.",
+      "Ideal after completing Health Foundations.",
+    ],
+  },
 };
