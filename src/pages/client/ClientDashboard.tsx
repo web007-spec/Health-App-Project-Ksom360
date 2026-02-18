@@ -118,6 +118,28 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
       queryClient.invalidateQueries({ queryKey: ["fasting-gate-state"] });
     },
   });
+
+  const cancelProtocolMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("client_feature_settings")
+        .update({
+          selected_protocol_id: null,
+          protocol_start_date: null,
+          protocol_assigned_by: null,
+          active_fast_start_at: null,
+          active_fast_target_hours: null,
+          eating_window_ends_at: null,
+        })
+        .eq("client_id", clientId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
+      queryClient.invalidateQueries({ queryKey: ["my-feature-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["fasting-gate-state"] });
+    },
+  });
   const fastingSubtitle = featureSettings?.fasting_card_subtitle || "Fasting is the foundation of your KSOM360 plan.";
 
   // No protocol selected — empty state
@@ -277,9 +299,14 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
           </p>
         )}
         {!isCoachAssigned && (
-          <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => navigate("/client/programs")}>
-            Change protocol
-          </Button>
+          <div className="flex items-center justify-center gap-2">
+            <Button variant="ghost" size="sm" className="text-xs" onClick={() => navigate("/client/programs")}>
+              Change protocol
+            </Button>
+            <Button variant="ghost" size="sm" className="text-xs text-destructive" onClick={() => cancelProtocolMutation.mutate()}>
+              Cancel protocol
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>
