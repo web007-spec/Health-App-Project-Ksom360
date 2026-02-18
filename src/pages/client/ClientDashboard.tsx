@@ -254,9 +254,15 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
                 <span className="text-sm text-muted-foreground mt-1.5">remaining</span>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground mt-4">
-              {remainingMs > 0 ? `Eating window opens at ${endTimeStr}` : "Fast complete! 🎉"}
-            </p>
+            <div className="mt-4 space-y-1 text-center">
+              <p className="text-sm text-muted-foreground">
+                {remainingMs > 0 ? `Eating window opens at ${endTimeStr}` : "Fast complete! 🎉"}
+              </p>
+              <div className="flex justify-center gap-4 text-xs text-muted-foreground">
+                <span>Started: {format(fastStart, "MMM d, h:mm a")}</span>
+                <span>Opens: {format(fastEnd, "MMM d, h:mm a")}</span>
+              </div>
+            </div>
           </div>
 
           <Button variant="destructive" className="w-full h-12 text-base" onClick={() => endFastMutation.mutate()}>
@@ -294,6 +300,12 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
             <p className="text-4xl font-bold tabular-nums tracking-tight">{ewTimeStr}</p>
             <p className="text-sm text-muted-foreground mt-2">Closes in {ewH}h {ewM}m</p>
             <p className="text-sm text-emerald-600 font-medium mt-1">Meals are available</p>
+            <div className="flex justify-center gap-4 text-xs text-muted-foreground mt-2">
+              {featureSettings?.last_fast_ended_at && (
+                <span>Fast ended: {format(new Date(featureSettings.last_fast_ended_at), "MMM d, h:mm a")}</span>
+              )}
+              <span>Window closes: {format(ewEnd, "MMM d, h:mm a")}</span>
+            </div>
           </div>
           <Button variant="outline" className="w-full h-12 text-base" onClick={() => startFastMutation.mutate()}>
             <Clock className="h-4 w-4 mr-2" /> Start next fast
