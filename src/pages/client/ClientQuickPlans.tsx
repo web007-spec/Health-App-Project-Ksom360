@@ -51,22 +51,29 @@ export default function ClientQuickPlans() {
   });
 
   const selectPlanMutation = useMutation({
-    mutationFn: async (plan: QuickPlan) => {
+    mutationFn: async ({ plan, startNow }: { plan: QuickPlan; startNow: boolean }) => {
+      const updates: Record<string, any> = {
+        selected_quick_plan_id: plan.id,
+        selected_protocol_id: null,
+        protocol_start_date: null,
+        active_fast_target_hours: plan.fast_hours,
+      };
+      if (startNow) {
+        updates.active_fast_start_at = new Date().toISOString();
+        updates.last_fast_ended_at = null;
+        updates.eating_window_ends_at = null;
+      }
       const { error } = await supabase
         .from("client_feature_settings")
-        .update({
-          selected_quick_plan_id: plan.id,
-          selected_protocol_id: null,
-          protocol_start_date: null,
-          active_fast_target_hours: plan.fast_hours,
-        })
+        .update(updates)
         .eq("client_id", clientId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, { startNow }) => {
       queryClient.invalidateQueries({ queryKey: ["my-feature-settings"] });
       queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
-      toast.success("Quick plan selected!");
+      queryClient.invalidateQueries({ queryKey: ["fasting-gate-state"] });
+      toast.success(startNow ? "Fast started!" : "Quick plan selected!");
       navigate("/client/dashboard");
     },
     onError: () => {
@@ -170,10 +177,18 @@ export default function ClientQuickPlans() {
                 </div>
                 <Button
                   className="w-full h-12 text-base"
-                  onClick={() => selectPlanMutation.mutate(selectedPlan)}
+                  onClick={() => selectPlanMutation.mutate({ plan: selectedPlan, startNow: true })}
                   disabled={selectPlanMutation.isPending}
                 >
-                  {selectPlanMutation.isPending ? "Starting..." : "Ready to Start"}
+                  {selectPlanMutation.isPending ? "Starting..." : "Start Fast Now"}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full h-10 text-sm"
+                  onClick={() => selectPlanMutation.mutate({ plan: selectedPlan, startNow: false })}
+                  disabled={selectPlanMutation.isPending}
+                >
+                  Save plan for later
                 </Button>
               </div>
             </>
