@@ -233,7 +233,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
+                <p className="text-xs font-bold text-foreground uppercase tracking-wider">Fasting Protocol</p>
                 {isCoachAssigned && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Coach Assigned</Badge>}
               </div>
               <h3 className="text-base font-bold mt-0.5">{planName}</h3>
