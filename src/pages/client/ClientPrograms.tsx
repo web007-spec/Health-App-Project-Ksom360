@@ -1,27 +1,15 @@
 import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import { format } from "date-fns";
-import { useState } from "react";
 import {
   CATEGORY_CONFIG,
   CATEGORY_ORDER,
-  getDifficultyLabel,
   getDurationLabel,
 } from "@/lib/fastingCategoryConfig";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 interface FastingProtocol {
   id: string;
@@ -34,10 +22,7 @@ interface FastingProtocol {
 }
 
 export default function ClientPrograms() {
-  const clientId = useEffectiveClientId();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [selectedProtocol, setSelectedProtocol] = useState<FastingProtocol | null>(null);
 
   const { data: protocols, isLoading } = useQuery({
     queryKey: ["fasting-protocols"],
@@ -51,29 +36,6 @@ export default function ClientPrograms() {
         ...d,
         difficulty_level: d.difficulty_level || "beginner",
       })) as FastingProtocol[];
-    },
-  });
-
-  const selectProtocolMutation = useMutation({
-    mutationFn: async (protocolId: string) => {
-      const today = format(new Date(), "yyyy-MM-dd");
-      const { error } = await supabase
-        .from("client_feature_settings")
-        .update({
-          selected_protocol_id: protocolId,
-          protocol_start_date: today,
-        })
-        .eq("client_id", clientId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-feature-settings"] });
-      queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
-      toast.success("Protocol selected!");
-      navigate("/client/dashboard");
-    },
-    onError: () => {
-      toast.error("Failed to select protocol");
     },
   });
 
@@ -114,7 +76,7 @@ export default function ClientPrograms() {
                     <Card
                       key={protocol.id}
                       className={`cursor-pointer border-l-4 ${group.config.borderColor} transition-colors hover:bg-muted/30`}
-                      onClick={() => setSelectedProtocol(protocol)}
+                      onClick={() => navigate(`/client/protocol/${protocol.id}`)}
                     >
                       <CardContent className="p-4 space-y-2">
                         <div className="flex items-center gap-3">
@@ -142,71 +104,6 @@ export default function ClientPrograms() {
           })
         )}
       </div>
-
-      {/* Protocol Detail Dialog */}
-      <Dialog open={!!selectedProtocol} onOpenChange={(open) => !open && setSelectedProtocol(null)}>
-        <DialogContent className="sm:max-w-[420px]">
-          {selectedProtocol && (() => {
-            const config = CATEGORY_CONFIG[selectedProtocol.category];
-            const Icon = config?.icon;
-            return (
-              <>
-                <DialogHeader>
-                  <div className="flex items-center gap-3 mb-2">
-                    {config && (
-                      <div className={`h-12 w-12 rounded-full ${config.bgColor} flex items-center justify-center`}>
-                        <Icon className={`h-6 w-6 ${config.color}`} />
-                      </div>
-                    )}
-                    <div>
-                      <DialogTitle className="text-xl">{selectedProtocol.name}</DialogTitle>
-                      <p className={`text-xs font-semibold uppercase tracking-wider ${config?.color || "text-muted-foreground"}`}>
-                        {selectedProtocol.category}
-                      </p>
-                    </div>
-                  </div>
-                </DialogHeader>
-                <div className="space-y-4">
-                  {selectedProtocol.description && (
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {selectedProtocol.description}
-                    </p>
-                  )}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-lg bg-muted/50 p-3 text-center">
-                      <p className="text-2xl font-bold">{selectedProtocol.fast_target_hours}h</p>
-                      <p className="text-xs text-muted-foreground">Fasting Window</p>
-                    </div>
-                    <div className="rounded-lg bg-muted/50 p-3 text-center">
-                      <p className="text-2xl font-bold">
-                        {selectedProtocol.duration_days === 0 ? "∞" : `${selectedProtocol.duration_days}`}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {selectedProtocol.duration_days === 0 ? "Ongoing" : "Days"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {getDurationLabel(selectedProtocol.duration_days)}
-                    </Badge>
-                    <Badge variant="outline" className="text-xs capitalize">
-                      {getDifficultyLabel(selectedProtocol.difficulty_level)}
-                    </Badge>
-                  </div>
-                  <Button
-                    className="w-full h-12 text-base"
-                    onClick={() => selectProtocolMutation.mutate(selectedProtocol.id)}
-                    disabled={selectProtocolMutation.isPending}
-                  >
-                    {selectProtocolMutation.isPending ? "Starting..." : "Ready to Start"}
-                  </Button>
-                </div>
-              </>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
     </ClientLayout>
   );
 }
