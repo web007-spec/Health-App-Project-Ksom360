@@ -2,13 +2,26 @@ import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, ChevronRight, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useState } from "react";
+import {
+  CATEGORY_CONFIG,
+  CATEGORY_ORDER,
+  getDifficultyLabel,
+  getDurationLabel,
+} from "@/lib/fastingCategoryConfig";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface FastingProtocol {
   id: string;
@@ -17,14 +30,14 @@ interface FastingProtocol {
   description: string | null;
   duration_days: number;
   fast_target_hours: number;
+  difficulty_level: string;
 }
-
-const CATEGORY_ORDER = ["FOUNDATIONS", "FAT LOSS", "ENERGY & FOCUS"];
 
 export default function ClientPrograms() {
   const clientId = useEffectiveClientId();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [selectedProtocol, setSelectedProtocol] = useState<FastingProtocol | null>(null);
 
   const { data: protocols, isLoading } = useQuery({
     queryKey: ["fasting-protocols"],
@@ -34,7 +47,10 @@ export default function ClientPrograms() {
         .select("*")
         .order("duration_days");
       if (error) throw error;
-      return data as FastingProtocol[];
+      return (data as any[]).map((d) => ({
+        ...d,
+        difficulty_level: d.difficulty_level || "beginner",
+      })) as FastingProtocol[];
     },
   });
 
@@ -52,6 +68,7 @@ export default function ClientPrograms() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-feature-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
       toast.success("Protocol selected!");
       navigate("/client/dashboard");
     },
@@ -62,6 +79,7 @@ export default function ClientPrograms() {
 
   const grouped = CATEGORY_ORDER.map((cat) => ({
     category: cat,
+    config: CATEGORY_CONFIG[cat],
     items: protocols?.filter((p) => p.category === cat) || [],
   })).filter((g) => g.items.length > 0);
 
@@ -80,43 +98,115 @@ export default function ClientPrograms() {
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
           </div>
         ) : (
-          grouped.map((group) => (
-            <div key={group.category} className="space-y-3">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                {group.category}
-              </h2>
-              {group.items.map((protocol) => (
-                <Card
-                  key={protocol.id}
-                  className="cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => selectProtocolMutation.mutate(protocol.id)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 space-y-1.5">
-                        <h3 className="font-semibold text-base">{protocol.name}</h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          {protocol.description}
-                        </p>
-                        <div className="flex items-center gap-2 pt-1">
-                          <Badge variant="secondary" className="text-xs">
-                            {protocol.duration_days} days
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {protocol.fast_target_hours}h fast
-                          </Badge>
+          grouped.map((group) => {
+            const Icon = group.config.icon;
+            return (
+              <div key={group.category} className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Icon className={`h-5 w-5 ${group.config.color}`} />
+                  <h2 className={`text-xs font-bold uppercase tracking-wider ${group.config.color}`}>
+                    {group.config.label}
+                  </h2>
+                </div>
+                {group.items.map((protocol) => {
+                  const CatIcon = group.config.icon;
+                  return (
+                    <Card
+                      key={protocol.id}
+                      className={`cursor-pointer border-l-4 ${group.config.borderColor} transition-colors hover:bg-muted/30`}
+                      onClick={() => setSelectedProtocol(protocol)}
+                    >
+                      <CardContent className="p-4 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <div className={`h-10 w-10 rounded-full ${group.config.bgColor} flex items-center justify-center shrink-0`}>
+                            <CatIcon className={`h-5 w-5 ${group.config.color}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-base">{protocol.name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {getDurationLabel(protocol.duration_days)}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 mt-1" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ))
+                        {protocol.description && (
+                          <p className="text-sm text-muted-foreground leading-relaxed pl-[52px]">
+                            {protocol.description}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            );
+          })
         )}
       </div>
+
+      {/* Protocol Detail Dialog */}
+      <Dialog open={!!selectedProtocol} onOpenChange={(open) => !open && setSelectedProtocol(null)}>
+        <DialogContent className="sm:max-w-[420px]">
+          {selectedProtocol && (() => {
+            const config = CATEGORY_CONFIG[selectedProtocol.category];
+            const Icon = config?.icon;
+            return (
+              <>
+                <DialogHeader>
+                  <div className="flex items-center gap-3 mb-2">
+                    {config && (
+                      <div className={`h-12 w-12 rounded-full ${config.bgColor} flex items-center justify-center`}>
+                        <Icon className={`h-6 w-6 ${config.color}`} />
+                      </div>
+                    )}
+                    <div>
+                      <DialogTitle className="text-xl">{selectedProtocol.name}</DialogTitle>
+                      <p className={`text-xs font-semibold uppercase tracking-wider ${config?.color || "text-muted-foreground"}`}>
+                        {selectedProtocol.category}
+                      </p>
+                    </div>
+                  </div>
+                </DialogHeader>
+                <div className="space-y-4">
+                  {selectedProtocol.description && (
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {selectedProtocol.description}
+                    </p>
+                  )}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg bg-muted/50 p-3 text-center">
+                      <p className="text-2xl font-bold">{selectedProtocol.fast_target_hours}h</p>
+                      <p className="text-xs text-muted-foreground">Fasting Window</p>
+                    </div>
+                    <div className="rounded-lg bg-muted/50 p-3 text-center">
+                      <p className="text-2xl font-bold">
+                        {selectedProtocol.duration_days === 0 ? "∞" : `${selectedProtocol.duration_days}`}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {selectedProtocol.duration_days === 0 ? "Ongoing" : "Days"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                      {getDurationLabel(selectedProtocol.duration_days)}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs capitalize">
+                      {getDifficultyLabel(selectedProtocol.difficulty_level)}
+                    </Badge>
+                  </div>
+                  <Button
+                    className="w-full h-12 text-base"
+                    onClick={() => selectProtocolMutation.mutate(selectedProtocol.id)}
+                    disabled={selectProtocolMutation.isPending}
+                  >
+                    {selectProtocolMutation.isPending ? "Starting..." : "Ready to Start"}
+                  </Button>
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </ClientLayout>
   );
 }
