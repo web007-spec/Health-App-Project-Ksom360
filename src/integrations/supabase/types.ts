@@ -408,6 +408,8 @@ export type Database = {
       }
       client_feature_settings: {
         Row: {
+          active_fast_start_at: string | null
+          active_fast_target_hours: number | null
           activity_logging_enabled: boolean
           body_metrics_enabled: boolean
           calendar_days_ahead: number
@@ -417,6 +419,7 @@ export type Database = {
           food_journal_enabled: boolean
           goals_enabled: boolean
           id: string
+          last_fast_ended_at: string | null
           macros_enabled: boolean
           meal_plan_add_recipe_books: boolean
           meal_plan_allow_recipe_replacement: boolean
@@ -433,6 +436,8 @@ export type Database = {
           workout_comments_enabled: boolean
         }
         Insert: {
+          active_fast_start_at?: string | null
+          active_fast_target_hours?: number | null
           activity_logging_enabled?: boolean
           body_metrics_enabled?: boolean
           calendar_days_ahead?: number
@@ -442,6 +447,7 @@ export type Database = {
           food_journal_enabled?: boolean
           goals_enabled?: boolean
           id?: string
+          last_fast_ended_at?: string | null
           macros_enabled?: boolean
           meal_plan_add_recipe_books?: boolean
           meal_plan_allow_recipe_replacement?: boolean
@@ -458,6 +464,8 @@ export type Database = {
           workout_comments_enabled?: boolean
         }
         Update: {
+          active_fast_start_at?: string | null
+          active_fast_target_hours?: number | null
           activity_logging_enabled?: boolean
           body_metrics_enabled?: boolean
           calendar_days_ahead?: number
@@ -467,6 +475,7 @@ export type Database = {
           food_journal_enabled?: boolean
           goals_enabled?: boolean
           id?: string
+          last_fast_ended_at?: string | null
           macros_enabled?: boolean
           meal_plan_add_recipe_books?: boolean
           meal_plan_allow_recipe_replacement?: boolean
