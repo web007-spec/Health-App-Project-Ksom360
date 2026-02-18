@@ -111,4 +111,52 @@ export const PROTOCOL_DETAIL_COPY: Record<string, ProtocolDetailCopy> = {
       "Ideal after completing the 7-Day Kickstart or for those familiar with intermittent fasting.",
     ],
   },
+
+  // 28-Day Metabolic Reset
+  "997fa6e0-2992-4a1a-a92d-2c111389131b": {
+    statsLabel: "16–18h",
+    difficultyLabel: "Inter",
+    descriptionOverride: "A structured four-week fasting protocol designed to improve insulin sensitivity, stabilize appetite, and restore metabolic rhythm.",
+    howItWorks: [
+      "The 28-Day Metabolic Reset gradually increases fasting duration to improve metabolic efficiency and appetite regulation.",
+      "By extending fasting windows over four weeks, the body becomes more comfortable using stored fat for energy while maintaining stable blood sugar levels.",
+      "This protocol focuses on consistency, meal quality, and metabolic rhythm.",
+    ],
+    progression: [
+      { label: "Week 1", fastHours: "14h", eatHours: "10h" },
+      { label: "Week 2", fastHours: "16h", eatHours: "8h" },
+      { label: "Week 3", fastHours: "16h", eatHours: "8h" },
+      { label: "Week 4", fastHours: "18h", eatHours: "6h" },
+    ],
+    progressionNote: "The progression allows the body to adapt while strengthening fat-burning efficiency.",
+    schedule: {
+      stopEating: "8:00 PM",
+      breakFast: "12:00–2:00 PM",
+    },
+    scheduleMeals: ["Lunch", "Dinner", "Optional protein snack"],
+    scheduleNote: "Late-night eating should be avoided during this protocol.",
+    mealStrategy: [
+      "Start meals with protein to support muscle maintenance and appetite regulation.",
+      "Focus on: protein-rich meals, vegetables, healthy fats, and lower-carbohydrate foods.",
+      "Avoid processed foods and frequent snacking.",
+    ],
+    whatToExpect: [
+      "Week 1: Routine adjustment",
+      "Week 2: Improved energy stability",
+      "Week 3: Appetite regulation",
+      "Week 4: Stronger fat-burning rhythm",
+    ],
+    whatToExpectNote: "Many clients experience noticeable body-composition changes during this protocol.",
+    coachGuidance: [
+      "Stay hydrated during fasting hours.",
+      "Keep meals nutrient-dense and simple.",
+      "Avoid overeating during the eating window.",
+      "Prioritize sleep and light daily movement.",
+      "Consistency across the full 28 days matters more than perfection.",
+    ],
+    whoThisIsFor: [
+      "Clients ready for a structured metabolic reset.",
+      "Ideal after completing the 21-Day Fat Loss Ladder or for those experienced with intermittent fasting.",
+    ],
+  },
 };
