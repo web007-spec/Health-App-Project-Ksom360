@@ -34,7 +34,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_feature_settings")
-        .select("selected_protocol_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at, eating_window_ends_at, eating_window_hours, fasting_strict_mode")
+        .select("selected_protocol_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at, eating_window_ends_at, eating_window_hours, fasting_strict_mode, protocol_assigned_by")
         .eq("client_id", clientId)
         .maybeSingle();
       if (error) throw error;
@@ -47,6 +47,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
         eating_window_ends_at: string | null;
         eating_window_hours: number;
         fasting_strict_mode: boolean;
+        protocol_assigned_by: string | null;
       } | null;
     },
     enabled: !!clientId,
@@ -138,6 +139,8 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     );
   }
 
+  const isCoachAssigned = !!featureSettings?.protocol_assigned_by;
+
   const startDate = featureSettings.protocol_start_date ? new Date(featureSettings.protocol_start_date + "T00:00:00") : new Date();
   const dayNumber = Math.min(differenceInCalendarDays(new Date(), startDate) + 1, activeProtocol.duration_days);
 
@@ -167,7 +170,10 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
         <CardContent className="p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
+                {isCoachAssigned && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Coach Assigned</Badge>}
+              </div>
               <h3 className="text-base font-bold mt-0.5">{activeProtocol.name}</h3>
             </div>
             <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol.duration_days}</Badge>
@@ -220,7 +226,10 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
         <CardContent className="p-5 space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
+                {isCoachAssigned && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Coach Assigned</Badge>}
+              </div>
               <h3 className="text-base font-bold mt-0.5">{activeProtocol.name}</h3>
             </div>
             <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol.duration_days}</Badge>
@@ -245,7 +254,10 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
       <CardContent className="p-5 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
+              {isCoachAssigned && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Coach Assigned</Badge>}
+            </div>
             <h3 className="text-base font-bold mt-0.5">{activeProtocol.name}</h3>
           </div>
           <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol.duration_days}</Badge>
@@ -254,6 +266,16 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
         <Button className="w-full" onClick={() => startFastMutation.mutate()}>
           <Clock className="h-4 w-4 mr-2" /> Start Fast
         </Button>
+        {isCoachAssigned && (
+          <p className="text-[11px] text-muted-foreground text-center">
+            Need a different plan? Message your coach.
+          </p>
+        )}
+        {!isCoachAssigned && (
+          <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => navigate("/client/programs")}>
+            Change protocol
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

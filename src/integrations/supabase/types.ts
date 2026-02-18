@@ -431,6 +431,7 @@ export type Database = {
           meal_plan_type: string
           messages_enabled: boolean
           progress_photos_enabled: boolean
+          protocol_assigned_by: string | null
           protocol_start_date: string | null
           selected_protocol_id: string | null
           tasks_enabled: boolean
@@ -463,6 +464,7 @@ export type Database = {
           meal_plan_type?: string
           messages_enabled?: boolean
           progress_photos_enabled?: boolean
+          protocol_assigned_by?: string | null
           protocol_start_date?: string | null
           selected_protocol_id?: string | null
           tasks_enabled?: boolean
@@ -495,6 +497,7 @@ export type Database = {
           meal_plan_type?: string
           messages_enabled?: boolean
           progress_photos_enabled?: boolean
+          protocol_assigned_by?: string | null
           protocol_start_date?: string | null
           selected_protocol_id?: string | null
           tasks_enabled?: boolean

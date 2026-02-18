@@ -14,6 +14,14 @@ import { ClientSportProfileEditor } from "./ClientSportProfileEditor";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { ClientRemindersSection } from "@/components/ClientRemindersSection";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { useState } from "react";
 
 interface ClientSettingsTabProps {
   clientId: string;
@@ -409,9 +417,152 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
         </CardContent>
       </Card>
 
+      <FastingProtocolAssignment clientId={clientId} trainerId={trainerId} settings={settings} />
       <FastingStrictModeSettings settings={settings} toggleMutation={toggleMutation} />
 
       <ClientRemindersSection clientId={clientId} />
     </div>
+  );
+}
+
+// Coach-assigned fasting protocol card
+function FastingProtocolAssignment({ clientId, trainerId, settings }: { clientId: string; trainerId: string; settings: any }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [selectedProtocolId, setSelectedProtocolId] = useState<string>(settings?.selected_protocol_id || "");
+  const [startDate, setStartDate] = useState<Date>(
+    settings?.protocol_start_date ? new Date(settings.protocol_start_date + "T00:00:00") : new Date()
+  );
+
+  if (!settings?.fasting_enabled) return null;
+
+  const { data: protocols } = useQuery({
+    queryKey: ["fasting-protocols-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fasting_protocols")
+        .select("*")
+        .order("category", { ascending: true })
+        .order("duration_days", { ascending: true });
+      if (error) throw error;
+      return data as { id: string; name: string; category: string; duration_days: number; fast_target_hours: number; description: string | null }[];
+    },
+  });
+
+  const { data: currentProtocol } = useQuery({
+    queryKey: ["current-fasting-protocol", settings?.selected_protocol_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fasting_protocols")
+        .select("*")
+        .eq("id", settings.selected_protocol_id)
+        .single();
+      if (error) throw error;
+      return data as { id: string; name: string; category: string; duration_days: number; fast_target_hours: number };
+    },
+    enabled: !!settings?.selected_protocol_id,
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("client_feature_settings")
+        .update({
+          selected_protocol_id: selectedProtocolId,
+          protocol_start_date: format(startDate, "yyyy-MM-dd"),
+          protocol_assigned_by: trainerId,
+        })
+        .eq("client_id", clientId)
+        .eq("trainer_id", trainerId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client-feature-settings", clientId] });
+      queryClient.invalidateQueries({ queryKey: ["current-fasting-protocol"] });
+      toast({ title: "Protocol assigned", description: "Fasting protocol has been assigned to this client." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to assign protocol", variant: "destructive" });
+    },
+  });
+
+  const selectedInfo = protocols?.find(p => p.id === selectedProtocolId);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Clock className="h-5 w-5" />
+          Fasting Protocol Assignment
+        </CardTitle>
+        <CardDescription>
+          Assign a fasting protocol to this client. They'll see it on their Today screen with your coaching guidance.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {currentProtocol && (
+          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Current Protocol</p>
+            <p className="text-sm font-bold mt-1">{currentProtocol.name}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {currentProtocol.duration_days} days • {currentProtocol.fast_target_hours}h fasts
+              {settings?.protocol_start_date && ` • Started ${format(new Date(settings.protocol_start_date + "T00:00:00"), "MMM d, yyyy")}`}
+            </p>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Protocol</Label>
+          <Select value={selectedProtocolId} onValueChange={setSelectedProtocolId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a protocol..." />
+            </SelectTrigger>
+            <SelectContent>
+              {protocols?.map(p => (
+                <SelectItem key={p.id} value={p.id}>
+                  <span className="font-medium">{p.name}</span>
+                  <span className="text-muted-foreground ml-2 text-xs">({p.duration_days}d • {p.fast_target_hours}h)</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedInfo?.description && (
+            <p className="text-xs text-muted-foreground">{selectedInfo.description}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Start Date</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {startDate ? format(startDate, "PPP") : "Pick a date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={startDate}
+                onSelect={(d) => d && setStartDate(d)}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <Button
+          className="w-full"
+          disabled={!selectedProtocolId || assignMutation.isPending}
+          onClick={() => assignMutation.mutate()}
+        >
+          {assignMutation.isPending ? "Saving..." : currentProtocol ? "Update Protocol" : "Assign Protocol"}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
