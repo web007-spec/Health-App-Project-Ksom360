@@ -59,8 +59,8 @@ export function FastingTimer({ fastStartAt, targetHours, now, demoProgress }: Fa
   const currentStage = [...FASTING_STAGES].reverse().find(s => elapsedHours >= s.hour) || FASTING_STAGES[0];
 
   // SVG dimensions
-  const size = 280;
-  const bandWidth = 28;
+  const size = 320;
+  const bandWidth = 44;
   const radius = (size - bandWidth) / 2;
   const cx = size / 2;
   const cy = size / 2;
