@@ -35,7 +35,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_feature_settings")
-        .select("selected_protocol_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at, eating_window_ends_at, eating_window_hours, fasting_strict_mode, protocol_assigned_by")
+        .select("selected_protocol_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at, eating_window_ends_at, eating_window_hours, fasting_strict_mode, protocol_assigned_by, fasting_card_subtitle")
         .eq("client_id", clientId)
         .maybeSingle();
       if (error) throw error;
@@ -49,6 +49,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
         eating_window_hours: number;
         fasting_strict_mode: boolean;
         protocol_assigned_by: string | null;
+        fasting_card_subtitle: string | null;
       } | null;
     },
     enabled: !!clientId,
@@ -117,6 +118,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
       queryClient.invalidateQueries({ queryKey: ["fasting-gate-state"] });
     },
   });
+  const fastingSubtitle = featureSettings?.fasting_card_subtitle || "Fasting is the foundation of your KSOM360 plan.";
 
   // No protocol selected — empty state
   if (!featureSettings?.selected_protocol_id || !activeProtocol) {
@@ -129,7 +131,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
           <div>
             <h3 className="text-xl font-bold">Start Your Fasting Protocol</h3>
             <p className="text-sm text-muted-foreground mt-1.5">
-              Fasting is the foundation of your KSOM360 plan.
+              {fastingSubtitle}
             </p>
           </div>
           <Button className="w-full h-12 text-base" onClick={() => navigate("/client/programs")}>
@@ -807,13 +809,22 @@ export default function ClientDashboard() {
         <div className="flex items-center justify-between pt-2">
           <div>
             <p className="text-xs font-semibold text-muted-foreground tracking-wider">{todayDate}</p>
-            <h1 className="text-2xl font-bold mt-0.5">Hello, {firstName}! 👋</h1>
-            <p className="text-sm text-muted-foreground font-medium mt-0.5">Let's do this</p>
+            <h1 className="text-2xl font-bold mt-0.5">Hello, {firstName}! {settings.greeting_emoji || '👋'}</h1>
+            <p className="text-sm text-muted-foreground font-medium mt-0.5">{settings.greeting_subtitle || 'Let\'s do this'}</p>
           </div>
           <Button variant="ghost" size="icon" className="relative" onClick={() => navigate("/client/settings")}>
             <Bell className="h-5 w-5" />
           </Button>
         </div>
+
+        {/* Dashboard Hero Message */}
+        {settings.dashboard_hero_message && (
+          <Card className="overflow-hidden border-primary/20 bg-primary/5">
+            <CardContent className="px-5 py-4">
+              <p className="text-sm font-medium text-foreground">{settings.dashboard_hero_message}</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Day Strip Calendar */}
         {settings.calendar_days_ahead > 0 && clientId && (

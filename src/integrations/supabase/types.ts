@@ -415,12 +415,17 @@ export type Database = {
           calendar_days_ahead: number
           client_id: string
           created_at: string
+          dashboard_hero_image_url: string | null
+          dashboard_hero_message: string | null
           eating_window_ends_at: string | null
           eating_window_hours: number
+          fasting_card_subtitle: string
           fasting_enabled: boolean
           fasting_strict_mode: boolean
           food_journal_enabled: boolean
           goals_enabled: boolean
+          greeting_emoji: string
+          greeting_subtitle: string
           id: string
           last_fast_completed_at: string | null
           last_fast_ended_at: string | null
@@ -449,12 +454,17 @@ export type Database = {
           calendar_days_ahead?: number
           client_id: string
           created_at?: string
+          dashboard_hero_image_url?: string | null
+          dashboard_hero_message?: string | null
           eating_window_ends_at?: string | null
           eating_window_hours?: number
+          fasting_card_subtitle?: string
           fasting_enabled?: boolean
           fasting_strict_mode?: boolean
           food_journal_enabled?: boolean
           goals_enabled?: boolean
+          greeting_emoji?: string
+          greeting_subtitle?: string
           id?: string
           last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
@@ -483,12 +493,17 @@ export type Database = {
           calendar_days_ahead?: number
           client_id?: string
           created_at?: string
+          dashboard_hero_image_url?: string | null
+          dashboard_hero_message?: string | null
           eating_window_ends_at?: string | null
           eating_window_hours?: number
+          fasting_card_subtitle?: string
           fasting_enabled?: boolean
           fasting_strict_mode?: boolean
           food_journal_enabled?: boolean
           goals_enabled?: boolean
+          greeting_emoji?: string
+          greeting_subtitle?: string
           id?: string
           last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
