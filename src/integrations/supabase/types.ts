@@ -434,6 +434,7 @@ export type Database = {
           protocol_assigned_by: string | null
           protocol_start_date: string | null
           selected_protocol_id: string | null
+          sport_schedule_enabled: boolean
           tasks_enabled: boolean
           trainer_id: string
           training_enabled: boolean
@@ -467,6 +468,7 @@ export type Database = {
           protocol_assigned_by?: string | null
           protocol_start_date?: string | null
           selected_protocol_id?: string | null
+          sport_schedule_enabled?: boolean
           tasks_enabled?: boolean
           trainer_id: string
           training_enabled?: boolean
@@ -500,6 +502,7 @@ export type Database = {
           protocol_assigned_by?: string | null
           protocol_start_date?: string | null
           selected_protocol_id?: string | null
+          sport_schedule_enabled?: boolean
           tasks_enabled?: boolean
           trainer_id?: string
           training_enabled?: boolean
