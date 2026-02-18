@@ -43,88 +43,75 @@ export function FastingTimer({ fastStartAt, targetHours, now }: FastingTimerProp
   // Current active stage
   const currentStage = [...FASTING_STAGES].reverse().find(s => elapsedHours >= s.hour) || FASTING_STAGES[0];
 
-  // SVG dimensions
+  // SVG dimensions — thick solid band with center divider line
   const size = 280;
-  const outerStroke = 12;
-  const innerStroke = 8;
-  const outerRadius = (size - outerStroke) / 2;
-  const innerRadius = outerRadius - 18;
-  const outerCircumference = 2 * Math.PI * outerRadius;
-  const innerCircumference = 2 * Math.PI * innerRadius;
-  const outerDashOffset = outerCircumference * (1 - progress);
+  const bandWidth = 28;
+  const radius = (size - bandWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const dashOffset = circumference * (1 - progress);
+  // Thin divider ring in the middle of the band
+  const dividerRadius = radius;
 
-  // Position a stage icon on the outer ring
+  // Position a stage icon on the ring
   function getStagePosition(hour: number) {
     const fraction = Math.min(hour / targetHours, 1);
-    const angle = fraction * 360 - 90; // start from top
+    const angle = fraction * 360 - 90;
     const rad = (angle * Math.PI) / 180;
-    const cx = size / 2 + outerRadius * Math.cos(rad);
-    const cy = size / 2 + outerRadius * Math.sin(rad);
+    const cx = size / 2 + radius * Math.cos(rad);
+    const cy = size / 2 + radius * Math.sin(rad);
     return { cx, cy };
   }
 
   // Indicator dot position (progress marker)
   const indicatorAngle = progress * 360 - 90;
   const indicatorRad = (indicatorAngle * Math.PI) / 180;
-  const indicatorX = size / 2 + outerRadius * Math.cos(indicatorRad);
-  const indicatorY = size / 2 + outerRadius * Math.sin(indicatorRad);
+  const indicatorX = size / 2 + radius * Math.cos(indicatorRad);
+  const indicatorY = size / 2 + radius * Math.sin(indicatorRad);
 
   return (
     <div className="flex flex-col items-center">
       {/* Timer Ring */}
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} className="-rotate-90">
-          {/* Outer track (dark) */}
+          {/* Solid band track (background) */}
           <circle
-            cx={size / 2} cy={size / 2} r={outerRadius}
+            cx={size / 2} cy={size / 2} r={radius}
             fill="none"
             stroke="hsl(var(--muted))"
-            strokeWidth={outerStroke}
-            opacity={0.25}
+            strokeWidth={bandWidth}
+            opacity={0.2}
           />
-          {/* Inner track (subtle ring) */}
+          {/* Progress arc (fills the solid band) */}
           <circle
-            cx={size / 2} cy={size / 2} r={innerRadius}
-            fill="none"
-            stroke="hsl(var(--muted))"
-            strokeWidth={innerStroke}
-            opacity={0.12}
-          />
-          {/* Inner subtle fill — elapsed time as a faint glow */}
-          <circle
-            cx={size / 2} cy={size / 2} r={innerRadius}
+            cx={size / 2} cy={size / 2} r={radius}
             fill="none"
             stroke="hsl(var(--primary))"
-            strokeWidth={innerStroke}
-            strokeLinecap="round"
-            strokeDasharray={innerCircumference}
-            strokeDashoffset={innerCircumference * (1 - progress)}
-            opacity={0.15}
-            className="transition-[stroke-dashoffset] duration-1000 ease-linear"
-          />
-          {/* Outer progress arc */}
-          <circle
-            cx={size / 2} cy={size / 2} r={outerRadius}
-            fill="none"
-            stroke="hsl(var(--primary))"
-            strokeWidth={outerStroke}
-            strokeLinecap="round"
-            strokeDasharray={outerCircumference}
-            strokeDashoffset={outerDashOffset}
+            strokeWidth={bandWidth}
+            strokeLinecap="butt"
+            strokeDasharray={circumference}
+            strokeDashoffset={dashOffset}
             className="transition-[stroke-dashoffset] duration-1000 ease-linear"
             style={{
-              filter: "drop-shadow(0 0 6px hsl(var(--primary) / 0.5))",
+              filter: "drop-shadow(0 0 8px hsl(var(--primary) / 0.4))",
             }}
           />
-          {/* Progress indicator dot */}
+          {/* Thin center divider line through the band */}
+          <circle
+            cx={size / 2} cy={size / 2} r={dividerRadius}
+            fill="none"
+            stroke="hsl(var(--background))"
+            strokeWidth={1.5}
+            opacity={0.5}
+          />
+          {/* Progress indicator nub at leading edge */}
           {progress > 0.005 && (
             <circle
-              cx={indicatorX} cy={indicatorY} r={7}
+              cx={indicatorX} cy={indicatorY} r={8}
               fill="hsl(var(--primary))"
               stroke="hsl(var(--background))"
-              strokeWidth={2}
+              strokeWidth={2.5}
               style={{
-                filter: "drop-shadow(0 0 4px hsl(var(--primary) / 0.6))",
+                filter: "drop-shadow(0 0 6px hsl(var(--primary) / 0.6))",
               }}
             />
           )}
