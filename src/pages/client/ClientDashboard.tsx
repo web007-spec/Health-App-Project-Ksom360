@@ -158,9 +158,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
             <CardContent className="relative z-10 min-h-[240px] flex flex-col justify-end p-5 space-y-3">
               <div className="text-left">
-                <p className="text-xs font-semibold uppercase tracking-wider text-white/70 mb-1">Fasting</p>
-                <h3 className="text-lg font-bold text-white drop-shadow-lg">Start Your Fasting Protocol</h3>
-                <p className="text-sm text-white/80 drop-shadow-md mt-0.5">
+                <p className="text-base font-bold text-white drop-shadow-lg">
                   {fastingSubtitle}
                 </p>
               </div>
@@ -175,12 +173,8 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
           </>
         ) : (
           <CardContent className="px-6 py-8 text-center space-y-4">
-            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-              <Clock className="h-8 w-8 text-primary" />
-            </div>
             <div>
-              <h3 className="text-xl font-bold">Start Your Fasting Protocol</h3>
-              <p className="text-sm text-muted-foreground mt-1.5">
+              <p className="text-base font-bold">
                 {fastingSubtitle}
               </p>
             </div>
