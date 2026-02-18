@@ -121,18 +121,18 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
   // No protocol selected — empty state
   if (!featureSettings?.selected_protocol_id || !activeProtocol) {
     return (
-      <Card className="overflow-hidden border-primary/20">
-        <CardContent className="p-6 text-center space-y-3">
-          <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-            <Clock className="h-7 w-7 text-primary" />
+      <Card className="overflow-hidden border-primary/20 shadow-lg">
+        <CardContent className="px-6 py-8 text-center space-y-4">
+          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+            <Clock className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h3 className="text-lg font-bold">Start Your Fasting Protocol</h3>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h3 className="text-xl font-bold">Start Your Fasting Protocol</h3>
+            <p className="text-sm text-muted-foreground mt-1.5">
               Fasting is the foundation of your KSOM360 plan.
             </p>
           </div>
-          <Button className="w-full" onClick={() => navigate("/client/programs")}>
+          <Button className="w-full h-12 text-base" onClick={() => navigate("/client/programs")}>
             Choose Protocol
           </Button>
         </CardContent>
@@ -159,16 +159,16 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     const timeStr = `${String(remainH).padStart(2, "0")}:${String(remainM).padStart(2, "0")}:${String(remainS).padStart(2, "0")}`;
     const endTimeStr = fastEnd.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
-    // SVG ring params
-    const size = 180;
-    const stroke = 10;
+    // SVG ring params — hero-sized like Apple Activity / Zero
+    const size = 240;
+    const stroke = 14;
     const radius = (size - stroke) / 2;
     const circumference = 2 * Math.PI * radius;
     const dashOffset = circumference * (1 - progress);
 
     return (
-      <Card className="overflow-hidden border-primary/20">
-        <CardContent className="p-5 space-y-4">
+      <Card className="overflow-hidden border-primary/20 shadow-lg">
+        <CardContent className="px-5 pt-8 pb-6 space-y-5">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
@@ -180,11 +180,11 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
             <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol.duration_days}</Badge>
           </div>
 
-          {/* Circular Timer */}
-          <div className="flex flex-col items-center py-2">
+          {/* Hero Circular Timer */}
+          <div className="flex flex-col items-center py-4">
             <div className="relative" style={{ width: size, height: size }}>
               <svg width={size} height={size} className="-rotate-90">
-                <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(var(--muted))" strokeWidth={stroke} />
+                <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(var(--muted))" strokeWidth={stroke} opacity={0.4} />
                 <circle
                   cx={size / 2} cy={size / 2} r={radius} fill="none"
                   stroke="hsl(var(--primary))"
@@ -196,16 +196,16 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-bold tabular-nums">{timeStr}</span>
-                <span className="text-xs text-muted-foreground mt-1">remaining</span>
+                <span className="text-4xl font-bold tabular-nums tracking-tight">{timeStr}</span>
+                <span className="text-sm text-muted-foreground mt-1.5">remaining</span>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground mt-3">
+            <p className="text-sm text-muted-foreground mt-4">
               {remainingMs > 0 ? `Eating window opens at ${endTimeStr}` : "Fast complete! 🎉"}
             </p>
           </div>
 
-          <Button variant="destructive" className="w-full" onClick={() => endFastMutation.mutate()}>
+          <Button variant="destructive" className="w-full h-12 text-base" onClick={() => endFastMutation.mutate()}>
             End Fast
           </Button>
         </CardContent>
@@ -223,8 +223,8 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     const ewTimeStr = `${String(ewH).padStart(2, "0")}:${String(ewM).padStart(2, "0")}:${String(ewS).padStart(2, "0")}`;
 
     return (
-      <Card className="overflow-hidden border-primary/20">
-        <CardContent className="p-5 space-y-3">
+      <Card className="overflow-hidden border-primary/20 shadow-lg">
+        <CardContent className="px-5 pt-8 pb-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
@@ -235,13 +235,13 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
             </div>
             <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol.duration_days}</Badge>
           </div>
-          <div className="text-center py-2">
-            <Badge className="mb-2 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10">Eating Window</Badge>
-            <p className="text-2xl font-bold tabular-nums">{ewTimeStr}</p>
-            <p className="text-xs text-muted-foreground mt-1">Closes in {ewH}h {ewM}m</p>
-            <p className="text-xs text-emerald-600 font-medium mt-1">Meals are available</p>
+          <div className="text-center py-6">
+            <Badge className="mb-3 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10">Eating Window</Badge>
+            <p className="text-4xl font-bold tabular-nums tracking-tight">{ewTimeStr}</p>
+            <p className="text-sm text-muted-foreground mt-2">Closes in {ewH}h {ewM}m</p>
+            <p className="text-sm text-emerald-600 font-medium mt-1">Meals are available</p>
           </div>
-          <Button variant="outline" className="w-full" onClick={() => startFastMutation.mutate()}>
+          <Button variant="outline" className="w-full h-12 text-base" onClick={() => startFastMutation.mutate()}>
             <Clock className="h-4 w-4 mr-2" /> Start next fast
           </Button>
         </CardContent>
@@ -251,8 +251,8 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
 
   // Not fasting — ready state
   return (
-    <Card className="overflow-hidden border-primary/20">
-      <CardContent className="p-5 space-y-3">
+    <Card className="overflow-hidden border-primary/20 shadow-lg">
+      <CardContent className="px-5 pt-8 pb-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -263,8 +263,10 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
           </div>
           <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol.duration_days}</Badge>
         </div>
-        <p className="text-sm text-muted-foreground">Ready to start your next fast</p>
-        <Button className="w-full" onClick={() => startFastMutation.mutate()}>
+        <div className="text-center py-6">
+          <p className="text-lg text-muted-foreground">Ready to start your next fast</p>
+        </div>
+        <Button className="w-full h-12 text-base" onClick={() => startFastMutation.mutate()}>
           <Clock className="h-4 w-4 mr-2" /> Start Fast
         </Button>
         {isCoachAssigned && (
