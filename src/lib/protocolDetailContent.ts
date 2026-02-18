@@ -159,4 +159,48 @@ export const PROTOCOL_DETAIL_COPY: Record<string, ProtocolDetailCopy> = {
       "Ideal after completing the 21-Day Fat Loss Ladder or for those experienced with intermittent fasting.",
     ],
   },
+
+  // 7-Day Energy Reset
+  "81ee7723-9a87-4fd6-bc4c-1e1ceac2e009": {
+    statsLabel: "13–14h",
+    descriptionOverride: "A gentle fasting protocol designed to stabilize blood sugar, reduce energy crashes, and restore daily rhythm.",
+    howItWorks: [
+      "The 7-Day Energy Reset focuses on stabilizing energy levels through consistent fasting windows and balanced meals.",
+      "Instead of pushing longer fasts, this protocol prioritizes metabolic rhythm, hydration, and meal timing to reduce fatigue and improve daily focus.",
+      "This is often used as a reset after inconsistent eating patterns.",
+    ],
+    progression: [
+      { label: "Days 1–3", fastHours: "13h", eatHours: "11h" },
+      { label: "Days 4–7", fastHours: "14h", eatHours: "10h" },
+    ],
+    progressionNote: "The small increase supports steady energy without stress.",
+    schedule: {
+      stopEating: "8:00 PM",
+      breakFast: "9:00–10:00 AM",
+    },
+    scheduleMeals: ["Breakfast or late breakfast", "Lunch", "Dinner"],
+    scheduleNote: "Avoid late-night snacking during this protocol.",
+    mealStrategy: [
+      "Focus on steady energy meals.",
+      "Prioritize: protein, healthy fats, whole foods, and fiber-rich vegetables.",
+      "Avoid: sugar-heavy foods, large late-night meals, and frequent snacking.",
+    ],
+    whatToExpect: [
+      "First few days: More awareness of hunger timing",
+      "Mid-week: Reduced afternoon energy crashes",
+      "End of week: More stable daily energy and improved focus",
+    ],
+    whatToExpectNote: "Many clients notice better sleep patterns during this protocol.",
+    coachGuidance: [
+      "Hydration is essential during fasting hours.",
+      "Keep meal timing consistent each day.",
+      "Avoid skipping meals during the eating window.",
+      "Light movement supports energy regulation.",
+      "This protocol is about rhythm, not restriction.",
+    ],
+    whoThisIsFor: [
+      "Clients experiencing energy crashes or inconsistent eating patterns.",
+      "Ideal for beginners or as a reset between more intensive protocols.",
+    ],
+  },
 };
