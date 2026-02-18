@@ -27,6 +27,7 @@ export interface ClientFeatureSettings {
   fasting_card_subtitle: string;
   dashboard_hero_image_url: string | null;
   dashboard_hero_message: string | null;
+  fasting_card_image_url: string | null;
 }
 
 const DEFAULT_SETTINGS: ClientFeatureSettings = {
@@ -54,6 +55,7 @@ const DEFAULT_SETTINGS: ClientFeatureSettings = {
   fasting_card_subtitle: "Fasting is the foundation of your KSOM360 plan.",
   dashboard_hero_image_url: null,
   dashboard_hero_message: null,
+  fasting_card_image_url: null,
 };
 
 export function useClientFeatureSettings() {
