@@ -385,4 +385,50 @@ export const PROTOCOL_DETAIL_COPY: Record<string, ProtocolDetailCopy> = {
       "Ideal after completing Health Foundations.",
     ],
   },
+
+  // 28-Day Advanced Health Protocol
+  "60d4f421-e473-46ec-8977-738bf71bcfc3": {
+    statsLabel: "16–18h",
+    difficultyLabel: "Adv",
+    descriptionOverride: "Leverages longer fasting windows to support cellular repair and metabolic flexibility.",
+    howItWorks: [
+      "The Advanced Health Protocol introduces longer fasting windows to support deeper metabolic adaptation.",
+      "Extended fasting periods may support cellular repair processes, improved insulin sensitivity, and metabolic flexibility.",
+      "This protocol emphasizes consistency, recovery, and high-quality nutrition.",
+    ],
+    progression: [
+      { label: "Week 1", fastHours: "16h", eatHours: "8h" },
+      { label: "Week 2", fastHours: "17h", eatHours: "7h" },
+      { label: "Week 3", fastHours: "18h", eatHours: "6h" },
+      { label: "Week 4", fastHours: "18h", eatHours: "6h" },
+    ],
+    schedule: {
+      stopEating: "7:00–8:00 PM",
+      breakFast: "1:00–2:00 PM",
+    },
+    scheduleMeals: ["Lunch", "Dinner"],
+    scheduleNote: "Snacking is discouraged.",
+    mealStrategy: [
+      "Meals should be nutrient-dense and protein-focused.",
+      "Prioritize: protein-rich meals, healthy fats, vegetables, and whole foods.",
+      "Avoid: highly processed foods, sugar-heavy snacks, and frequent eating.",
+      "Quality matters more than quantity.",
+    ],
+    whatToExpect: [
+      "Week 1: Adjustment to longer fasting windows",
+      "Week 2: Appetite stabilization",
+      "Week 3: Consistent energy between meals",
+      "Week 4: Strong metabolic rhythm",
+    ],
+    coachGuidance: [
+      "Stay hydrated during fasting hours.",
+      "Keep meals simple and nutrient-dense.",
+      "Avoid overeating during the eating window.",
+      "Prioritize sleep and recovery.",
+    ],
+    whoThisIsFor: [
+      "Clients experienced with fasting and comfortable with 16-hour windows.",
+      "Ideal after completing Health Reset or Metabolic Reset protocols.",
+    ],
+  },
 };
