@@ -1008,10 +1008,10 @@ export default function ClientDashboard() {
       {/* Floating Message Button */}
       <button
         onClick={() => navigate("/client/messages")}
-        className="fixed bottom-20 right-4 z-30 w-12 h-12 rounded-full bg-amber-400 hover:bg-amber-500 shadow-lg flex items-center justify-center transition-colors"
+        className="fixed bottom-20 right-4 z-30 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 overflow-hidden"
         aria-label="Messages"
       >
-        <MessageCircle className="h-5 w-5 text-white" />
+        <img src="/logo.png" alt="Messages" className="w-full h-full object-cover" />
       </button>
 
       <QuickCardioFlow
