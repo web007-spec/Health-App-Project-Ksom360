@@ -36,7 +36,7 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
       if (password.length < 6) {
         throw new Error("Password must be at least 6 characters");
       }
-      const loginUrl = `${window.location.origin}/auth`;
+      const loginUrl = "https://ksom-360.app/auth";
       const { data, error } = await supabase.functions.invoke("create-client", {
         body: {
           email: email.trim(),
@@ -78,9 +78,11 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
     addClientMutation.mutate();
   };
 
+  const productionUrl = "https://ksom-360.app";
+
   const getShareText = () => {
     if (!createdCredentials) return "";
-    return `Hey ${createdCredentials.name}! Your KSOM360 account is ready 💪\n\nLogin here: ${window.location.origin}/auth\nEmail: ${createdCredentials.email}\nPassword: ${createdCredentials.password}`;
+    return `Hey ${createdCredentials.name}! Your KSOM360 account is ready 💪\n\nLogin here: ${productionUrl}/auth\nEmail: ${createdCredentials.email}\nPassword: ${createdCredentials.password}`;
   };
 
   const handleCopy = async () => {
@@ -124,7 +126,7 @@ export function AddClientDialog({ open, onOpenChange }: AddClientDialogProps) {
             <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-3 text-sm font-mono">
               <div>
                 <div className="text-muted-foreground text-xs mb-1">Login URL</div>
-                <div className="select-all break-all">{window.location.origin}/auth</div>
+                <div className="select-all break-all">https://ksom-360.app/auth</div>
               </div>
               <div>
                 <div className="text-muted-foreground text-xs mb-1">Email</div>
