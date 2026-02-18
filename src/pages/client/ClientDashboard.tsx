@@ -34,7 +34,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_feature_settings")
-        .select("selected_protocol_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at")
+        .select("selected_protocol_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at, eating_window_ends_at, eating_window_hours, fasting_strict_mode")
         .eq("client_id", clientId)
         .maybeSingle();
       if (error) throw error;
@@ -44,6 +44,9 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
         active_fast_start_at: string | null;
         active_fast_target_hours: number | null;
         last_fast_ended_at: string | null;
+        eating_window_ends_at: string | null;
+        eating_window_hours: number;
+        fasting_strict_mode: boolean;
       } | null;
     },
     enabled: !!clientId,
@@ -64,13 +67,14 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
   });
 
   const isFasting = !!featureSettings?.active_fast_start_at;
+  const hasEatingWindow = !!featureSettings?.eating_window_ends_at && new Date(featureSettings.eating_window_ends_at) > now;
 
-  // Tick every second while fasting
+  // Tick every second while fasting or eating window is active
   useEffect(() => {
-    if (!isFasting) return;
+    if (!isFasting && !hasEatingWindow) return;
     const interval = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(interval);
-  }, [isFasting]);
+  }, [isFasting, hasEatingWindow]);
 
   const startFastMutation = useMutation({
     mutationFn: async () => {
@@ -92,18 +96,23 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
 
   const endFastMutation = useMutation({
     mutationFn: async () => {
+      const eatingWindowHours = featureSettings?.eating_window_hours || 8;
+      const eatingWindowEnd = new Date(Date.now() + eatingWindowHours * 3600000).toISOString();
       const { error } = await supabase
         .from("client_feature_settings")
         .update({
           last_fast_ended_at: new Date().toISOString(),
+          last_fast_completed_at: new Date().toISOString(),
           active_fast_start_at: null,
           active_fast_target_hours: null,
+          eating_window_ends_at: eatingWindowEnd,
         })
         .eq("client_id", clientId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
+      queryClient.invalidateQueries({ queryKey: ["fasting-gate-state"] });
     },
   });
 
@@ -197,6 +206,39 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     );
   }
 
+  // Eating window active state
+  if (hasEatingWindow && featureSettings?.eating_window_ends_at) {
+    const ewEnd = new Date(featureSettings.eating_window_ends_at);
+    const ewRemainingMs = Math.max(ewEnd.getTime() - now.getTime(), 0);
+    const ewH = Math.floor(ewRemainingMs / 3600000);
+    const ewM = Math.floor((ewRemainingMs % 3600000) / 60000);
+    const ewS = Math.floor((ewRemainingMs % 60000) / 1000);
+    const ewTimeStr = `${String(ewH).padStart(2, "0")}:${String(ewM).padStart(2, "0")}:${String(ewS).padStart(2, "0")}`;
+
+    return (
+      <Card className="overflow-hidden border-primary/20">
+        <CardContent className="p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
+              <h3 className="text-base font-bold mt-0.5">{activeProtocol.name}</h3>
+            </div>
+            <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol.duration_days}</Badge>
+          </div>
+          <div className="text-center py-2">
+            <Badge className="mb-2 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10">Eating Window</Badge>
+            <p className="text-2xl font-bold tabular-nums">{ewTimeStr}</p>
+            <p className="text-xs text-muted-foreground mt-1">Closes in {ewH}h {ewM}m</p>
+            <p className="text-xs text-emerald-600 font-medium mt-1">Meals are available</p>
+          </div>
+          <Button variant="outline" className="w-full" onClick={() => startFastMutation.mutate()}>
+            <Clock className="h-4 w-4 mr-2" /> Start next fast
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Not fasting — ready state
   return (
     <Card className="overflow-hidden border-primary/20">
@@ -208,7 +250,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
           </div>
           <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol.duration_days}</Badge>
         </div>
-        <p className="text-sm text-muted-foreground">Ready to start your fast</p>
+        <p className="text-sm text-muted-foreground">Ready to start your next fast</p>
         <Button className="w-full" onClick={() => startFastMutation.mutate()}>
           <Clock className="h-4 w-4 mr-2" /> Start Fast
         </Button>
@@ -403,7 +445,7 @@ export default function ClientDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_feature_settings")
-        .select("selected_protocol_id, active_fast_start_at, active_fast_target_hours")
+        .select("selected_protocol_id, active_fast_start_at, active_fast_target_hours, fasting_strict_mode, eating_window_ends_at, eating_window_hours")
         .eq("client_id", clientId)
         .maybeSingle();
       if (error) throw error;
@@ -411,6 +453,9 @@ export default function ClientDashboard() {
         selected_protocol_id: string | null;
         active_fast_start_at: string | null;
         active_fast_target_hours: number | null;
+        fasting_strict_mode: boolean;
+        eating_window_ends_at: string | null;
+        eating_window_hours: number;
       } | null;
     },
     enabled: !!clientId && settings.fasting_enabled,
@@ -421,6 +466,14 @@ export default function ClientDashboard() {
     if (!settings.fasting_enabled) return "allowed"; // no gating
     if (!fastingState?.selected_protocol_id) return "no_protocol";
     if (fastingState.active_fast_start_at) return "fasting";
+    // Not fasting — check strict mode
+    if (fastingState.fasting_strict_mode) {
+      // In strict mode, meals only during eating window
+      if (fastingState.eating_window_ends_at && new Date(fastingState.eating_window_ends_at) > new Date()) {
+        return "allowed";
+      }
+      return "strict_locked"; // no eating window active
+    }
     return "allowed";
   })();
 
@@ -1139,11 +1192,20 @@ export default function ClientDashboard() {
                     <p className="text-[10px] text-muted-foreground">Eating window opens at {fastEndTimeStr}</p>
                     <Button variant="outline" size="sm" className="w-full" onClick={async (e) => {
                       e.stopPropagation();
-                      await supabase.from("client_feature_settings").update({ last_fast_ended_at: new Date().toISOString(), active_fast_start_at: null, active_fast_target_hours: null }).eq("client_id", clientId);
+                      const ewHours = fastingState?.eating_window_hours || 8;
+                      const ewEnd = new Date(Date.now() + ewHours * 3600000).toISOString();
+                      await supabase.from("client_feature_settings").update({ last_fast_ended_at: new Date().toISOString(), last_fast_completed_at: new Date().toISOString(), active_fast_start_at: null, active_fast_target_hours: null, eating_window_ends_at: ewEnd }).eq("client_id", clientId);
                       queryClient.invalidateQueries({ queryKey: ["fasting-gate-state"] });
                       queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
                     }}>
                       End Fast
+                    </Button>
+                  </div>
+                ) : mealGateStatus === "strict_locked" ? (
+                  <div className="mt-3 p-3 rounded-lg bg-muted/50 text-center space-y-2">
+                    <p className="text-xs text-muted-foreground font-medium">Start a fast to open your eating window.</p>
+                    <Button variant="outline" size="sm" className="w-full gap-1" onClick={(e) => { e.stopPropagation(); navigate("/client/programs"); }}>
+                      <Clock className="h-3.5 w-3.5" /> Start Fast
                     </Button>
                   </div>
                 ) : (
@@ -1186,6 +1248,10 @@ export default function ClientDashboard() {
                 ) : mealGateStatus === "fasting" ? (
                   <div className="text-right space-y-1">
                     <p className="text-[10px] text-muted-foreground">Fasting · opens at {fastEndTimeStr}</p>
+                  </div>
+                ) : mealGateStatus === "strict_locked" ? (
+                  <div className="text-right space-y-1">
+                    <p className="text-[10px] text-muted-foreground">Start a fast first</p>
                   </div>
                 ) : (
                   <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate("/client/nutrition"); }}>

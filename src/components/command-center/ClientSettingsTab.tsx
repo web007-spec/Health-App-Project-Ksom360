@@ -89,6 +89,61 @@ const FEATURES = [
   },
 ] as const;
 
+// Strict Mode sub-settings shown when fasting is enabled
+function FastingStrictModeSettings({ settings, toggleMutation }: { settings: any; toggleMutation: any }) {
+  if (!settings?.fasting_enabled) return null;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Clock className="h-5 w-5" />
+          Strict Mode (Fasting)
+        </CardTitle>
+        <CardDescription>
+          When enabled, meals are only available during eating windows. When disabled, meals work normally outside of active fasts.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between py-2">
+          <div>
+            <Label className="text-sm font-medium">Strict Mode</Label>
+            <p className="text-xs text-muted-foreground">Meals only available during eating windows</p>
+          </div>
+          <Switch
+            checked={settings?.fasting_strict_mode as boolean ?? false}
+            onCheckedChange={(checked) => toggleMutation.mutate({ key: "fasting_strict_mode", value: checked })}
+          />
+        </div>
+        <Separator />
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Eating Window Duration (hours)</Label>
+          <p className="text-xs text-muted-foreground">How long the eating window stays open after a fast ends</p>
+          <div className="flex items-center justify-between">
+            <span className="text-2xl font-bold text-primary min-w-[2ch] text-right">
+              {settings?.eating_window_hours ?? 8}
+            </span>
+          </div>
+          <Slider
+            value={[settings?.eating_window_hours ?? 8]}
+            onValueChange={([value]) => toggleMutation.mutate({ key: "eating_window_hours", value: value as any })}
+            min={4}
+            max={12}
+            step={1}
+            className="w-full"
+          />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>4h</span>
+            <span>6h</span>
+            <span>8h</span>
+            <span>10h</span>
+            <span>12h</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 type FeatureKey = typeof FEATURES[number]["key"];
 
 export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProps) {
@@ -353,6 +408,8 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
           })}
         </CardContent>
       </Card>
+
+      <FastingStrictModeSettings settings={settings} toggleMutation={toggleMutation} />
 
       <ClientRemindersSection clientId={clientId} />
     </div>
