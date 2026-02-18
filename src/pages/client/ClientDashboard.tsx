@@ -149,30 +149,46 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     const fastingCardBg = featureSettings?.fasting_card_image_url;
     return (
       <Card className="overflow-hidden border-primary/20 shadow-lg relative">
-        {fastingCardBg && (
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${fastingCardBg})` }}
-          />
+        {fastingCardBg ? (
+          <>
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${fastingCardBg})` }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            <CardContent className="relative z-10 min-h-[240px] flex flex-col justify-end p-5 space-y-3">
+              <div className="text-left">
+                <p className="text-xs font-semibold uppercase tracking-wider text-white/70 mb-1">Fasting</p>
+                <h3 className="text-lg font-bold text-white drop-shadow-lg">Start Your Fasting Protocol</h3>
+                <p className="text-sm text-white/80 drop-shadow-md mt-0.5">
+                  {fastingSubtitle}
+                </p>
+              </div>
+              <Button 
+                className="w-full h-11 text-base bg-white/25 hover:bg-white/35 text-white border border-white/30 backdrop-blur-sm"
+                variant="ghost"
+                onClick={() => navigate("/client/choose-protocol")}
+              >
+                Choose Protocol
+              </Button>
+            </CardContent>
+          </>
+        ) : (
+          <CardContent className="px-6 py-8 text-center space-y-4">
+            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+              <Clock className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold">Start Your Fasting Protocol</h3>
+              <p className="text-sm text-muted-foreground mt-1.5">
+                {fastingSubtitle}
+              </p>
+            </div>
+            <Button className="w-full h-12 text-base" onClick={() => navigate("/client/choose-protocol")}>
+              Choose Protocol
+            </Button>
+          </CardContent>
         )}
-        <CardContent className={`px-6 py-8 text-center space-y-4 relative z-10 ${fastingCardBg ? 'min-h-[280px] flex flex-col items-center justify-center' : ''}`}>
-          <div className={`h-16 w-16 rounded-full flex items-center justify-center mx-auto ${fastingCardBg ? 'bg-white/30' : 'bg-primary/10'}`}>
-            <Clock className={`h-8 w-8 ${fastingCardBg ? 'text-white' : 'text-primary'}`} />
-          </div>
-          <div>
-            <h3 className={`text-xl font-bold ${fastingCardBg ? 'text-white drop-shadow-lg' : ''}`}>Start Your Fasting Protocol</h3>
-            <p className={`text-sm mt-1.5 ${fastingCardBg ? 'text-white/80 drop-shadow-md' : 'text-muted-foreground'}`}>
-              {fastingSubtitle}
-            </p>
-          </div>
-          <Button 
-            className={`w-full h-12 text-base ${fastingCardBg ? 'bg-white/30 hover:bg-white/40 text-white border border-white/40 backdrop-blur-sm' : ''}`}
-            variant={fastingCardBg ? "ghost" : "default"}
-            onClick={() => navigate("/client/choose-protocol")}
-          >
-            Choose Protocol
-          </Button>
-        </CardContent>
       </Card>
     );
   }
