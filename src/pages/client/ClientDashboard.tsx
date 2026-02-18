@@ -79,11 +79,11 @@ export default function ClientDashboard() {
     queryFn: async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("full_name")
+        .select("full_name, onboarding_completed")
         .eq("id", clientId)
         .single();
 
-      if (!data?.full_name || data.full_name.trim() === '') {
+      if (!data?.onboarding_completed) {
         navigate("/client/onboarding");
       }
       
