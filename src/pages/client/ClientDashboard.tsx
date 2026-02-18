@@ -397,6 +397,39 @@ export default function ClientDashboard() {
     enabled: !!clientId && settings.food_journal_enabled,
   });
 
+  // Fetch fasting state for meal gating
+  const { data: fastingState } = useQuery({
+    queryKey: ["fasting-gate-state", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_feature_settings")
+        .select("selected_protocol_id, active_fast_start_at, active_fast_target_hours")
+        .eq("client_id", clientId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as {
+        selected_protocol_id: string | null;
+        active_fast_start_at: string | null;
+        active_fast_target_hours: number | null;
+      } | null;
+    },
+    enabled: !!clientId && settings.fasting_enabled,
+  });
+
+  // Determine meal gating status
+  const mealGateStatus = (() => {
+    if (!settings.fasting_enabled) return "allowed"; // no gating
+    if (!fastingState?.selected_protocol_id) return "no_protocol";
+    if (fastingState.active_fast_start_at) return "fasting";
+    return "allowed";
+  })();
+
+  const fastEndTimeStr = (() => {
+    if (mealGateStatus !== "fasting" || !fastingState?.active_fast_start_at || !fastingState?.active_fast_target_hours) return "";
+    const end = new Date(new Date(fastingState.active_fast_start_at).getTime() + fastingState.active_fast_target_hours * 3600000);
+    return end.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  })();
+
   // Fetch macro targets
   const { data: macroTargets } = useQuery({
     queryKey: ["client-macro-targets", clientId],
@@ -1093,13 +1126,35 @@ export default function ClientDashboard() {
                     </div>
                   ))}
                 </div>
-                <Button
-                  variant="outline"
-                  className="w-full mt-3 gap-1"
-                  onClick={(e) => { e.stopPropagation(); navigate("/client/log-meal"); }}
-                >
-                  <Plus className="h-3.5 w-3.5" /> Log meal
-                </Button>
+                {mealGateStatus === "no_protocol" ? (
+                  <div className="mt-3 p-3 rounded-lg bg-muted/50 text-center space-y-2">
+                    <p className="text-xs text-muted-foreground font-medium">Choose a fasting protocol to log meals.</p>
+                    <Button variant="outline" size="sm" className="w-full" onClick={(e) => { e.stopPropagation(); navigate("/client/programs"); }}>
+                      Choose Protocol
+                    </Button>
+                  </div>
+                ) : mealGateStatus === "fasting" ? (
+                  <div className="mt-3 p-3 rounded-lg bg-muted/50 text-center space-y-2">
+                    <p className="text-xs text-muted-foreground font-medium">You're currently fasting. Meals unlock when your fast ends.</p>
+                    <p className="text-[10px] text-muted-foreground">Eating window opens at {fastEndTimeStr}</p>
+                    <Button variant="outline" size="sm" className="w-full" onClick={async (e) => {
+                      e.stopPropagation();
+                      await supabase.from("client_feature_settings").update({ last_fast_ended_at: new Date().toISOString(), active_fast_start_at: null, active_fast_target_hours: null }).eq("client_id", clientId);
+                      queryClient.invalidateQueries({ queryKey: ["fasting-gate-state"] });
+                      queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
+                    }}>
+                      End Fast
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full mt-3 gap-1"
+                    onClick={(e) => { e.stopPropagation(); navigate("/client/log-meal"); }}
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Log meal
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -1124,9 +1179,19 @@ export default function ClientDashboard() {
                     {todayMealCount > 0 ? "Tap to add more" : "Track your meals and macros"}
                   </p>
                 </div>
-                <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate("/client/nutrition"); }}>
-                  Add meal
-                </Button>
+                {mealGateStatus === "no_protocol" ? (
+                  <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate("/client/programs"); }}>
+                    Choose Protocol
+                  </Button>
+                ) : mealGateStatus === "fasting" ? (
+                  <div className="text-right space-y-1">
+                    <p className="text-[10px] text-muted-foreground">Fasting · opens at {fastEndTimeStr}</p>
+                  </div>
+                ) : (
+                  <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate("/client/nutrition"); }}>
+                    Add meal
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </div>
