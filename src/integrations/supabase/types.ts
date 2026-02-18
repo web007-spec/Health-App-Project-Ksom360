@@ -439,6 +439,7 @@ export type Database = {
           protocol_assigned_by: string | null
           protocol_start_date: string | null
           selected_protocol_id: string | null
+          selected_quick_plan_id: string | null
           sport_schedule_enabled: boolean
           tasks_enabled: boolean
           trainer_id: string
@@ -478,6 +479,7 @@ export type Database = {
           protocol_assigned_by?: string | null
           protocol_start_date?: string | null
           selected_protocol_id?: string | null
+          selected_quick_plan_id?: string | null
           sport_schedule_enabled?: boolean
           tasks_enabled?: boolean
           trainer_id: string
@@ -517,6 +519,7 @@ export type Database = {
           protocol_assigned_by?: string | null
           protocol_start_date?: string | null
           selected_protocol_id?: string | null
+          selected_quick_plan_id?: string | null
           sport_schedule_enabled?: boolean
           tasks_enabled?: boolean
           trainer_id?: string
@@ -530,6 +533,13 @@ export type Database = {
             columns: ["selected_protocol_id"]
             isOneToOne: false
             referencedRelation: "fasting_protocols"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_feature_settings_selected_quick_plan_id_fkey"
+            columns: ["selected_quick_plan_id"]
+            isOneToOne: false
+            referencedRelation: "quick_fasting_plans"
             referencedColumns: ["id"]
           },
         ]
@@ -3014,6 +3024,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      quick_fasting_plans: {
+        Row: {
+          created_at: string
+          difficulty_group: string
+          eat_hours: number
+          fast_hours: number
+          id: string
+          name: string
+          order_index: number
+        }
+        Insert: {
+          created_at?: string
+          difficulty_group?: string
+          eat_hours: number
+          fast_hours: number
+          id?: string
+          name: string
+          order_index?: number
+        }
+        Update: {
+          created_at?: string
+          difficulty_group?: string
+          eat_hours?: number
+          fast_hours?: number
+          id?: string
+          name?: string
+          order_index?: number
+        }
+        Relationships: []
       }
       recipe_book_recipes: {
         Row: {
