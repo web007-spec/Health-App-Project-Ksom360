@@ -28,6 +28,7 @@ import { ProgramsSelector } from "@/components/ProgramsSelector";
 import { FastingTimer } from "@/components/FastingTimer";
 import { FastingStagesGuide } from "@/components/FastingStagesGuide";
 import { CreatePinDialog, VerifyPinDialog, HoldToEndButton } from "@/components/FastingPinLock";
+import { FastingCoachTipCard } from "@/components/FastingCoachTipCard";
 
 // Fasting Protocol Card sub-component
 function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; navigate: (path: string) => void }) {
@@ -556,7 +557,7 @@ export default function ClientDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_feature_settings")
-        .select("selected_protocol_id, active_fast_start_at, active_fast_target_hours, fasting_strict_mode, eating_window_ends_at, eating_window_hours")
+        .select("selected_protocol_id, active_fast_start_at, active_fast_target_hours, fasting_strict_mode, eating_window_ends_at, eating_window_hours, protocol_start_date")
         .eq("client_id", clientId)
         .maybeSingle();
       if (error) throw error;
@@ -567,9 +568,25 @@ export default function ClientDashboard() {
         fasting_strict_mode: boolean;
         eating_window_ends_at: string | null;
         eating_window_hours: number;
+        protocol_start_date: string | null;
       } | null;
     },
     enabled: !!clientId && settings.fasting_enabled,
+  });
+
+  // Fetch protocol duration for coach tip milestone messages
+  const { data: coachTipProtocol } = useQuery({
+    queryKey: ["coach-tip-protocol", fastingState?.selected_protocol_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fasting_protocols")
+        .select("duration_days")
+        .eq("id", fastingState!.selected_protocol_id!)
+        .single();
+      if (error) throw error;
+      return data as { duration_days: number };
+    },
+    enabled: !!fastingState?.selected_protocol_id && settings.fasting_enabled,
   });
 
   // Determine meal gating status
@@ -996,6 +1013,14 @@ export default function ClientDashboard() {
         {/* Break Your Fast Card — only during active eating window */}
         {settings.fasting_enabled && mealGateStatus === "allowed" && fastingState?.eating_window_ends_at && new Date(fastingState.eating_window_ends_at) > new Date() && (
           <BreakYourFastCard hasFlexibleMealPlan={settings.meal_plan_type === "flexible"} />
+        )}
+
+        {/* Coach Tip & Protocol Progress — below fasting card when protocol is active */}
+        {settings.fasting_enabled && fastingState?.selected_protocol_id && (
+          <FastingCoachTipCard
+            protocolStartDate={fastingState.protocol_start_date}
+            protocolDurationDays={coachTipProtocol?.duration_days ?? null}
+          />
         )}
 
         {/* Today's Workouts & Sport Events — right after fasting card when fasting is enabled */}
