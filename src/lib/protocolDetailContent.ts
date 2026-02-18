@@ -297,4 +297,47 @@ export const PROTOCOL_DETAIL_COPY: Record<string, ProtocolDetailCopy> = {
       "Ideal after completing Steady Energy or for clients struggling with late-night eating.",
     ],
   },
+
+  // Health Foundations
+  "bc838199-903d-40c7-98e6-3d6434edf4c9": {
+    statsLabel: "13–14h",
+    descriptionOverride: "A gentle fasting protocol designed to support metabolic health, digestion, and long-term consistency.",
+    howItWorks: [
+      "The Health Foundations protocol introduces fasting as a daily wellness habit rather than a weight-loss tool.",
+      "By maintaining moderate fasting windows and consistent meal timing, the body can support digestion, insulin regulation, and overall metabolic balance.",
+      "This protocol focuses on long-term health and sustainability.",
+    ],
+    progression: [
+      { label: "Week 1", fastHours: "13h", eatHours: "11h" },
+      { label: "Week 2", fastHours: "14h", eatHours: "10h" },
+    ],
+    progressionNote: "The gradual progression supports comfort and consistency.",
+    schedule: {
+      stopEating: "8:00 PM",
+      breakFast: "9:00–10:00 AM",
+    },
+    scheduleMeals: ["Breakfast or late breakfast", "Lunch", "Dinner"],
+    scheduleNote: "Consistency is more important than exact timing.",
+    mealStrategy: [
+      "Focus on nutrient-dense meals that support overall health.",
+      "Prioritize: protein-rich foods, vegetables, healthy fats, and whole foods.",
+      "Avoid: frequent snacking, highly processed foods, and late-night eating.",
+    ],
+    whatToExpect: [
+      "Week 1: Improved awareness of hunger and meal timing",
+      "Week 2: More stable digestion and energy",
+    ],
+    whatToExpectNote: "Many clients notice improved sleep and reduced evening cravings.",
+    coachGuidance: [
+      "Hydration supports digestion and fasting comfort.",
+      "Keep meals simple and balanced.",
+      "Focus on consistency rather than perfection.",
+      "Light daily movement supports metabolic health.",
+      "This protocol builds long-term habits.",
+    ],
+    whoThisIsFor: [
+      "Clients focused on long-term health rather than aggressive fat loss.",
+      "Ideal starting point for beginners or clients returning to structure.",
+    ],
+  },
 };
