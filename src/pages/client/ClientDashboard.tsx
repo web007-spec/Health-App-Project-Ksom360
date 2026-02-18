@@ -1,7 +1,7 @@
 import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X, Plus, Pencil, Swords, Trophy, MapPin, Check, Activity, ScanBarcode, Camera, PenLine, MessageCircle } from "lucide-react";
+import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X, Plus, Pencil, Swords, Trophy, MapPin, Check, Activity, ScanBarcode, Camera, PenLine, MessageCircle, Clock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -517,6 +517,26 @@ export default function ClientDashboard() {
             trainingEnabled={settings.training_enabled}
             tasksEnabled={settings.tasks_enabled}
           />
+        )}
+
+        {/* Fasting Protocol Card */}
+        {settings.fasting_enabled && (
+          <Card className="overflow-hidden border-primary/20">
+            <CardContent className="p-6 text-center space-y-3">
+              <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                <Clock className="h-7 w-7 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">Start Your Fasting Protocol</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Fasting is the foundation of your KSOM360 plan.
+                </p>
+              </div>
+              <Button className="w-full" onClick={() => navigate("/client/programs")}>
+                Choose Protocol
+              </Button>
+            </CardContent>
+          </Card>
         )}
 
         {/* Install App Banner */}
