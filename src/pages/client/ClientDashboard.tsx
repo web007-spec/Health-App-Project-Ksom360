@@ -36,12 +36,13 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_feature_settings")
-        .select("selected_protocol_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at, eating_window_ends_at, eating_window_hours, fasting_strict_mode, protocol_assigned_by, fasting_card_subtitle, fasting_card_image_url")
+        .select("selected_protocol_id, selected_quick_plan_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at, eating_window_ends_at, eating_window_hours, fasting_strict_mode, protocol_assigned_by, fasting_card_subtitle, fasting_card_image_url")
         .eq("client_id", clientId)
         .maybeSingle();
       if (error) throw error;
       return data as {
         selected_protocol_id: string | null;
+        selected_quick_plan_id: string | null;
         protocol_start_date: string | null;
         active_fast_start_at: string | null;
         active_fast_target_hours: number | null;
@@ -83,7 +84,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
 
   const startFastMutation = useMutation({
     mutationFn: async () => {
-      const targetHours = activeProtocol?.fast_target_hours || 16;
+      const targetHours = activeProtocol?.fast_target_hours || featureSettings?.active_fast_target_hours || 16;
       const { error } = await supabase
         .from("client_feature_settings")
         .update({
@@ -145,7 +146,11 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
   const fastingSubtitle = featureSettings?.fasting_card_subtitle || "Fasting is the foundation of your KSOM360 plan.";
 
   // No protocol selected — empty state
-  if (!featureSettings?.selected_protocol_id || !activeProtocol) {
+  const hasQuickPlan = !!featureSettings?.selected_quick_plan_id;
+  const hasProtocol = !!featureSettings?.selected_protocol_id && !!activeProtocol;
+  
+  // No protocol or quick plan selected — empty state (but if actively fasting via quick plan, skip to timer)
+  if (!hasProtocol && !hasQuickPlan && !isFasting && !hasEatingWindow) {
     const fastingCardBg = featureSettings?.fasting_card_image_url;
     return (
       <Card className="overflow-hidden border-primary/20 shadow-lg relative">
@@ -188,9 +193,11 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
   }
 
   const isCoachAssigned = !!featureSettings?.protocol_assigned_by;
+  const planName = activeProtocol?.name || `${featureSettings?.active_fast_target_hours || 16}h Fast`;
+  const hasDuration = !!activeProtocol?.duration_days;
 
   const startDate = featureSettings.protocol_start_date ? new Date(featureSettings.protocol_start_date + "T00:00:00") : new Date();
-  const dayNumber = Math.min(differenceInCalendarDays(new Date(), startDate) + 1, activeProtocol.duration_days);
+  const dayNumber = hasDuration ? Math.min(differenceInCalendarDays(new Date(), startDate) + 1, activeProtocol!.duration_days) : 0;
 
   // Timer calculations
   if (isFasting && featureSettings.active_fast_start_at && featureSettings.active_fast_target_hours) {
@@ -222,9 +229,9 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
                 {isCoachAssigned && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Coach Assigned</Badge>}
               </div>
-              <h3 className="text-base font-bold mt-0.5">{activeProtocol.name}</h3>
+              <h3 className="text-base font-bold mt-0.5">{planName}</h3>
             </div>
-            <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol.duration_days}</Badge>
+            {hasDuration && <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol!.duration_days}</Badge>}
           </div>
 
           {/* Hero Circular Timer */}
@@ -278,9 +285,9 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
                 {isCoachAssigned && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Coach Assigned</Badge>}
               </div>
-              <h3 className="text-base font-bold mt-0.5">{activeProtocol.name}</h3>
+              <h3 className="text-base font-bold mt-0.5">{planName}</h3>
             </div>
-            <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol.duration_days}</Badge>
+            {hasDuration && <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol!.duration_days}</Badge>}
           </div>
           <div className="text-center py-6">
             <Badge className="mb-3 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10">Eating Window</Badge>
@@ -306,9 +313,9 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
               {isCoachAssigned && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Coach Assigned</Badge>}
             </div>
-            <h3 className="text-base font-bold mt-0.5">{activeProtocol.name}</h3>
+            <h3 className="text-base font-bold mt-0.5">{planName}</h3>
           </div>
-          <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol.duration_days}</Badge>
+          {hasDuration && <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol!.duration_days}</Badge>}
         </div>
         <div className="text-center py-6">
           <p className="text-lg text-muted-foreground">Ready to start your next fast</p>
