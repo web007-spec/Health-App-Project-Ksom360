@@ -123,9 +123,9 @@ export function FastingTimer({ fastStartAt, targetHours, now, demoProgress }: Fa
           <circle
             cx={cx} cy={cy} r={radius}
             fill="none"
-            stroke="hsl(var(--muted))"
+            stroke="hsl(var(--foreground))"
             strokeWidth={bandWidth}
-            opacity={0.2}
+            opacity={0.18}
           />
 
           {/* Multi-colored progress arc segments */}
