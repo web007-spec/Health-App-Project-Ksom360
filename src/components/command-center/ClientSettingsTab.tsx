@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Dumbbell, MessageSquare, Camera, CheckSquare, Utensils, Activity, Target, Scale, BookOpen, CalendarDays, List, ChefHat, Eye, Clock } from "lucide-react";
+import { Dumbbell, MessageSquare, Camera, CheckSquare, Utensils, Activity, Target, Scale, BookOpen, CalendarDays, List, ChefHat, Eye, Clock, Smile, Type, Image } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { RestDayCardEditor } from "./RestDayCardEditor";
 import { SportDayCardEditor } from "./SportDayCardEditor";
@@ -220,7 +220,79 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
 
   return (
     <div className="space-y-6">
-      {/* Calendar Preview Days */}
+      {/* Dashboard Customization */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Smile className="h-5 w-5" />
+            Dashboard Customization
+          </CardTitle>
+          <CardDescription>
+            Personalize the greeting, motivational message, and hero card shown on this client's Today screen.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Smile className="h-4 w-4" />
+              Greeting Emoji
+            </Label>
+            <Input
+              value={(settings as any)?.greeting_emoji ?? "👋"}
+              onChange={(e) => toggleMutation.mutate({ key: "greeting_emoji", value: e.target.value })}
+              placeholder="👋"
+              className="max-w-[80px] text-center text-xl"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Type className="h-4 w-4" />
+              Greeting Subtitle
+            </Label>
+            <p className="text-xs text-muted-foreground">The motivational line shown below "Hello, [Name]!"</p>
+            <Input
+              value={(settings as any)?.greeting_subtitle ?? "Let's do this"}
+              onChange={(e) => toggleMutation.mutate({ key: "greeting_subtitle", value: e.target.value })}
+              placeholder="Let's do this"
+              className="max-w-sm"
+            />
+          </div>
+
+          <Separator />
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Fasting Card Subtitle
+            </Label>
+            <p className="text-xs text-muted-foreground">The message shown on the fasting protocol card</p>
+            <Input
+              value={(settings as any)?.fasting_card_subtitle ?? "Fasting is the foundation of your KSOM360 plan."}
+              onChange={(e) => toggleMutation.mutate({ key: "fasting_card_subtitle", value: e.target.value })}
+              placeholder="Fasting is the foundation of your KSOM360 plan."
+              className="max-w-sm"
+            />
+          </div>
+
+          <Separator />
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Image className="h-4 w-4" />
+              Dashboard Hero Message
+            </Label>
+            <p className="text-xs text-muted-foreground">Optional motivational message shown as a hero banner on the dashboard</p>
+            <Input
+              value={(settings as any)?.dashboard_hero_message ?? ""}
+              onChange={(e) => toggleMutation.mutate({ key: "dashboard_hero_message", value: e.target.value })}
+              placeholder="You've got this! Stay consistent 💪"
+              className="max-w-sm"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

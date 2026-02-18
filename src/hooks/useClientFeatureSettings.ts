@@ -22,6 +22,11 @@ export interface ClientFeatureSettings {
   fasting_strict_mode: boolean;
   eating_window_hours: number;
   sport_schedule_enabled: boolean;
+  greeting_emoji: string;
+  greeting_subtitle: string;
+  fasting_card_subtitle: string;
+  dashboard_hero_image_url: string | null;
+  dashboard_hero_message: string | null;
 }
 
 const DEFAULT_SETTINGS: ClientFeatureSettings = {
@@ -44,6 +49,11 @@ const DEFAULT_SETTINGS: ClientFeatureSettings = {
   fasting_strict_mode: false,
   eating_window_hours: 8,
   sport_schedule_enabled: true,
+  greeting_emoji: "👋",
+  greeting_subtitle: "Let's do this",
+  fasting_card_subtitle: "Fasting is the foundation of your KSOM360 plan.",
+  dashboard_hero_image_url: null,
+  dashboard_hero_message: null,
 };
 
 export function useClientFeatureSettings() {
