@@ -59,7 +59,7 @@ export function ProgramsSelector({ navigate }: { navigate: (path: string) => voi
           <Card
             key={protocol.id}
             className={`cursor-pointer border-l-4 ${config?.borderColor || "border-l-blue-500"} transition-colors hover:bg-muted/30`}
-            onClick={() => navigate("/client/programs")}
+            onClick={() => navigate(`/client/protocol/${protocol.id}`)}
           >
             <CardContent className="px-4 py-3.5">
               <div className="flex items-center gap-3">
