@@ -157,7 +157,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
               {fastingSubtitle}
             </p>
           </div>
-          <Button className="w-full h-12 text-base" onClick={() => navigate("/client/programs")}>
+          <Button className="w-full h-12 text-base" onClick={() => navigate("/client/choose-protocol")}>
             Choose Protocol
           </Button>
         </CardContent>
