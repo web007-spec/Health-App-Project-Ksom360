@@ -123,9 +123,9 @@ export function FastingTimer({ fastStartAt, targetHours, now, demoProgress }: Fa
           <circle
             cx={cx} cy={cy} r={radius}
             fill="none"
-            stroke="hsl(var(--foreground))"
+            stroke="white"
             strokeWidth={bandWidth}
-            opacity={0.18}
+            opacity={0.5}
           />
 
           {/* Multi-colored progress arc segments */}
@@ -148,9 +148,9 @@ export function FastingTimer({ fastStartAt, targetHours, now, demoProgress }: Fa
           <circle
             cx={cx} cy={cy} r={radius}
             fill="none"
-            stroke="hsl(var(--background))"
+            stroke="black"
             strokeWidth={1.5}
-            opacity={0.5}
+            opacity={0.7}
           />
 
           {/* Progress indicator nub */}
