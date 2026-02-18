@@ -203,4 +203,50 @@ export const PROTOCOL_DETAIL_COPY: Record<string, ProtocolDetailCopy> = {
       "Ideal for beginners or as a reset between more intensive protocols.",
     ],
   },
+
+  // 14-Day Steady Energy
+  "ab37e5dd-d08b-4806-b09a-aaab1e2db101": {
+    statsLabel: "14–15h",
+    difficultyLabel: "Beg–Int",
+    descriptionOverride: "A two-week fasting protocol designed to stabilize energy levels, improve digestion, and support consistent daily rhythm.",
+    howItWorks: [
+      "The 14-Day Steady Energy protocol builds consistent fasting habits that help regulate blood sugar and reduce energy fluctuations throughout the day.",
+      "By gradually increasing fasting duration and maintaining consistent meal timing, the body becomes more efficient at maintaining stable energy levels between meals.",
+      "This protocol focuses on rhythm, digestion, and sustainable energy.",
+    ],
+    progression: [
+      { label: "Week 1", fastHours: "14h", eatHours: "10h" },
+      { label: "Week 2", fastHours: "15h", eatHours: "9h" },
+    ],
+    progressionNote: "This progression encourages metabolic stability without aggressive fasting.",
+    schedule: {
+      stopEating: "8:00 PM",
+      breakFast: "10:00–11:00 AM",
+    },
+    scheduleMeals: ["Late breakfast or lunch", "Dinner", "Optional protein snack"],
+    scheduleNote: "Consistency in timing is more important than exact clock times.",
+    mealStrategy: [
+      "Focus on meals that support steady energy.",
+      "Prioritize: protein-rich meals, healthy fats, vegetables, and whole foods.",
+      "Avoid: high-sugar foods, frequent snacking, and late-night eating.",
+      "Balanced meals help maintain stable blood sugar during fasting periods.",
+    ],
+    whatToExpect: [
+      "Week 1: More consistent hunger timing and improved digestion",
+      "Week 2: Reduced cravings and steadier daily energy",
+    ],
+    whatToExpectNote: "Many clients notice improved focus and fewer afternoon energy dips.",
+    coachGuidance: [
+      "Stay hydrated throughout the day.",
+      "Keep meal timing consistent.",
+      "Start meals with protein.",
+      "Avoid overeating during the eating window.",
+      "Light daily movement supports energy stability.",
+      "This protocol builds sustainable metabolic rhythm.",
+    ],
+    whoThisIsFor: [
+      "Clients who want more stable daily energy and improved focus.",
+      "Ideal after completing the 7-Day Energy Reset or for those comfortable with moderate fasting windows.",
+    ],
+  },
 };
