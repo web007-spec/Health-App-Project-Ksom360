@@ -24,6 +24,7 @@ import { DayStripCalendar } from "@/components/DayStripCalendar";
 import { QuickCardioFlow } from "@/components/cardio/QuickCardioFlow";
 import { SpeedDialFAB } from "@/components/SpeedDialFAB";
 import { BreakYourFastCard } from "@/components/BreakYourFastCard";
+import { ProgramsSelector } from "@/components/ProgramsSelector";
 
 // Fasting Protocol Card sub-component
 function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; navigate: (path: string) => void }) {
@@ -142,26 +143,9 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
   });
   const fastingSubtitle = featureSettings?.fasting_card_subtitle || "Fasting is the foundation of your KSOM360 plan.";
 
-  // No protocol selected — empty state
+  // No protocol selected — show Programs section
   if (!featureSettings?.selected_protocol_id || !activeProtocol) {
-    return (
-      <Card className="overflow-hidden border-primary/20 shadow-lg">
-        <CardContent className="px-6 py-8 text-center space-y-4">
-          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-            <Clock className="h-8 w-8 text-primary" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold">Start Your Fasting Protocol</h3>
-            <p className="text-sm text-muted-foreground mt-1.5">
-              {fastingSubtitle}
-            </p>
-          </div>
-          <Button className="w-full h-12 text-base" onClick={() => navigate("/client/programs")}>
-            Choose Protocol
-          </Button>
-        </CardContent>
-      </Card>
-    );
+    return <ProgramsSelector navigate={navigate} />;
   }
 
   const isCoachAssigned = !!featureSettings?.protocol_assigned_by;

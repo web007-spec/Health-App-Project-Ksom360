@@ -1723,6 +1723,7 @@ export type Database = {
           category: string
           created_at: string
           description: string | null
+          difficulty_level: string | null
           duration_days: number
           fast_target_hours: number
           id: string
@@ -1732,6 +1733,7 @@ export type Database = {
           category: string
           created_at?: string
           description?: string | null
+          difficulty_level?: string | null
           duration_days: number
           fast_target_hours: number
           id?: string
@@ -1741,6 +1743,7 @@ export type Database = {
           category?: string
           created_at?: string
           description?: string | null
+          difficulty_level?: string | null
           duration_days?: number
           fast_target_hours?: number
           id?: string
