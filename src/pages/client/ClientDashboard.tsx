@@ -825,6 +825,74 @@ export default function ClientDashboard() {
           />
         )}
 
+        {/* Today's Workouts — show FIRST when fasting is NOT enabled */}
+        {!settings.fasting_enabled && settings.training_enabled && (
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+              {isRestDay ? "Today" : hasSportEvents && todaysWorkouts.length === 0 ? "Today's Schedule" : `Today's Workout${hasMultiple ? "s" : ""}`}
+            </h2>
+            {isRestDay ? (
+              <Card className="overflow-hidden">
+                {restDayCard?.image_url ? (
+                  <div className="relative h-56">
+                    <img src={restDayCard.image_url} alt="Rest day" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Rest Day</p>
+                      <p className="text-base font-bold text-white">
+                        {restDayCard?.message || "No workouts scheduled for today. Enjoy your rest!"}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <CardContent className="p-6 text-center">
+                    <Dumbbell className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-lg font-semibold">Rest Day</p>
+                    <p className="text-sm text-muted-foreground">
+                      {restDayCard?.message || "No workouts scheduled for today. Enjoy your rest!"}
+                    </p>
+                  </CardContent>
+                )}
+              </Card>
+            ) : (
+              <div>
+                <div ref={!settings.fasting_enabled ? scrollRef : undefined} className={hasMultiple ? "flex overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-hide" : ""}>
+                  {todaysWorkouts.map((workout) => (
+                    <Card
+                      key={workout.id}
+                      className={`overflow-hidden cursor-pointer hover:shadow-md transition-all duration-300 shrink-0 snap-center ${hasMultiple ? "w-full min-w-full" : "w-full"}`}
+                      onClick={() => navigate(`/client/workouts/${workout.workout_plan_id}`)}
+                    >
+                      <div className="relative h-56 bg-gradient-to-br from-primary/20 to-primary/5">
+                        {workout.workout_plan?.image_url ? (
+                          <img src={workout.workout_plan.image_url} alt={workout.workout_plan.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Dumbbell className="h-16 w-16 text-primary/20" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                          <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Today's Workout</p>
+                          <p className="text-lg font-bold text-white">{workout.workout_plan?.name}</p>
+                        </div>
+                      </div>
+                      <CardContent className="p-3">
+                        <Button className="w-full" size="lg" variant="outline" onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/client/workouts/${workout.workout_plan_id}`);
+                        }}>
+                          View Workout
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Fasting Protocol Card */}
         {settings.fasting_enabled && (
           <FastingProtocolCard clientId={clientId} navigate={navigate} />
@@ -1109,8 +1177,8 @@ export default function ClientDashboard() {
           </div>
         )}
 
-        {/* Today's Workouts & Sport Events */}
-        {settings.training_enabled && (
+        {/* Today's Workouts & Sport Events — only here when fasting is enabled (otherwise rendered at top) */}
+        {settings.fasting_enabled && settings.training_enabled && (
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
               {isRestDay ? "Today" : hasSportEvents && todaysWorkouts.length === 0 ? "Today's Schedule" : `Today's Workout${hasMultiple ? "s" : ""}`}
