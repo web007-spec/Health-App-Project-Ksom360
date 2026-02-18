@@ -19,6 +19,8 @@ export interface ClientFeatureSettings {
   meal_plan_header_label: string;
   calendar_days_ahead: number;
   fasting_enabled: boolean;
+  fasting_strict_mode: boolean;
+  eating_window_hours: number;
 }
 
 const DEFAULT_SETTINGS: ClientFeatureSettings = {
@@ -38,6 +40,8 @@ const DEFAULT_SETTINGS: ClientFeatureSettings = {
   meal_plan_header_label: "Meal Plan",
   calendar_days_ahead: 0,
   fasting_enabled: false,
+  fasting_strict_mode: false,
+  eating_window_hours: 8,
 };
 
 export function useClientFeatureSettings() {

@@ -415,10 +415,14 @@ export type Database = {
           calendar_days_ahead: number
           client_id: string
           created_at: string
+          eating_window_ends_at: string | null
+          eating_window_hours: number
           fasting_enabled: boolean
+          fasting_strict_mode: boolean
           food_journal_enabled: boolean
           goals_enabled: boolean
           id: string
+          last_fast_completed_at: string | null
           last_fast_ended_at: string | null
           macros_enabled: boolean
           meal_plan_add_recipe_books: boolean
@@ -443,10 +447,14 @@ export type Database = {
           calendar_days_ahead?: number
           client_id: string
           created_at?: string
+          eating_window_ends_at?: string | null
+          eating_window_hours?: number
           fasting_enabled?: boolean
+          fasting_strict_mode?: boolean
           food_journal_enabled?: boolean
           goals_enabled?: boolean
           id?: string
+          last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
           macros_enabled?: boolean
           meal_plan_add_recipe_books?: boolean
@@ -471,10 +479,14 @@ export type Database = {
           calendar_days_ahead?: number
           client_id?: string
           created_at?: string
+          eating_window_ends_at?: string | null
+          eating_window_hours?: number
           fasting_enabled?: boolean
+          fasting_strict_mode?: boolean
           food_journal_enabled?: boolean
           goals_enabled?: boolean
           id?: string
+          last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
           macros_enabled?: boolean
           meal_plan_add_recipe_books?: boolean
