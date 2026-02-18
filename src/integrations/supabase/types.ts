@@ -424,6 +424,8 @@ export type Database = {
           meal_plan_type: string
           messages_enabled: boolean
           progress_photos_enabled: boolean
+          protocol_start_date: string | null
+          selected_protocol_id: string | null
           tasks_enabled: boolean
           trainer_id: string
           training_enabled: boolean
@@ -447,6 +449,8 @@ export type Database = {
           meal_plan_type?: string
           messages_enabled?: boolean
           progress_photos_enabled?: boolean
+          protocol_start_date?: string | null
+          selected_protocol_id?: string | null
           tasks_enabled?: boolean
           trainer_id: string
           training_enabled?: boolean
@@ -470,13 +474,23 @@ export type Database = {
           meal_plan_type?: string
           messages_enabled?: boolean
           progress_photos_enabled?: boolean
+          protocol_start_date?: string | null
+          selected_protocol_id?: string | null
           tasks_enabled?: boolean
           trainer_id?: string
           training_enabled?: boolean
           updated_at?: string
           workout_comments_enabled?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "client_feature_settings_selected_protocol_id_fkey"
+            columns: ["selected_protocol_id"]
+            isOneToOne: false
+            referencedRelation: "fasting_protocols"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       client_goal_countdowns: {
         Row: {
@@ -1661,6 +1675,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fasting_protocols: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          duration_days: number
+          fast_target_hours: number
+          id: string
+          name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          duration_days: number
+          fast_target_hours: number
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          fast_target_hours?: number
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       fitness_goals: {
         Row: {
