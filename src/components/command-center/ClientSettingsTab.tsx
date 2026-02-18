@@ -259,9 +259,11 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
         </CardContent>
       </Card>
 
-      <ClientSportProfileEditor clientId={clientId} trainerId={trainerId} />
-      <ClientSportScheduleCard clientId={clientId} trainerId={trainerId} />
-      <SportDayCardEditor clientId={clientId} trainerId={trainerId} />
+      <div className={cn("space-y-6 transition-opacity", !settings?.sport_schedule_enabled && "opacity-40 pointer-events-none")}>
+        <ClientSportProfileEditor clientId={clientId} trainerId={trainerId} />
+        <ClientSportScheduleCard clientId={clientId} trainerId={trainerId} />
+        <SportDayCardEditor clientId={clientId} trainerId={trainerId} />
+      </div>
       <RestDayCardEditor clientId={clientId} trainerId={trainerId} />
 
       {/* Meal Plan Configuration */}
