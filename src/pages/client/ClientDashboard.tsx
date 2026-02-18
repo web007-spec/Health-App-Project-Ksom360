@@ -226,6 +226,22 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
             />
           </div>
 
+          {/* DEMO PREVIEWS — remove after review */}
+          <div className="space-y-4 border-t border-dashed border-muted pt-4">
+            <p className="text-xs font-bold text-muted-foreground text-center uppercase">⬇ Demo Previews ⬇</p>
+            {[0.25, 0.50, 0.75].map(pct => (
+              <div key={pct} className="space-y-1">
+                <p className="text-xs font-semibold text-center text-muted-foreground">{pct * 100}% Complete</p>
+                <FastingTimer
+                  fastStartAt={featureSettings.active_fast_start_at!}
+                  targetHours={featureSettings.active_fast_target_hours!}
+                  now={now}
+                  demoProgress={pct}
+                />
+              </div>
+            ))}
+          </div>
+
           <Button variant="destructive" className="w-full h-12 text-base" onClick={() => endFastMutation.mutate()}>
             End Fast
           </Button>
