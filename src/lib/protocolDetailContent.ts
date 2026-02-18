@@ -249,4 +249,52 @@ export const PROTOCOL_DETAIL_COPY: Record<string, ProtocolDetailCopy> = {
       "Ideal after completing the 7-Day Energy Reset or for those comfortable with moderate fasting windows.",
     ],
   },
+
+  // 21-Day Rhythm Restore
+  "ae849c0a-c0e9-4697-970c-a0df6c1f394e": {
+    statsLabel: "15–16h",
+    difficultyLabel: "Inter",
+    descriptionOverride: "A structured fasting protocol designed to restore circadian rhythm, reduce evening cravings, and support metabolic timing.",
+    howItWorks: [
+      "The 21-Day Rhythm Restore protocol focuses on aligning meal timing with the body's natural daily rhythm.",
+      "By reducing late-night eating and gradually extending fasting windows, this protocol helps regulate appetite hormones, stabilize insulin levels, and improve sleep quality.",
+      "The goal is to restore metabolic rhythm through consistency.",
+    ],
+    progression: [
+      { label: "Week 1", fastHours: "15h", eatHours: "9h" },
+      { label: "Week 2", fastHours: "16h", eatHours: "8h" },
+      { label: "Week 3", fastHours: "16h", eatHours: "8h" },
+    ],
+    progressionNote: "The consistent fasting window reinforces appetite regulation and metabolic timing.",
+    schedule: {
+      stopEating: "7:00–8:00 PM",
+      breakFast: "11:00 AM–12:00 PM",
+    },
+    scheduleMeals: ["Lunch", "Dinner", "Optional protein snack"],
+    scheduleNote: "Earlier dinner timing is encouraged during this protocol.",
+    mealStrategy: [
+      "Prioritize meals earlier in the day when possible.",
+      "Focus on: protein-rich meals, vegetables, healthy fats, and whole foods.",
+      "Limit: late-night eating, sugary snacks, and highly processed foods.",
+      "Evening meal timing plays an important role in this protocol.",
+    ],
+    whatToExpect: [
+      "Week 1: Adjusting meal timing and reducing late-night hunger",
+      "Week 2: Improved sleep and appetite stability",
+      "Week 3: More predictable hunger patterns and steady energy",
+    ],
+    whatToExpectNote: "Many clients notice improved sleep quality during this protocol.",
+    coachGuidance: [
+      "Finish eating earlier in the evening when possible.",
+      "Stay hydrated during fasting hours.",
+      "Start meals with protein.",
+      "Keep daily routines consistent.",
+      "Prioritize sleep during this protocol.",
+      "Consistency in timing drives results.",
+    ],
+    whoThisIsFor: [
+      "Clients looking to improve sleep, appetite control, and daily rhythm.",
+      "Ideal after completing Steady Energy or for clients struggling with late-night eating.",
+    ],
+  },
 };
