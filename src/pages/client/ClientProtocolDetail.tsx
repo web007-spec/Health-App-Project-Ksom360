@@ -123,8 +123,8 @@ export default function ClientProtocolDetail() {
               </p>
             </div>
           </div>
-          {protocol.description && (
-            <p className="text-sm text-muted-foreground leading-relaxed">{protocol.description}</p>
+          {(customCopy?.descriptionOverride || protocol.description) && (
+            <p className="text-sm text-muted-foreground leading-relaxed">{customCopy?.descriptionOverride || protocol.description}</p>
           )}
         </div>
 
@@ -147,7 +147,7 @@ export default function ClientProtocolDetail() {
           <div className="rounded-xl bg-muted/50 p-3 text-center space-y-1">
             <BarChart3 className="h-5 w-5 mx-auto text-blue-400" />
             <p className="text-xl font-bold capitalize">
-              {getDifficultyLabel(protocol.difficulty_level).slice(0, 5)}
+              {customCopy?.difficultyLabel || getDifficultyLabel(protocol.difficulty_level).slice(0, 5)}
             </p>
             <p className="text-[11px] text-muted-foreground leading-tight">Difficulty</p>
           </div>
