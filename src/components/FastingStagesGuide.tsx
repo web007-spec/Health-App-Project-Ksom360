@@ -214,6 +214,13 @@ export function FastingStagesGuide() {
               </div>
             </div>
           ))}
+          <button
+            onClick={() => setIsOpen(false)}
+            className="w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+          >
+            <span>📖 Close Fasting Stages</span>
+            <ChevronUp className="h-4 w-4" />
+          </button>
         </div>
       </CollapsibleContent>
     </Collapsible>
