@@ -434,8 +434,6 @@ function FastingProtocolAssignment({ clientId, trainerId, settings }: { clientId
     settings?.protocol_start_date ? new Date(settings.protocol_start_date + "T00:00:00") : new Date()
   );
 
-  if (!settings?.fasting_enabled) return null;
-
   const { data: protocols } = useQuery({
     queryKey: ["fasting-protocols-list"],
     queryFn: async () => {
@@ -447,6 +445,7 @@ function FastingProtocolAssignment({ clientId, trainerId, settings }: { clientId
       if (error) throw error;
       return data as { id: string; name: string; category: string; duration_days: number; fast_target_hours: number; description: string | null }[];
     },
+    enabled: !!settings?.fasting_enabled,
   });
 
   const { data: currentProtocol } = useQuery({
@@ -485,6 +484,8 @@ function FastingProtocolAssignment({ clientId, trainerId, settings }: { clientId
       toast({ title: "Error", description: "Failed to assign protocol", variant: "destructive" });
     },
   });
+
+  if (!settings?.fasting_enabled) return null;
 
   const selectedInfo = protocols?.find(p => p.id === selectedProtocolId);
 
