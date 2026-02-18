@@ -26,16 +26,25 @@ import { SpeedDialFAB } from "@/components/SpeedDialFAB";
 
 // Fasting Protocol Card sub-component
 function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; navigate: (path: string) => void }) {
+  const queryClient = useQueryClient();
+  const [now, setNow] = useState(new Date());
+
   const { data: featureSettings } = useQuery({
     queryKey: ["my-feature-settings-fasting", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_feature_settings")
-        .select("selected_protocol_id, protocol_start_date")
+        .select("selected_protocol_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at")
         .eq("client_id", clientId)
         .maybeSingle();
       if (error) throw error;
-      return data as { selected_protocol_id: string | null; protocol_start_date: string | null } | null;
+      return data as {
+        selected_protocol_id: string | null;
+        protocol_start_date: string | null;
+        active_fast_start_at: string | null;
+        active_fast_target_hours: number | null;
+        last_fast_ended_at: string | null;
+      } | null;
     },
     enabled: !!clientId,
   });
@@ -54,8 +63,52 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     enabled: !!featureSettings?.selected_protocol_id,
   });
 
+  const isFasting = !!featureSettings?.active_fast_start_at;
+
+  // Tick every second while fasting
+  useEffect(() => {
+    if (!isFasting) return;
+    const interval = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, [isFasting]);
+
+  const startFastMutation = useMutation({
+    mutationFn: async () => {
+      const targetHours = activeProtocol?.fast_target_hours || 16;
+      const { error } = await supabase
+        .from("client_feature_settings")
+        .update({
+          active_fast_start_at: new Date().toISOString(),
+          active_fast_target_hours: targetHours,
+          last_fast_ended_at: null,
+        })
+        .eq("client_id", clientId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
+    },
+  });
+
+  const endFastMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("client_feature_settings")
+        .update({
+          last_fast_ended_at: new Date().toISOString(),
+          active_fast_start_at: null,
+          active_fast_target_hours: null,
+        })
+        .eq("client_id", clientId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
+    },
+  });
+
+  // No protocol selected — empty state
   if (!featureSettings?.selected_protocol_id || !activeProtocol) {
-    // No protocol selected — show empty state
     return (
       <Card className="overflow-hidden border-primary/20">
         <CardContent className="p-6 text-center space-y-3">
@@ -77,9 +130,74 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
   }
 
   const startDate = featureSettings.protocol_start_date ? new Date(featureSettings.protocol_start_date + "T00:00:00") : new Date();
-  const dayNumber = differenceInCalendarDays(new Date(), startDate) + 1;
-  const clampedDay = Math.min(dayNumber, activeProtocol.duration_days);
+  const dayNumber = Math.min(differenceInCalendarDays(new Date(), startDate) + 1, activeProtocol.duration_days);
 
+  // Timer calculations
+  if (isFasting && featureSettings.active_fast_start_at && featureSettings.active_fast_target_hours) {
+    const fastStart = new Date(featureSettings.active_fast_start_at);
+    const fastEnd = new Date(fastStart.getTime() + featureSettings.active_fast_target_hours * 3600000);
+    const elapsed = now.getTime() - fastStart.getTime();
+    const total = fastEnd.getTime() - fastStart.getTime();
+    const progress = Math.min(Math.max(elapsed / total, 0), 1);
+    const remainingMs = Math.max(fastEnd.getTime() - now.getTime(), 0);
+    const remainH = Math.floor(remainingMs / 3600000);
+    const remainM = Math.floor((remainingMs % 3600000) / 60000);
+    const remainS = Math.floor((remainingMs % 60000) / 1000);
+    const timeStr = `${String(remainH).padStart(2, "0")}:${String(remainM).padStart(2, "0")}:${String(remainS).padStart(2, "0")}`;
+    const endTimeStr = fastEnd.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+    // SVG ring params
+    const size = 180;
+    const stroke = 10;
+    const radius = (size - stroke) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const dashOffset = circumference * (1 - progress);
+
+    return (
+      <Card className="overflow-hidden border-primary/20">
+        <CardContent className="p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
+              <h3 className="text-base font-bold mt-0.5">{activeProtocol.name}</h3>
+            </div>
+            <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol.duration_days}</Badge>
+          </div>
+
+          {/* Circular Timer */}
+          <div className="flex flex-col items-center py-2">
+            <div className="relative" style={{ width: size, height: size }}>
+              <svg width={size} height={size} className="-rotate-90">
+                <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="hsl(var(--muted))" strokeWidth={stroke} />
+                <circle
+                  cx={size / 2} cy={size / 2} r={radius} fill="none"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={stroke}
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={dashOffset}
+                  className="transition-[stroke-dashoffset] duration-1000 ease-linear"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-3xl font-bold tabular-nums">{timeStr}</span>
+                <span className="text-xs text-muted-foreground mt-1">remaining</span>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mt-3">
+              {remainingMs > 0 ? `Eating window opens at ${endTimeStr}` : "Fast complete! 🎉"}
+            </p>
+          </div>
+
+          <Button variant="destructive" className="w-full" onClick={() => endFastMutation.mutate()}>
+            End Fast
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Not fasting — ready state
   return (
     <Card className="overflow-hidden border-primary/20">
       <CardContent className="p-5 space-y-3">
@@ -88,12 +206,10 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Fasting Protocol</p>
             <h3 className="text-base font-bold mt-0.5">{activeProtocol.name}</h3>
           </div>
-          <Badge variant="secondary" className="text-xs">
-            Day {clampedDay} / {activeProtocol.duration_days}
-          </Badge>
+          <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol.duration_days}</Badge>
         </div>
         <p className="text-sm text-muted-foreground">Ready to start your fast</p>
-        <Button className="w-full" onClick={() => navigate("/client/programs")}>
+        <Button className="w-full" onClick={() => startFastMutation.mutate()}>
           <Clock className="h-4 w-4 mr-2" /> Start Fast
         </Button>
       </CardContent>
