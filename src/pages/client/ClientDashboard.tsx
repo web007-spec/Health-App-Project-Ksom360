@@ -223,8 +223,14 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
   if (isFasting && featureSettings.active_fast_start_at && featureSettings.active_fast_target_hours) {
 
     return (
-      <Card className="overflow-hidden border-primary/20 shadow-lg">
-        <CardContent className="px-5 pt-8 pb-6 space-y-5">
+      <Card className="overflow-hidden border-primary/20 shadow-lg relative">
+        {/* Blurred logo background */}
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-15 blur-xl scale-110"
+          style={{ backgroundImage: `url(/logo.png)` }}
+        />
+        <div className="absolute inset-0 bg-background/60" />
+        <CardContent className="px-5 pt-8 pb-6 space-y-5 relative z-10">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
