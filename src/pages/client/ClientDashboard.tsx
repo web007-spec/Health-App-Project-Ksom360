@@ -36,7 +36,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_feature_settings")
-        .select("selected_protocol_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at, eating_window_ends_at, eating_window_hours, fasting_strict_mode, protocol_assigned_by, fasting_card_subtitle")
+        .select("selected_protocol_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at, eating_window_ends_at, eating_window_hours, fasting_strict_mode, protocol_assigned_by, fasting_card_subtitle, fasting_card_image_url")
         .eq("client_id", clientId)
         .maybeSingle();
       if (error) throw error;
@@ -51,6 +51,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
         fasting_strict_mode: boolean;
         protocol_assigned_by: string | null;
         fasting_card_subtitle: string | null;
+        fasting_card_image_url: string | null;
       } | null;
     },
     enabled: !!clientId,
@@ -145,9 +146,18 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
 
   // No protocol selected — empty state
   if (!featureSettings?.selected_protocol_id || !activeProtocol) {
+    const fastingCardBg = featureSettings?.fasting_card_image_url;
     return (
-      <Card className="overflow-hidden border-primary/20 shadow-lg">
-        <CardContent className="px-6 py-8 text-center space-y-4">
+      <Card className="overflow-hidden border-primary/20 shadow-lg relative">
+        {fastingCardBg && (
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${fastingCardBg})` }}
+          >
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
+          </div>
+        )}
+        <CardContent className="px-6 py-8 text-center space-y-4 relative z-10">
           <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
             <Clock className="h-8 w-8 text-primary" />
           </div>

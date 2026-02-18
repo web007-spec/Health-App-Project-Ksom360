@@ -419,6 +419,7 @@ export type Database = {
           dashboard_hero_message: string | null
           eating_window_ends_at: string | null
           eating_window_hours: number
+          fasting_card_image_url: string | null
           fasting_card_subtitle: string
           fasting_enabled: boolean
           fasting_strict_mode: boolean
@@ -459,6 +460,7 @@ export type Database = {
           dashboard_hero_message?: string | null
           eating_window_ends_at?: string | null
           eating_window_hours?: number
+          fasting_card_image_url?: string | null
           fasting_card_subtitle?: string
           fasting_enabled?: boolean
           fasting_strict_mode?: boolean
@@ -499,6 +501,7 @@ export type Database = {
           dashboard_hero_message?: string | null
           eating_window_ends_at?: string | null
           eating_window_hours?: number
+          fasting_card_image_url?: string | null
           fasting_card_subtitle?: string
           fasting_enabled?: boolean
           fasting_strict_mode?: boolean
