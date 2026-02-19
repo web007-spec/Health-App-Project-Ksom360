@@ -122,37 +122,31 @@ export function ExerciseCard({ exercise, onEdit, selectionMode, isSelected, onTo
               />
             </div>
           )}
-        {exercise.video_url ? (
-            <>
-              {exercise.image_url && !isHovered ? (
-                <img 
-                  src={exercise.image_url} 
-                  alt={exercise.name}
-                  className="w-full h-full object-contain bg-muted"
-                />
-              ) : (
-                <video
-                  ref={videoRef}
-                  src={exercise.video_url}
-                  preload="metadata"
-                  muted
-                  playsInline
-                  loop
-                  className="w-full h-full object-contain bg-muted pointer-events-none"
-                />
+        {exercise.video_url && (
+            <video
+              ref={videoRef}
+              src={exercise.video_url}
+              preload="metadata"
+              muted
+              playsInline
+              loop
+              className={cn(
+                "w-full h-full object-contain bg-muted pointer-events-none absolute inset-0",
+                isHovered ? "opacity-100 z-[1]" : "opacity-0"
               )}
-            </>
-          ) : exercise.image_url ? (
+            />
+          )}
+          {exercise.image_url ? (
             <img 
               src={exercise.image_url} 
               alt={exercise.name}
               className="w-full h-full object-contain bg-muted"
             />
-          ) : (
+          ) : !exercise.video_url ? (
             <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
               <span className="text-4xl font-bold text-primary/20">{exercise.name.charAt(0)}</span>
             </div>
-          )}
+          ) : null}
           
           {exercise.video_url && (
             <button
