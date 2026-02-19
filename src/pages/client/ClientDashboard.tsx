@@ -30,6 +30,7 @@ import { FastingStagesGuide } from "@/components/FastingStagesGuide";
 import { CreatePinDialog, VerifyPinDialog, HoldToEndButton } from "@/components/FastingPinLock";
 import { FastingCoachTipCard } from "@/components/FastingCoachTipCard";
 import { ProtocolCompletionDialog } from "@/components/ProtocolCompletionDialog";
+import { MyProgressSection } from "@/components/MyProgressSection";
 
 // Fasting Protocol Card sub-component
 function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; navigate: (path: string) => void }) {
@@ -1619,6 +1620,11 @@ export default function ClientDashboard() {
               </Button>
             )}
           </div>
+        )}
+
+        {/* My Progress Section */}
+        {settings.body_metrics_enabled && clientId && (
+          <MyProgressSection clientId={clientId} />
         )}
 
         {/* Latest Game Stats Card */}
