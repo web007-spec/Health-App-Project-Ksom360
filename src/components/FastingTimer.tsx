@@ -148,7 +148,7 @@ export function FastingTimer({ fastStartAt, targetHours, now, demoProgress }: Fa
           <circle
             cx={cx} cy={cy} r={radius}
             fill="none"
-            stroke="hsl(var(--primary))"
+            stroke="white"
             strokeWidth={1.5}
             opacity={0.7}
           />
