@@ -616,7 +616,7 @@ export function ClientMetricsTab({ clientId, trainerId }: Props) {
           <SheetHeader>
             <SheetTitle>Setup Metrics</SheetTitle>
           </SheetHeader>
-          <p className="text-sm text-muted-foreground mt-2 mb-4">Select metrics to track. Pin up to 4 to the overview.</p>
+          <p className="text-sm text-muted-foreground mt-2 mb-4">Select metrics to track. Pin any to the overview.</p>
 
           {(["body", "measurement", "performance", "custom"] as const).map(category => {
             const defs = allDefinitions?.filter(d => d.category === category) || [];
