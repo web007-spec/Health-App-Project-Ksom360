@@ -134,12 +134,12 @@ export function FastingTimer({ fastStartAt, targetHours, now, demoProgress }: Fa
               key={i}
               d={describeArc(cx, cy, radius, seg.startAngle - 90, seg.endAngle - 90)}
               fill="none"
-              stroke="black"
+              stroke={seg.color}
               strokeWidth={bandWidth}
               strokeLinecap="butt"
               className="transition-all duration-1000 ease-linear"
               style={{
-                filter: `drop-shadow(0 0 6px rgba(0,0,0,0.3))`,
+                filter: `drop-shadow(0 0 8px ${seg.color}66)`,
               }}
             />
           ))}
