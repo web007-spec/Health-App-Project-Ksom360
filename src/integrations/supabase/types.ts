@@ -960,6 +960,57 @@ export type Database = {
         }
         Relationships: []
       }
+      client_progress_tiles: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          is_visible: boolean
+          label: string
+          metric_definition_id: string | null
+          order_index: number
+          tile_key: string
+          unit: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          label: string
+          metric_definition_id?: string | null
+          order_index?: number
+          tile_key: string
+          unit?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          label?: string
+          metric_definition_id?: string | null
+          order_index?: number
+          tile_key?: string
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_progress_tiles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_progress_tiles_metric_definition_id_fkey"
+            columns: ["metric_definition_id"]
+            isOneToOne: false
+            referencedRelation: "metric_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_recipe_book_assignments: {
         Row: {
           assigned_at: string
@@ -4185,6 +4236,10 @@ export type Database = {
       is_conversation_member: {
         Args: { _conversation_id: string; _user_id: string }
         Returns: boolean
+      }
+      provision_default_progress_tiles: {
+        Args: { p_client_id: string }
+        Returns: undefined
       }
     }
     Enums: {

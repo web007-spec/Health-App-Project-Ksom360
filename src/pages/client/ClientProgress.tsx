@@ -11,8 +11,9 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
-import { format, subDays, subMonths } from "date-fns";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { format, subMonths } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 interface MetricDefinition {
@@ -44,13 +45,14 @@ export default function ClientProgress() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedMetricId, setSelectedMetricId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const [selectedMetricId, setSelectedMetricId] = useState<string | null>(searchParams.get("metric"));
   const [logOpen, setLogOpen] = useState(false);
   const [bulkValues, setBulkValues] = useState<Record<string, string>>({});
   const [addResultOpen, setAddResultOpen] = useState(false);
   const [resultValue, setResultValue] = useState("");
   const [resultDate, setResultDate] = useState(new Date().toISOString().split("T")[0]);
-  const [dateRange, setDateRange] = useState<"4w" | "3m" | "6m" | "1y">("4w");
+  const [dateRange, setDateRange] = useState<"3m" | "6m" | "1y" | "2y" | "3y">("3m");
 
   // Fetch client's enabled metrics with definitions
   const { data: clientMetrics, isLoading } = useQuery({
@@ -95,10 +97,11 @@ export default function ClientProgress() {
   const getRangeStart = () => {
     const now = new Date();
     switch (dateRange) {
-      case "4w": return subDays(now, 28);
       case "3m": return subMonths(now, 3);
       case "6m": return subMonths(now, 6);
       case "1y": return subMonths(now, 12);
+      case "2y": return subMonths(now, 24);
+      case "3y": return subMonths(now, 36);
     }
   };
 
@@ -247,9 +250,9 @@ export default function ClientProgress() {
           {/* Date range + Add */}
           <div className="flex items-center justify-between">
             <div className="flex gap-1">
-              {(["4w", "3m", "6m", "1y"] as const).map(r => (
+              {(["3m", "6m", "1y", "2y", "3y"] as const).map(r => (
                 <Button key={r} size="sm" variant={dateRange === r ? "default" : "outline"} onClick={() => setDateRange(r)} className="text-xs px-3">
-                  {r === "4w" ? "4W" : r === "3m" ? "3M" : r === "6m" ? "6M" : "1Y"}
+                  {r.toUpperCase()}
                 </Button>
               ))}
             </div>
@@ -334,7 +337,7 @@ export default function ClientProgress() {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Body Metrics</h1>
+            <h1 className="text-3xl font-bold text-foreground">My Progress</h1>
             <p className="text-muted-foreground mt-1">Track your progress</p>
           </div>
           {hasMetrics && (
