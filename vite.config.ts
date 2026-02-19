@@ -89,6 +89,14 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   ].filter(Boolean),
+  build: {
+    rollupOptions: {
+      external: [
+        '@nicearma/capacitor-healthkit',
+        '@nicearma/capacitor-health-connect',
+      ],
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
