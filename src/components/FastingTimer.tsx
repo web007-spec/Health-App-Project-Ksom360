@@ -125,7 +125,7 @@ export function FastingTimer({ fastStartAt, targetHours, now, demoProgress }: Fa
             fill="none"
             stroke="black"
             strokeWidth={bandWidth}
-            opacity={0.5}
+            opacity={0.85}
           />
 
           {/* Multi-colored progress arc segments */}
