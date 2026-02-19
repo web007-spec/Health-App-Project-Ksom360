@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Play, Edit, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +31,8 @@ interface ExerciseCardProps {
 export function ExerciseCard({ exercise, onEdit, selectionMode, isSelected, onToggleSelect }: ExerciseCardProps) {
   const [showVideoDialog, setShowVideoDialog] = useState(false);
   const [showAlternativesDialog, setShowAlternativesDialog] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Fetch tags for this exercise
   const { data: exerciseTags } = useQuery({
@@ -96,7 +98,20 @@ export function ExerciseCard({ exercise, onEdit, selectionMode, isSelected, onTo
         )}
         onClick={selectionMode ? onToggleSelect : undefined}
       >
-        <div className="relative aspect-video bg-muted overflow-hidden">
+        <div
+          className="relative aspect-video bg-muted overflow-hidden"
+          onMouseEnter={() => {
+            setIsHovered(true);
+            videoRef.current?.play().catch(() => {});
+          }}
+          onMouseLeave={() => {
+            setIsHovered(false);
+            if (videoRef.current) {
+              videoRef.current.pause();
+              videoRef.current.currentTime = 0;
+            }
+          }}
+        >
           {selectionMode && (
             <div className="absolute top-3 left-3 z-10">
               <Checkbox
@@ -107,19 +122,31 @@ export function ExerciseCard({ exercise, onEdit, selectionMode, isSelected, onTo
               />
             </div>
           )}
-        {exercise.image_url ? (
+        {exercise.video_url ? (
+            <>
+              {exercise.image_url && !isHovered ? (
+                <img 
+                  src={exercise.image_url} 
+                  alt={exercise.name}
+                  className="w-full h-full object-contain bg-muted"
+                />
+              ) : (
+                <video
+                  ref={videoRef}
+                  src={exercise.video_url}
+                  preload="metadata"
+                  muted
+                  playsInline
+                  loop
+                  className="w-full h-full object-contain bg-muted pointer-events-none"
+                />
+              )}
+            </>
+          ) : exercise.image_url ? (
             <img 
               src={exercise.image_url} 
               alt={exercise.name}
               className="w-full h-full object-contain bg-muted"
-            />
-          ) : exercise.video_url ? (
-            <video
-              src={exercise.video_url}
-              preload="metadata"
-              muted
-              playsInline
-              className="w-full h-full object-contain bg-muted pointer-events-none"
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
