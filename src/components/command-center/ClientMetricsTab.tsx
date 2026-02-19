@@ -647,7 +647,7 @@ export function ClientMetricsTab({ clientId, trainerId }: Props) {
                             size="icon"
                             variant="ghost"
                             className="h-7 w-7"
-                            disabled={!cm.is_pinned && pinnedCount >= 4}
+                            disabled={false}
                             onClick={(e) => { e.stopPropagation(); togglePinMutation.mutate({ id: cm.id, pinned: !cm.is_pinned }); }}
                           >
                             {cm.is_pinned ? <Pin className="h-3.5 w-3.5 text-primary" /> : <PinOff className="h-3.5 w-3.5 text-muted-foreground" />}
