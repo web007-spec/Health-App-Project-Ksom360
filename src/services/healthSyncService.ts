@@ -40,8 +40,8 @@ let HealthKit: any = null;
 async function getHealthKit() {
   if (HealthKit) return HealthKit;
   try {
-    // @ts-ignore – Plugin installed locally in native project, not in web deps
-    const mod = await import(/* @vite-ignore */ '@nicearma/capacitor-healthkit');
+    const pkg = ['@nicearma', 'capacitor-healthkit'].join('/');
+    const mod = await (new Function('p', 'return import(p)'))(pkg);
     HealthKit = mod.HealthKit;
     return HealthKit;
   } catch {
@@ -57,8 +57,8 @@ let HealthConnect: any = null;
 async function getHealthConnect() {
   if (HealthConnect) return HealthConnect;
   try {
-    // @ts-ignore – Plugin installed locally in native project, not in web deps
-    const mod = await import(/* @vite-ignore */ '@nicearma/capacitor-health-connect');
+    const pkg = ['@nicearma', 'capacitor-health-connect'].join('/');
+    const mod = await (new Function('p', 'return import(p)'))(pkg);
     HealthConnect = mod.HealthConnect;
     return HealthConnect;
   } catch {
