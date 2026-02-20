@@ -37,7 +37,7 @@ export function AssignWorkoutToClientDialog({ clientId, trainerId, open, onOpenC
     queryFn: async () => {
       const { data, error } = await supabase
         .from("workout_plans")
-        .select("id, name, category, difficulty, duration_minutes")
+        .select("id, name, category, difficulty, duration_minutes, image_url")
         .eq("trainer_id", trainerId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -105,13 +105,19 @@ export function AssignWorkoutToClientDialog({ clientId, trainerId, open, onOpenC
                 key={w.id}
                 onClick={() => setSelectedWorkoutId(w.id)}
                 className={cn(
-                  "w-full text-left p-3 rounded-lg flex items-center gap-3 transition-colors",
+                  "w-full text-left p-2 rounded-lg flex items-center gap-3 transition-colors",
                   selectedWorkoutId === w.id
                     ? "bg-primary/10 border border-primary/30"
                     : "hover:bg-muted/50"
                 )}
               >
-                <Dumbbell className="h-4 w-4 text-muted-foreground shrink-0" />
+                {w.image_url ? (
+                  <img src={w.image_url} alt={w.name} className="h-12 w-16 object-cover rounded-md shrink-0" />
+                ) : (
+                  <div className="h-12 w-16 rounded-md bg-muted flex items-center justify-center shrink-0">
+                    <Dumbbell className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                )}
                 <div>
                   <p className="text-sm font-medium">{w.name}</p>
                   <p className="text-xs text-muted-foreground">
