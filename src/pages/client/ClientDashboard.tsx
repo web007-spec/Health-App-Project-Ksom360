@@ -343,14 +343,14 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
         />
         {/* Dark overlay for text readability */}
         <div className="absolute inset-0 bg-black/60" />
-        <CardContent className="px-5 pt-8 pb-6 space-y-5 relative z-10">
+        <CardContent className="px-5 pt-8 pb-6 space-y-5 relative z-10 text-white">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <p className="text-xs font-bold text-foreground uppercase tracking-wider">{isMaintenanceMode ? "Maintenance Schedule" : "Fasting Protocol"}</p>
+                <p className="text-xs font-bold text-white/70 uppercase tracking-wider">{isMaintenanceMode ? "Maintenance Schedule" : "Fasting Protocol"}</p>
                 {isCoachAssigned && !isMaintenanceMode && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Coach Assigned</Badge>}
               </div>
-              <h3 className="text-base font-bold mt-0.5">{isMaintenanceMode ? (maintenanceLabel || "Maintenance") : planName}</h3>
+              <h3 className="text-base font-bold mt-0.5 text-white">{isMaintenanceMode ? (maintenanceLabel || "Maintenance") : planName}</h3>
             </div>
             {hasDuration && !isMaintenanceMode && <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol!.duration_days}</Badge>}
             {isMaintenanceMode && <Badge variant="secondary" className="text-xs">Maintenance</Badge>}
