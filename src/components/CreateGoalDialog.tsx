@@ -14,7 +14,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { z } from "zod";
 
 interface CreateGoalDialogProps {
   open: boolean;
@@ -23,240 +22,233 @@ interface CreateGoalDialogProps {
   clientName: string;
 }
 
-const goalSchema = z.object({
-  title: z.string().trim().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
-  description: z.string().trim().max(500, "Description must be less than 500 characters").optional(),
-  goal_type: z.enum(["weight", "body_fat", "workouts", "strength", "custom"]),
-  target_value: z.number().positive("Target value must be positive").optional(),
-  unit: z.string().trim().max(20, "Unit must be less than 20 characters").optional(),
-  target_date: z.date().refine((date) => date > new Date(), "Target date must be in the future"),
-});
+export const GOAL_LIFE_EVENTS = [
+  { value: "wedding", label: "💍 Wedding" },
+  { value: "cruise", label: "🚢 Cruise" },
+  { value: "beach_trip", label: "🏖️ Beach Trip" },
+  { value: "birthday", label: "🎂 Birthday" },
+  { value: "vacation", label: "✈️ Vacation" },
+  { value: "reunion", label: "🤝 Reunion" },
+  { value: "photo_shoot", label: "📸 Photo Shoot" },
+  { value: "holiday", label: "🎄 Holiday" },
+  { value: "anniversary", label: "💑 Anniversary" },
+  { value: "health_doctor", label: "🏥 Health / Doctor" },
+  { value: "competition_event", label: "🏆 Competition / Event" },
+  { value: "other_custom", label: "✏️ Other (Custom)" },
+] as const;
+
+export type GoalLifeEventValue = typeof GOAL_LIFE_EVENTS[number]["value"];
 
 export function CreateGoalDialog({ open, onOpenChange, clientId, clientName }: CreateGoalDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [goalType, setGoalType] = useState<string>("weight");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [targetValue, setTargetValue] = useState("");
-  const [unit, setUnit] = useState("kg");
+  const [goalType, setGoalType] = useState<GoalLifeEventValue>("wedding");
+  const [customText, setCustomText] = useState("");
+  const [goalWeight, setGoalWeight] = useState("");
+  const [startWeight, setStartWeight] = useState("");
+  const [startDate, setStartDate] = useState<Date>(new Date());
   const [targetDate, setTargetDate] = useState<Date>();
+  const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const isCustom = goalType === "other_custom";
+  const goalLabel = GOAL_LIFE_EVENTS.find(e => e.value === goalType)?.label || "";
+
+  const validate = () => {
+    const errs: Record<string, string> = {};
+    if (isCustom && !customText.trim()) errs.customText = "Please describe your goal";
+    if (!goalWeight || isNaN(parseFloat(goalWeight)) || parseFloat(goalWeight) <= 0) errs.goalWeight = "Enter a valid goal weight";
+    if (!startWeight || isNaN(parseFloat(startWeight)) || parseFloat(startWeight) <= 0) errs.startWeight = "Enter a valid start weight";
+    if (!targetDate) errs.targetDate = "Target date is required";
+    if (targetDate && startDate >= targetDate) errs.targetDate = "Target date must be after start date";
+    return errs;
+  };
 
   const createGoalMutation = useMutation({
     mutationFn: async () => {
-      // Validate input
-      const validation = goalSchema.safeParse({
-        title,
-        description: description || undefined,
-        goal_type: goalType,
-        target_value: targetValue ? parseFloat(targetValue) : undefined,
-        unit: unit || undefined,
-        target_date: targetDate,
-      });
-
-      if (!validation.success) {
-        const fieldErrors: Record<string, string> = {};
-        validation.error.errors.forEach((err) => {
-          if (err.path[0]) {
-            fieldErrors[err.path[0].toString()] = err.message;
-          }
-        });
-        setErrors(fieldErrors);
+      const errs = validate();
+      if (Object.keys(errs).length > 0) {
+        setErrors(errs);
         throw new Error("Validation failed");
       }
-
       setErrors({});
+
+      const title = isCustom ? customText.trim() : goalLabel.replace(/^[\S]+\s/, ""); // strip emoji
 
       const { error } = await supabase.from("fitness_goals").insert({
         client_id: clientId,
         trainer_id: user?.id,
         goal_type: goalType,
-        title: validation.data.title,
-        description: validation.data.description || null,
-        target_value: validation.data.target_value || null,
-        unit: validation.data.unit || null,
-        target_date: format(validation.data.target_date, "yyyy-MM-dd"),
+        title,
+        description: notes.trim() || null,
+        target_value: parseFloat(goalWeight),
+        current_value: parseFloat(startWeight),
+        unit: "lbs",
+        start_date: format(startDate, "yyyy-MM-dd"),
+        target_date: format(targetDate!, "yyyy-MM-dd"),
         status: "active",
       });
-
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client-goals"] });
       queryClient.invalidateQueries({ queryKey: ["goals"] });
-      toast({
-        title: "Success",
-        description: "Goal created successfully",
-      });
+      toast({ title: "Goal created", description: `Goal set for ${clientName}` });
       handleClose();
     },
     onError: (error: Error) => {
       if (error.message !== "Validation failed") {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to create goal",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: error.message, variant: "destructive" });
       }
     },
   });
 
   const handleClose = () => {
-    setGoalType("weight");
-    setTitle("");
-    setDescription("");
-    setTargetValue("");
-    setUnit("kg");
+    setGoalType("wedding");
+    setCustomText("");
+    setGoalWeight("");
+    setStartWeight("");
+    setStartDate(new Date());
     setTargetDate(undefined);
+    setNotes("");
     setErrors({});
     onOpenChange(false);
   };
 
-  const handleGoalTypeChange = (type: string) => {
-    setGoalType(type);
-    // Set default units based on goal type
-    switch (type) {
-      case "weight":
-        setUnit("kg");
-        break;
-      case "body_fat":
-        setUnit("%");
-        break;
-      case "workouts":
-        setUnit("workouts");
-        break;
-      case "strength":
-        setUnit("kg");
-        break;
-      default:
-        setUnit("");
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    createGoalMutation.mutate();
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Goal for {clientName}</DialogTitle>
-          <DialogDescription>Set a new fitness goal to help your client stay motivated</DialogDescription>
+          <DialogDescription>Set a weight goal tied to a life event</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-5 py-2">
           {/* Goal Type */}
           <div className="space-y-2">
-            <Label htmlFor="goal-type">Goal Type *</Label>
-            <Select value={goalType} onValueChange={handleGoalTypeChange}>
-              <SelectTrigger id="goal-type">
+            <Label>Goal Type</Label>
+            <Select value={goalType} onValueChange={(v) => setGoalType(v as GoalLifeEventValue)}>
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="weight">Weight Loss/Gain</SelectItem>
-                <SelectItem value="body_fat">Body Fat Percentage</SelectItem>
-                <SelectItem value="workouts">Workout Frequency</SelectItem>
-                <SelectItem value="strength">Strength Milestone</SelectItem>
-                <SelectItem value="custom">Custom Goal</SelectItem>
+                {GOAL_LIFE_EVENTS.map(e => (
+                  <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title">Goal Title *</Label>
-            <Input
-              id="title"
-              placeholder="e.g., Lose 5kg by summer"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={100}
-            />
-            {errors.title && <p className="text-sm text-destructive">{errors.title}</p>}
-          </div>
+          {/* Custom Goal Text */}
+          {isCustom && (
+            <div className="space-y-2">
+              <Label>Describe the Goal</Label>
+              <Input
+                placeholder="e.g., Summer fitness challenge"
+                value={customText}
+                onChange={e => setCustomText(e.target.value)}
+                maxLength={100}
+              />
+              {errors.customText && <p className="text-xs text-destructive">{errors.customText}</p>}
+            </div>
+          )}
 
-          {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
-            <Textarea
-              id="description"
-              placeholder="Additional details about this goal..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              maxLength={500}
-            />
-            {errors.description && <p className="text-sm text-destructive">{errors.description}</p>}
-          </div>
-
-          {/* Target Value & Unit */}
+          {/* Weights */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="target-value">Target Value</Label>
+              <Label>Start Weight (lbs)</Label>
               <Input
-                id="target-value"
                 type="number"
                 step="0.1"
-                placeholder="e.g., 75"
-                value={targetValue}
-                onChange={(e) => setTargetValue(e.target.value)}
+                placeholder="e.g., 185"
+                value={startWeight}
+                onChange={e => setStartWeight(e.target.value)}
               />
-              {errors.target_value && <p className="text-sm text-destructive">{errors.target_value}</p>}
+              {errors.startWeight && <p className="text-xs text-destructive">{errors.startWeight}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="unit">Unit</Label>
+              <Label>Goal Weight (lbs)</Label>
               <Input
-                id="unit"
-                placeholder="e.g., kg, %, reps"
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                maxLength={20}
+                type="number"
+                step="0.1"
+                placeholder="e.g., 165"
+                value={goalWeight}
+                onChange={e => setGoalWeight(e.target.value)}
               />
-              {errors.unit && <p className="text-sm text-destructive">{errors.unit}</p>}
+              {errors.goalWeight && <p className="text-xs text-destructive">{errors.goalWeight}</p>}
             </div>
           </div>
 
-          {/* Target Date */}
-          <div className="space-y-2">
-            <Label>Target Date *</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn("w-full justify-start text-left font-normal", !targetDate && "text-muted-foreground")}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {targetDate ? format(targetDate, "PPP") : "Pick a target date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={targetDate}
-                  onSelect={setTargetDate}
-                  disabled={(date) => date < new Date()}
-                  initialFocus
-                  className="pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
-            {errors.target_date && <p className="text-sm text-destructive">{errors.target_date}</p>}
+          {/* Dates */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Start Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, "MMM d, yyyy") : "Pick date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={(d) => d && setStartDate(d)}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label>Target Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn("w-full justify-start text-left font-normal", !targetDate && "text-muted-foreground")}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {targetDate ? format(targetDate, "MMM d, yyyy") : "Pick date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={targetDate}
+                    onSelect={setTargetDate}
+                    disabled={(d) => d <= startDate}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              {errors.targetDate && <p className="text-xs text-destructive">{errors.targetDate}</p>}
+            </div>
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={createGoalMutation.isPending}>
-              {createGoalMutation.isPending ? "Creating..." : "Create Goal"}
-            </Button>
-          </DialogFooter>
-        </form>
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label>Notes (Optional)</Label>
+            <Textarea
+              placeholder="Any additional context..."
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              rows={2}
+              maxLength={300}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
+          <Button onClick={() => createGoalMutation.mutate()} disabled={createGoalMutation.isPending}>
+            {createGoalMutation.isPending ? "Creating..." : "Create Goal"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
