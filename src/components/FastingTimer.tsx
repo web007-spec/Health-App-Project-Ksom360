@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import timerBg from "@/assets/fasting-timer-bg.jpg";
+import timerBg from "@/assets/logo.png";
 
 // Fasting stages with hour thresholds, icons, and arc colors
 const FASTING_STAGES = [
