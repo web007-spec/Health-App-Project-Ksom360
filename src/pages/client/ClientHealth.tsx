@@ -2,11 +2,12 @@ import { ClientLayout } from '@/components/ClientLayout';
 import { ActivitySummary } from '@/components/health/ActivitySummary';
 import { HeartRateChart } from '@/components/health/HeartRateChart';
 import { WeeklyActivityChart } from '@/components/health/WeeklyActivityChart';
+import { HealthSnapshotDialog } from '@/components/health/HealthSnapshotDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useHealthConnections, useSyncHealth, isNativePlatform } from '@/hooks/useHealthData';
 import { useAuth } from '@/hooks/useAuth';
-import { RefreshCw, Settings, Watch, AlertCircle, Database } from 'lucide-react';
+import { RefreshCw, Settings, Watch, AlertCircle, Database, Camera } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -21,6 +22,7 @@ export default function ClientHealth() {
   const syncMutation = useSyncHealth();
   const queryClient = useQueryClient();
   const [seeding, setSeeding] = useState(false);
+  const [snapshotOpen, setSnapshotOpen] = useState(false);
   
   const isConnected = connections?.some(c => c.is_connected);
   const lastSync = connections?.find(c => c.is_connected)?.last_sync_at;
@@ -66,12 +68,19 @@ export default function ClientHealth() {
               Track your heart rate, activity, and more from your wearable
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {isConnected && lastSync && (
               <span className="text-sm text-muted-foreground">
                 Last sync: {formatDistanceToNow(new Date(lastSync), { addSuffix: true })}
               </span>
             )}
+            <Button
+              variant="outline"
+              onClick={() => setSnapshotOpen(true)}
+            >
+              <Camera className="h-4 w-4 mr-2" />
+              AI Snapshot
+            </Button>
             {isConnected && (
               <Button 
                 variant="outline" 
@@ -143,6 +152,8 @@ export default function ClientHealth() {
           </>
         )}
       </div>
+
+      <HealthSnapshotDialog open={snapshotOpen} onOpenChange={setSnapshotOpen} />
     </ClientLayout>
   );
 }
