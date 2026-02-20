@@ -223,9 +223,11 @@ function ExerciseRow({
 
 function ExerciseLibraryCard({ exercise, onAdd }: { exercise: any; onAdd: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
   const thumbnail = exercise.image_url || null;
 
   const handleMouseEnter = () => {
+    setIsHovered(true);
     if (videoRef.current) {
       videoRef.current.currentTime = 0;
       videoRef.current.play().catch(() => {});
@@ -233,6 +235,7 @@ function ExerciseLibraryCard({ exercise, onAdd }: { exercise: any; onAdd: () => 
   };
 
   const handleMouseLeave = () => {
+    setIsHovered(false);
     if (videoRef.current) {
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
@@ -241,32 +244,45 @@ function ExerciseLibraryCard({ exercise, onAdd }: { exercise: any; onAdd: () => 
 
   return (
     <div
-      className="group cursor-pointer rounded-lg border bg-card hover:border-primary hover:shadow-md transition-all overflow-hidden"
+      className="cursor-pointer rounded-lg border bg-card hover:border-primary hover:shadow-md transition-all overflow-hidden"
       onClick={onAdd}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       <div className="aspect-[4/3] bg-muted relative overflow-hidden">
-        {/* Always-mounted video for hover play */}
+        {/* Thumbnail - hidden when hovered and video exists */}
+        {thumbnail && (
+          <img
+            src={thumbnail}
+            alt={exercise.name}
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+            style={{ opacity: isHovered && exercise.video_url ? 0 : 1, transition: "opacity 0.15s" }}
+          />
+        )}
+        {!thumbnail && !exercise.video_url && (
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+            <GripVertical className="h-8 w-8 opacity-20" />
+          </div>
+        )}
+        {/* Always-mounted video for instant hover play */}
         {exercise.video_url && (
           <video
             ref={videoRef}
             src={exercise.video_url}
-            preload="metadata"
+            preload="auto"
             muted
             playsInline
             loop
-            className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity z-[1] pointer-events-none"
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            style={{ opacity: isHovered ? 1 : 0, transition: "opacity 0.15s" }}
           />
         )}
-        {thumbnail ? (
-          <img src={thumbnail} alt={exercise.name} className="w-full h-full object-cover" loading="lazy" />
-        ) : !exercise.video_url ? (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-            <GripVertical className="h-8 w-8 opacity-20" />
-          </div>
-        ) : null}
-        <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-[2]">
+        {/* Hover overlay with plus icon */}
+        <div
+          className="absolute inset-0 bg-primary/10 flex items-center justify-center z-[2] pointer-events-none"
+          style={{ opacity: isHovered ? 1 : 0, transition: "opacity 0.15s" }}
+        >
           <Plus className="h-6 w-6 text-primary" />
         </div>
       </div>
