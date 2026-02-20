@@ -1,0 +1,1 @@
+ALTER TABLE public.client_feature_settings ADD COLUMN IF NOT EXISTS eating_window_card_image_url TEXT DEFAULT NULL;

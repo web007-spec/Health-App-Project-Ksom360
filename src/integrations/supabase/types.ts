@@ -417,6 +417,7 @@ export type Database = {
           created_at: string
           dashboard_hero_image_url: string | null
           dashboard_hero_message: string | null
+          eating_window_card_image_url: string | null
           eating_window_ends_at: string | null
           eating_window_hours: number
           fast_lock_pin: string | null
@@ -462,6 +463,7 @@ export type Database = {
           created_at?: string
           dashboard_hero_image_url?: string | null
           dashboard_hero_message?: string | null
+          eating_window_card_image_url?: string | null
           eating_window_ends_at?: string | null
           eating_window_hours?: number
           fast_lock_pin?: string | null
@@ -507,6 +509,7 @@ export type Database = {
           created_at?: string
           dashboard_hero_image_url?: string | null
           dashboard_hero_message?: string | null
+          eating_window_card_image_url?: string | null
           eating_window_ends_at?: string | null
           eating_window_hours?: number
           fast_lock_pin?: string | null

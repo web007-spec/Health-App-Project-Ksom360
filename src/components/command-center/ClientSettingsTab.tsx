@@ -328,6 +328,54 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
           <div className="space-y-2">
             <Label className="text-sm font-medium flex items-center gap-2">
               <Image className="h-4 w-4" />
+              Eating Window Card Background Image
+            </Label>
+            <p className="text-xs text-muted-foreground">Optional background image for the eating window timer card</p>
+            {(settings as any)?.eating_window_card_image_url && (
+              <div className="relative max-w-sm">
+                <img
+                  src={(settings as any).eating_window_card_image_url}
+                  alt="Eating window card background"
+                  className="rounded-lg h-24 w-full object-cover border"
+                />
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="absolute top-1 right-1 h-6 px-2 text-xs"
+                  onClick={() => toggleMutation.mutate({ key: "eating_window_card_image_url", value: null })}
+                >
+                  Remove
+                </Button>
+              </div>
+            )}
+            <Input
+              type="file"
+              accept="image/*"
+              className="max-w-sm"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                try {
+                  const ext = file.name.split(".").pop();
+                  const path = `${clientId}/eating-window-card-${Date.now()}.${ext}`;
+                  const { error: uploadError } = await supabase.storage
+                    .from("rest-day-images")
+                    .upload(path, file, { upsert: true });
+                  if (uploadError) throw uploadError;
+                  const { data: { publicUrl } } = supabase.storage.from("rest-day-images").getPublicUrl(path);
+                  toggleMutation.mutate({ key: "eating_window_card_image_url", value: publicUrl });
+                } catch (err) {
+                  console.error("Failed to upload eating window card image:", err);
+                }
+              }}
+            />
+          </div>
+
+          <Separator />
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Image className="h-4 w-4" />
               Dashboard Hero Message
             </Label>
             <p className="text-xs text-muted-foreground">Optional motivational message shown as a hero banner on the dashboard</p>
