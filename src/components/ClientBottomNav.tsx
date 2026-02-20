@@ -1,4 +1,4 @@
-import { ClipboardList, Dumbbell, MessageSquare, User, Play } from "lucide-react";
+import { ClipboardList, Dumbbell, User, Play, Target } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useClientFeatureSettings } from "@/hooks/useClientFeatureSettings";
@@ -13,7 +13,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: "Today", to: "/client/dashboard", icon: ClipboardList },
   { label: "Coaching", to: "/client/coaching", icon: Dumbbell },
-  { label: "Inbox", to: "/client/messages", icon: MessageSquare, featureKey: "messages_enabled" },
+  { label: "Goals", to: "/client/goals", icon: Target, featureKey: "goals_enabled" },
   { label: "On-demand", to: "/client/on-demand", icon: Play },
   { label: "You", to: "/client/profile", icon: User },
 ];
