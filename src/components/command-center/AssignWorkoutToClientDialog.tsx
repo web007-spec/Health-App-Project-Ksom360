@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,14 +17,20 @@ interface Props {
   trainerId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialDate?: Date;
 }
 
-export function AssignWorkoutToClientDialog({ clientId, trainerId, open, onOpenChange }: Props) {
+export function AssignWorkoutToClientDialog({ clientId, trainerId, open, onOpenChange, initialDate }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
-  const [scheduledDate, setScheduledDate] = useState<Date>();
+  const [scheduledDate, setScheduledDate] = useState<Date | undefined>(initialDate);
   const [search, setSearch] = useState("");
+
+  // Sync the date when the dialog opens with a pre-selected day from the calendar
+  useEffect(() => {
+    if (open) setScheduledDate(initialDate);
+  }, [open, initialDate]);
 
   const { data: workouts } = useQuery({
     queryKey: ["trainer-workouts", trainerId],
