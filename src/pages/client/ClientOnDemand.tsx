@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { ClientLayout } from "@/components/ClientLayout";
@@ -12,8 +12,16 @@ import { OnDemandAllTab } from "@/components/on-demand/OnDemandAllTab";
 
 export default function ClientOnDemand() {
   const clientId = useEffectiveClientId();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+
+  // Mark on-demand as seen when client visits this page
+  useEffect(() => {
+    if (!clientId) return;
+    localStorage.setItem(`ondemand-last-seen-${clientId}`, new Date().toISOString());
+    queryClient.invalidateQueries({ queryKey: ["unseen-ondemand-badge", clientId] });
+  }, [clientId, queryClient]);
 
   // Fetch workout collections
   const { data: workoutCollections, isLoading: loadingWorkouts } = useQuery({

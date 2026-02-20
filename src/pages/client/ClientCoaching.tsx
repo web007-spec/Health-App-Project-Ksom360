@@ -28,6 +28,13 @@ export default function ClientCoaching() {
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
 
+  // Mark coaching as seen when client visits this page
+  useEffect(() => {
+    if (!clientId) return;
+    localStorage.setItem(`coaching-last-seen-${clientId}`, new Date().toISOString());
+    queryClient.invalidateQueries({ queryKey: ["unseen-coaching-badge", clientId] });
+  }, [clientId, queryClient]);
+
   // Auto-scroll to Meal Options when mealType param is present
   useEffect(() => {
     if (highlightMealType && mealOptionsRef.current) {
