@@ -412,36 +412,68 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     const ewS = Math.floor((ewRemainingMs % 60000) / 1000);
     const ewTimeStr = `${String(ewH).padStart(2, "0")}:${String(ewM).padStart(2, "0")}:${String(ewS).padStart(2, "0")}`;
 
+    const ewCardImageUrl = (featureSettings as any)?.eating_window_card_image_url;
+
     return (
       <Card className="overflow-hidden border-primary/20 shadow-lg">
-        <CardContent className="px-5 pt-8 pb-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{isMaintenanceMode ? "Maintenance Schedule" : "Fasting Protocol"}</p>
-                {isCoachAssigned && !isMaintenanceMode && <Badge className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/10">Coach Assigned</Badge>}
+        <div
+          className="relative"
+          style={ewCardImageUrl ? {
+            backgroundImage: `url(${ewCardImageUrl})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          } : {}}
+        >
+          {ewCardImageUrl && <div className="absolute inset-0 bg-black/60" />}
+          <CardContent className={`px-5 pt-8 pb-6 space-y-4 relative ${ewCardImageUrl ? "text-white" : ""}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className={`text-xs font-semibold uppercase tracking-wider ${ewCardImageUrl ? "text-white/70" : "text-muted-foreground"}`}>
+                    {isMaintenanceMode ? "Maintenance Schedule" : "Fasting Protocol"}
+                  </p>
+                  {isCoachAssigned && !isMaintenanceMode && (
+                    <Badge className={`text-[10px] px-1.5 py-0 ${ewCardImageUrl ? "bg-white/20 text-white border-white/30" : "bg-primary/10 text-primary border-primary/20"} hover:bg-primary/10`}>
+                      Coach Assigned
+                    </Badge>
+                  )}
+                </div>
+                <h3 className="text-base font-bold mt-0.5">{isMaintenanceMode ? (maintenanceLabel || "Maintenance") : planName}</h3>
               </div>
-              <h3 className="text-base font-bold mt-0.5">{isMaintenanceMode ? (maintenanceLabel || "Maintenance") : planName}</h3>
-            </div>
-            {hasDuration && !isMaintenanceMode && <Badge variant="secondary" className="text-xs">Day {dayNumber} / {activeProtocol!.duration_days}</Badge>}
-            {isMaintenanceMode && <Badge variant="secondary" className="text-xs">Maintenance</Badge>}
-          </div>
-          <div className="text-center py-6">
-            <Badge className="mb-3 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10">Eating Window</Badge>
-            <p className="text-4xl font-bold tabular-nums tracking-tight">{ewTimeStr}</p>
-            <p className="text-sm text-muted-foreground mt-2">Closes in {ewH}h {ewM}m</p>
-            <p className="text-sm text-emerald-600 font-medium mt-1">Meals are available</p>
-            <div className="flex justify-center gap-4 text-xs text-muted-foreground mt-2">
-              {featureSettings?.last_fast_ended_at && (
-                <span>Fast ended: {format(new Date(featureSettings.last_fast_ended_at), "MMM d, h:mm a")}</span>
+              {hasDuration && !isMaintenanceMode && (
+                <Badge variant={ewCardImageUrl ? "outline" : "secondary"} className={`text-xs ${ewCardImageUrl ? "border-white/40 text-white bg-white/10" : ""}`}>
+                  Day {dayNumber} / {activeProtocol!.duration_days}
+                </Badge>
               )}
-              <span>Window closes: {format(ewEnd, "MMM d, h:mm a")}</span>
+              {isMaintenanceMode && (
+                <Badge variant={ewCardImageUrl ? "outline" : "secondary"} className={`text-xs ${ewCardImageUrl ? "border-white/40 text-white bg-white/10" : ""}`}>
+                  Maintenance
+                </Badge>
+              )}
             </div>
-          </div>
-          <Button variant="outline" className="w-full h-12 text-base" onClick={() => startFastMutation.mutate()}>
-            <Clock className="h-4 w-4 mr-2" /> Start next fast
-          </Button>
-        </CardContent>
+            <div className="text-center py-6">
+              <Badge className={`mb-3 ${ewCardImageUrl ? "bg-emerald-400/20 text-emerald-300 border-emerald-400/40" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"} hover:bg-emerald-500/10`}>
+                Eating Window
+              </Badge>
+              <p className={`text-4xl font-bold tabular-nums tracking-tight drop-shadow-lg`}>{ewTimeStr}</p>
+              <p className={`text-sm mt-2 ${ewCardImageUrl ? "text-white/70" : "text-muted-foreground"}`}>Closes in {ewH}h {ewM}m</p>
+              <p className={`text-sm font-medium mt-1 ${ewCardImageUrl ? "text-emerald-300" : "text-emerald-600"}`}>Meals are available</p>
+              <div className={`flex justify-center gap-4 text-xs mt-2 ${ewCardImageUrl ? "text-white/60" : "text-muted-foreground"}`}>
+                {featureSettings?.last_fast_ended_at && (
+                  <span>Fast ended: {format(new Date(featureSettings.last_fast_ended_at), "MMM d, h:mm a")}</span>
+                )}
+                <span>Window closes: {format(ewEnd, "MMM d, h:mm a")}</span>
+              </div>
+            </div>
+            <Button
+              variant={ewCardImageUrl ? "secondary" : "outline"}
+              className={`w-full h-12 text-base ${ewCardImageUrl ? "bg-white/20 hover:bg-white/30 text-white border-white/30" : ""}`}
+              onClick={() => startFastMutation.mutate()}
+            >
+              <Clock className="h-4 w-4 mr-2" /> Start next fast
+            </Button>
+          </CardContent>
+        </div>
       </Card>
     );
   }
