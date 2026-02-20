@@ -130,45 +130,30 @@ function buildSteps(sections: Section[]): WorkoutStep[] {
   return steps;
 }
 
-// Active audio element — stop it before playing a new one
+// ── Single-channel speech system ──────────────────────────────────────────────
+// Only one audio source plays at a time. cancelSpeech() stops everything.
 let activeAudio: HTMLAudioElement | null = null;
+let speechAbortController: AbortController | null = null;
 
-async function playElevenLabsSpeech(text: string): Promise<void> {
+function cancelSpeech() {
   if (activeAudio) {
     activeAudio.pause();
     activeAudio.src = "";
     activeAudio = null;
   }
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  const response = await fetch(`${supabaseUrl}/functions/v1/elevenlabs-tts`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
-    },
-    body: JSON.stringify({ text }),
-  });
-  if (!response.ok) throw new Error(`TTS ${response.status}`);
-  const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
-  const audio = new Audio(url);
-  activeAudio = audio;
-  return new Promise((resolve) => {
-    audio.onended = () => {
-      URL.revokeObjectURL(url);
-      if (activeAudio === audio) activeAudio = null;
-      resolve();
-    };
-    audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-    audio.play().catch(() => resolve());
-  });
+  if (speechAbortController) {
+    speechAbortController.abort();
+    speechAbortController = null;
+  }
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+  }
 }
 
-function browserSpeak(text: string): Promise<void> {
+// Instant browser TTS — for numbers and short cues (no network latency)
+function browserSpeakNow(text: string): Promise<void> {
+  cancelSpeech();
   if (!("speechSynthesis" in window)) return Promise.resolve();
-  window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
   utter.rate = 0.95;
   return new Promise((resolve) => {
@@ -177,6 +162,44 @@ function browserSpeak(text: string): Promise<void> {
     window.speechSynthesis.speak(utter);
   });
 }
+
+// ElevenLabs TTS — for exercise names and motivational cues (high quality)
+async function elevenLabsSpeakNow(text: string): Promise<void> {
+  cancelSpeech();
+  const controller = new AbortController();
+  speechAbortController = controller;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  let response: Response;
+  try {
+    response = await fetch(`${supabaseUrl}/functions/v1/elevenlabs-tts`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({ text }),
+      signal: controller.signal,
+    });
+  } catch {
+    if (!controller.signal.aborted) await browserSpeakNow(text);
+    return;
+  }
+  if (!response.ok || controller.signal.aborted) return;
+  const blob = await response.blob();
+  if (controller.signal.aborted) return;
+  const url = URL.createObjectURL(blob);
+  const audio = new Audio(url);
+  activeAudio = audio;
+  speechAbortController = null;
+  return new Promise((resolve) => {
+    audio.onended = () => { URL.revokeObjectURL(url); if (activeAudio === audio) activeAudio = null; resolve(); };
+    audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+    audio.play().catch(() => resolve());
+  });
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onExit }: WorkoutPlayerProps) {
   const { toast } = useToast();
@@ -214,11 +237,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   useEffect(() => { stepIdxRef.current = stepIdx; }, [stepIdx]);
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
 
-  const speakText = useCallback((text: string): Promise<void> => {
-    return playElevenLabsSpeech(text).catch(() => browserSpeak(text));
-  }, []);
-
-  // Announce exercise/rest when step changes
+  // Announce exercise/rest when step changes (ElevenLabs — cancels any prior speech)
   useEffect(() => {
     if (phase !== "playing") return;
     if (announcedStepRef.current === stepIdx) return;
@@ -232,7 +251,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
       const msg = nextEx
         ? `Rest. Up next: ${nextEx.exercise_name}`
         : "Rest up, you're almost done!";
-      speakText(msg).catch(() => {});
+      elevenLabsSpeakNow(msg).catch(() => {});
     } else if (step.type === "exercise" && step.exercise) {
       const ex = step.exercise;
       const section = sections[step.sectionIdx];
@@ -244,32 +263,34 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
         msg += `, set ${step.round} of ${ex.sets}`;
       }
       if (ex.reps) msg += `, ${ex.reps} reps`;
-      speakText(msg).catch(() => {});
+      elevenLabsSpeakNow(msg).catch(() => {});
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepIdx, phase]);
 
-  // Announce GET READY — use browser speech (instant, no network delay)
+  // "Get ready!" — browser speech (instant)
   useEffect(() => {
     if (phase === "getready") {
-      browserSpeak("Get ready!").catch(() => {});
+      browserSpeakNow("Get ready").catch(() => {});
+    }
+    // Cancel all speech when phase changes to avoid carry-over
+    if (phase === "countdown" || phase === "playing") {
+      cancelSpeech();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
-  // Speak 3-2-1 countdown — browser speech only (numbers must be instant, no network)
+  // 3-2-1 countdown — browser speech only (instant, no network latency)
   useEffect(() => {
     if (phase !== "countdown") return;
     if (countdownNum > 0) {
-      browserSpeak(String(countdownNum)).catch(() => {});
-    } else {
-      // "Go!" kicks off the exercise announcement via ElevenLabs right after
-      browserSpeak("Go").catch(() => {});
+      browserSpeakNow(String(countdownNum)).catch(() => {});
     }
+    // "Go!" is implied by the exercise announcement that fires when phase → playing
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countdownNum, phase]);
 
-  // Last-few-seconds countdown during timed exercises + motivational cues
+  // Last-3-seconds tick countdown during timed exercises
   useEffect(() => {
     if (phase !== "playing") return;
     const step = steps[stepIdx];
@@ -277,22 +298,21 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
     const totalSteps = steps.filter(s => s.type === "exercise").length;
     const completedExSteps = steps.slice(0, stepIdx).filter(s => s.type === "exercise").length;
 
-    // Last 3 seconds: use browser speech — instant, no overlap with ElevenLabs
     if (stepTimer > 0 && stepTimer <= 3 && lastCountdownRef.current !== stepTimer) {
       lastCountdownRef.current = stepTimer;
-      browserSpeak(String(stepTimer)).catch(() => {});
+      browserSpeakNow(String(stepTimer)).catch(() => {});
       return;
     }
 
-    // Motivational milestone cues via ElevenLabs (fired once per milestone)
-    if (stepTimer > 3 && announcedStepRef.current === stepIdx) {
+    // Motivational milestones via ElevenLabs (only when timer is well away from ticks)
+    if (stepTimer > 5 && announcedStepRef.current === stepIdx) {
       if (completedExSteps === Math.floor(totalSteps / 2) && lastCountdownRef.current !== -99) {
         lastCountdownRef.current = -99;
-        speakText("Halfway there! Keep it up!").catch(() => {});
+        elevenLabsSpeakNow("Halfway there! Keep it up!").catch(() => {});
       }
       if (completedExSteps === totalSteps - 1 && lastCountdownRef.current !== -98) {
         lastCountdownRef.current = -98;
-        speakText("Last one! You've got this!").catch(() => {});
+        elevenLabsSpeakNow("Last one! You've got this!").catch(() => {});
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -348,14 +368,14 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
         if (remaining > 0 && doneCount > 0) {
           const doneWord = doneCount === 1 ? "one" : String(doneCount);
           const remWord = remaining === 1 ? "one more" : `${remaining} to go`;
-          speakText(`${doneWord} down, ${remWord}!`).catch(() => {});
+          elevenLabsSpeakNow(`${doneWord} down, ${remWord}`).catch(() => {});
         }
       }
 
       return next;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [steps, speakText]);
+  }, [steps]);
 
   const startStepCountdown = useCallback((seconds: number) => {
     if (stepTimerRef.current) clearInterval(stepTimerRef.current);
@@ -439,7 +459,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
     const nowPaused = !isPausedRef.current;
     isPausedRef.current = nowPaused;
     setIsPaused(nowPaused);
-    if ("speechSynthesis" in window && nowPaused) window.speechSynthesis.cancel();
+    if (nowPaused) cancelSpeech();
   };
 
   const goToPrevStep = () => {
