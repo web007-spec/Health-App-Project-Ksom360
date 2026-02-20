@@ -46,7 +46,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_feature_settings")
-        .select("selected_protocol_id, selected_quick_plan_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at, eating_window_ends_at, eating_window_hours, fasting_strict_mode, protocol_assigned_by, fasting_card_subtitle, fasting_card_image_url, fast_lock_pin, protocol_completed, maintenance_mode, maintenance_schedule_type")
+        .select("selected_protocol_id, selected_quick_plan_id, protocol_start_date, active_fast_start_at, active_fast_target_hours, last_fast_ended_at, eating_window_ends_at, eating_window_hours, fasting_strict_mode, protocol_assigned_by, fasting_card_subtitle, fasting_card_image_url, eating_window_card_image_url, fast_lock_pin, protocol_completed, maintenance_mode, maintenance_schedule_type")
         .eq("client_id", clientId)
         .maybeSingle();
       if (error) throw error;
@@ -63,6 +63,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
         protocol_assigned_by: string | null;
         fasting_card_subtitle: string | null;
         fasting_card_image_url: string | null;
+        eating_window_card_image_url: string | null;
         fast_lock_pin: string | null;
         protocol_completed: boolean;
         maintenance_mode: boolean;
@@ -412,7 +413,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     const ewS = Math.floor((ewRemainingMs % 60000) / 1000);
     const ewTimeStr = `${String(ewH).padStart(2, "0")}:${String(ewM).padStart(2, "0")}:${String(ewS).padStart(2, "0")}`;
 
-    const ewCardImageUrl = (featureSettings as any)?.eating_window_card_image_url;
+    const ewCardImageUrl = featureSettings?.eating_window_card_image_url;
 
     return (
       <Card className="overflow-hidden border-primary/20 shadow-lg">
