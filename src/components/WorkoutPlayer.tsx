@@ -209,6 +209,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
 
   // Track if voice was already announced for the current step
   const announcedStepRef = useRef<number>(-1);
+  const lastCountdownRef = useRef<number>(-1); // last spoken countdown tick
 
   useEffect(() => { stepIdxRef.current = stepIdx; }, [stepIdx]);
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
@@ -256,6 +257,48 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
+  // Speak 3-2-1 countdown
+  useEffect(() => {
+    if (phase === "countdown" && countdownNum > 0) {
+      speakText(String(countdownNum)).catch(() => {});
+    }
+    if (phase === "countdown" && countdownNum === 0) {
+      speakText("Go!").catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countdownNum, phase]);
+
+  // Last-few-seconds countdown during timed exercises + motivational cues
+  useEffect(() => {
+    if (phase !== "playing" || !currentStep) return;
+    const step = steps[stepIdx];
+    if (!step || step.type !== "exercise") return;
+    const totalSteps = steps.filter(s => s.type === "exercise").length;
+    const completedExSteps = steps.slice(0, stepIdx).filter(s => s.type === "exercise").length;
+
+    // Last 3 seconds countdown (avoid re-announcing same tick)
+    if (stepTimer > 0 && stepTimer <= 3 && lastCountdownRef.current !== stepTimer) {
+      lastCountdownRef.current = stepTimer;
+      speakText(String(stepTimer)).catch(() => {});
+      return;
+    }
+
+    // Motivational milestone cues (only fire once per step, after announcement)
+    if (stepTimer > 3 && announcedStepRef.current === stepIdx) {
+      // Halfway through the workout
+      if (completedExSteps === Math.floor(totalSteps / 2) && lastCountdownRef.current !== -99) {
+        lastCountdownRef.current = -99;
+        speakText("Halfway there! Keep it up!").catch(() => {});
+      }
+      // One exercise left
+      if (completedExSteps === totalSteps - 1 && lastCountdownRef.current !== -98) {
+        lastCountdownRef.current = -98;
+        speakText("Last one! You've got this!").catch(() => {});
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stepTimer, stepIdx, phase]);
+
   useEffect(() => {
     if (!videoRef.current) return;
     if (isPaused) videoRef.current.pause();
@@ -292,13 +335,28 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
 
   const advanceStep = useCallback(() => {
     if (stepTimerRef.current) clearInterval(stepTimerRef.current);
+    lastCountdownRef.current = -1;
     setStepTimer(-1);
     setStepIdx((prev) => {
       const next = prev + 1;
       if (next >= steps.length) return prev;
+
+      // "X down, Y to go" after completing an exercise step
+      const currentStepType = steps[prev]?.type;
+      if (currentStepType === "exercise") {
+        const doneCount = steps.slice(0, next).filter(s => s.type === "exercise").length;
+        const remaining = steps.slice(next).filter(s => s.type === "exercise").length;
+        if (remaining > 0 && doneCount > 0) {
+          const doneWord = doneCount === 1 ? "one" : String(doneCount);
+          const remWord = remaining === 1 ? "one more" : `${remaining} to go`;
+          speakText(`${doneWord} down, ${remWord}!`).catch(() => {});
+        }
+      }
+
       return next;
     });
-  }, [steps.length]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [steps, speakText]);
 
   const startStepCountdown = useCallback((seconds: number) => {
     if (stepTimerRef.current) clearInterval(stepTimerRef.current);
