@@ -1852,6 +1852,8 @@ export type Database = {
           created_at: string | null
           current_value: number | null
           description: string | null
+          ended_at: string | null
+          ended_reason: string | null
           goal_type: string
           id: string
           start_date: string
@@ -1869,6 +1871,8 @@ export type Database = {
           created_at?: string | null
           current_value?: number | null
           description?: string | null
+          ended_at?: string | null
+          ended_reason?: string | null
           goal_type: string
           id?: string
           start_date?: string
@@ -1886,6 +1890,8 @@ export type Database = {
           created_at?: string | null
           current_value?: number | null
           description?: string | null
+          ended_at?: string | null
+          ended_reason?: string | null
           goal_type?: string
           id?: string
           start_date?: string
