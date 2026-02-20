@@ -307,29 +307,57 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countdownNum, phase]);
 
-  // Last-3-seconds tick countdown during timed exercises
+  // Last-3-seconds tick countdown & motivational milestones
   useEffect(() => {
     if (phase !== "playing") return;
     const step = steps[stepIdx];
-    if (!step || step.type !== "exercise") return;
-    const totalSteps = steps.filter(s => s.type === "exercise").length;
-    const completedExSteps = steps.slice(0, stepIdx).filter(s => s.type === "exercise").length;
+    if (!step) return;
 
-    if (stepTimer > 0 && stepTimer <= 3 && lastCountdownRef.current !== stepTimer) {
-      lastCountdownRef.current = stepTimer;
-      browserSpeakNow(String(stepTimer)).catch(() => {});
-      return;
+    // ── Exercise-specific cues ──
+    if (step.type === "exercise") {
+      const totalSteps = steps.filter(s => s.type === "exercise").length;
+      const completedExSteps = steps.slice(0, stepIdx).filter(s => s.type === "exercise").length;
+
+      // Last 3-second countdown (browser TTS for zero latency)
+      if (stepTimer > 0 && stepTimer <= 3 && lastCountdownRef.current !== stepTimer) {
+        lastCountdownRef.current = stepTimer;
+        browserSpeakNow(String(stepTimer)).catch(() => {});
+        return;
+      }
+
+      // Halfway through THIS exercise's timer — Jessica encouragement
+      const duration = stepTimerDurationRef.current;
+      if (duration > 10) {
+        const halfMark = Math.floor(duration / 2);
+        if (stepTimer === halfMark && lastCountdownRef.current !== -97) {
+          lastCountdownRef.current = -97;
+          elevenLabsSpeakNow("Halfway there, keep going!").catch(() => {});
+        }
+      }
+
+      // Workout-level motivational milestones (well away from countdown ticks)
+      if (stepTimer > 5 && announcedStepRef.current === stepIdx) {
+        if (completedExSteps === Math.floor(totalSteps / 2) && lastCountdownRef.current !== -99) {
+          lastCountdownRef.current = -99;
+          elevenLabsSpeakNow("Halfway through the workout! Keep it up!").catch(() => {});
+        }
+        if (completedExSteps === totalSteps - 1 && lastCountdownRef.current !== -98) {
+          lastCountdownRef.current = -98;
+          elevenLabsSpeakNow("Last one! You've got this!").catch(() => {});
+        }
+      }
     }
 
-    // Motivational milestones via ElevenLabs (only when timer is well away from ticks)
-    if (stepTimer > 5 && announcedStepRef.current === stepIdx) {
-      if (completedExSteps === Math.floor(totalSteps / 2) && lastCountdownRef.current !== -99) {
-        lastCountdownRef.current = -99;
-        elevenLabsSpeakNow("Halfway there! Keep it up!").catch(() => {});
+    // ── Rest-step cue: 30 seconds remaining ──
+    if (step.type === "rest") {
+      if (stepTimer === 30 && lastCountdownRef.current !== -96) {
+        lastCountdownRef.current = -96;
+        elevenLabsSpeakNow("30 seconds to go before your next round, get ready!").catch(() => {});
       }
-      if (completedExSteps === totalSteps - 1 && lastCountdownRef.current !== -98) {
-        lastCountdownRef.current = -98;
-        elevenLabsSpeakNow("Last one! You've got this!").catch(() => {});
+      // Last 3-second countdown during rest too
+      if (stepTimer > 0 && stepTimer <= 3 && lastCountdownRef.current !== stepTimer) {
+        lastCountdownRef.current = stepTimer;
+        browserSpeakNow(String(stepTimer)).catch(() => {});
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
