@@ -3,37 +3,36 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GoalCard } from "@/components/GoalCard";
 import { Target, Trophy, Pause } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 
 export default function ClientGoals() {
-  const { user } = useAuth();
+  const clientId = useEffectiveClientId();
 
   // Fetch client goals
   const { data: goals, isLoading } = useQuery({
-    queryKey: ["client-goals", user?.id],
+    queryKey: ["client-goals", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("fitness_goals")
         .select("*")
-        .eq("client_id", user?.id)
+        .eq("client_id", clientId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!clientId,
   });
 
   // Fetch latest body weight entry for progress
   const { data: latestWeight } = useQuery({
-    queryKey: ["client-latest-weight", user?.id],
+    queryKey: ["client-latest-weight", clientId],
     queryFn: async () => {
-      // Try to get latest metric entry for weight
       const { data: metric } = await supabase
         .from("client_metrics")
         .select("id, metric_definitions!inner(name)")
-        .eq("client_id", user?.id)
+        .eq("client_id", clientId)
         .filter("metric_definitions.name", "eq", "Weight")
         .maybeSingle();
 
@@ -49,7 +48,7 @@ export default function ClientGoals() {
 
       return entry?.value ?? null;
     },
-    enabled: !!user?.id,
+    enabled: !!clientId,
   });
 
   const activeGoals = goals?.filter((g) => g.status === "active") || [];
