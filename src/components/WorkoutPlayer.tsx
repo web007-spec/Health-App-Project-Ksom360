@@ -327,7 +327,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
 
       // Halfway through THIS exercise's timer — Jessica encouragement
       const duration = stepTimerDurationRef.current;
-      if (duration > 10) {
+      if (duration >= 20) {
         const halfMark = Math.floor(duration / 2);
         if (stepTimer === halfMark && lastCountdownRef.current !== -97) {
           lastCountdownRef.current = -97;
