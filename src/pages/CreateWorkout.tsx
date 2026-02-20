@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -216,6 +216,62 @@ function ExerciseRow({
       {/* Drag Handle */}
       <div {...attributes} {...listeners} className="cursor-grab p-1">
         <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
+    </div>
+  );
+}
+
+function ExerciseLibraryCard({ exercise, onAdd }: { exercise: any; onAdd: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const thumbnail = exercise.image_url || null;
+
+  const handleMouseEnter = () => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  };
+
+  return (
+    <div
+      className="group cursor-pointer rounded-lg border bg-card hover:border-primary hover:shadow-md transition-all overflow-hidden"
+      onClick={onAdd}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+        {/* Always-mounted video for hover play */}
+        {exercise.video_url && (
+          <video
+            ref={videoRef}
+            src={exercise.video_url}
+            preload="metadata"
+            muted
+            playsInline
+            loop
+            className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity z-[1] pointer-events-none"
+          />
+        )}
+        {thumbnail ? (
+          <img src={thumbnail} alt={exercise.name} className="w-full h-full object-cover" loading="lazy" />
+        ) : !exercise.video_url ? (
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+            <GripVertical className="h-8 w-8 opacity-20" />
+          </div>
+        ) : null}
+        <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-[2]">
+          <Plus className="h-6 w-6 text-primary" />
+        </div>
+      </div>
+      <div className="p-2">
+        <p className="text-xs font-medium leading-tight line-clamp-2">{exercise.name}</p>
       </div>
     </div>
   );
@@ -853,33 +909,13 @@ export default function CreateWorkout() {
 
           <ScrollArea className="flex-1">
             <div className="p-3 grid grid-cols-3 gap-2">
-              {visibleExercises?.map((exercise) => {
-                const thumbnail = getExerciseThumbnail(exercise);
-
-                return (
-                  <div
-                    key={exercise.id}
-                    className="group cursor-pointer rounded-lg border bg-card hover:border-primary hover:shadow-md transition-all overflow-hidden"
-                    onClick={() => addExercise(exercise.id)}
-                  >
-                    <div className="aspect-[4/3] bg-muted relative overflow-hidden">
-                      {thumbnail ? (
-                        <img src={thumbnail} alt={exercise.name} className="w-full h-full object-cover" loading="lazy" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                          <GripVertical className="h-8 w-8 opacity-20" />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Plus className="h-6 w-6 text-primary" />
-                      </div>
-                    </div>
-                    <div className="p-2">
-                      <p className="text-xs font-medium leading-tight line-clamp-2">{exercise.name}</p>
-                    </div>
-                  </div>
-                );
-              })}
+              {visibleExercises?.map((exercise) => (
+                <ExerciseLibraryCard
+                  key={exercise.id}
+                  exercise={exercise}
+                  onAdd={() => addExercise(exercise.id)}
+                />
+              ))}
 
               {filteredExercises && visibleCount < filteredExercises.length && (
                 <div className="col-span-3 py-4 text-center">
