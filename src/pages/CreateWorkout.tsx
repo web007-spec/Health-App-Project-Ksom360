@@ -62,6 +62,12 @@ const TIME_OPTIONS = [
   { value: "120", label: "2 min" },
   { value: "180", label: "3 min" },
   { value: "300", label: "5 min" },
+  { value: "600", label: "10 min" },
+  { value: "900", label: "15 min" },
+  { value: "1200", label: "20 min" },
+  { value: "1800", label: "30 min" },
+  { value: "2700", label: "45 min" },
+  { value: "3600", label: "60 min" },
 ];
 
 // Exercise row for the builder
