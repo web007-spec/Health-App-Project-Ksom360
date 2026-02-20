@@ -454,7 +454,8 @@ export default function CreateWorkout() {
     setGroups((prev) => [...prev, newGroup]);
     setExerciseItems((prev) =>
       prev.map((item) =>
-        item.selected && item.exercise_type === "normal"
+        // Include both normal exercises AND rest items that are selected
+        item.selected
           ? { ...item, selected: false, group_id: groupId }
           : item
       )
