@@ -1,9 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
@@ -11,25 +9,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  Target,
-  Plus,
-  ChevronDown,
-  CheckCircle2,
-  AlertTriangle,
-  TrendingDown,
-  Minus,
-  TrendingUp,
-  Calendar,
-  Pencil,
-} from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { Target, Plus, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { GoalCard } from "@/components/GoalCard";
-import { CreateGoalDialog, GOAL_LIFE_EVENTS } from "@/components/CreateGoalDialog";
-import { weightProgressPct, paceStatus, requiredWeightTomorrow } from "@/lib/weightGoalProgress";
-import { daysRemaining } from "@/lib/goalDates";
+import { CreateGoalDialog } from "@/components/CreateGoalDialog";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -38,21 +22,11 @@ interface Props {
   clientName?: string;
 }
 
-interface GoalFeatureSettings {
-  goals_enabled: boolean;
-  pace_enabled: boolean;
-  back_on_pace_enabled: boolean;
-  lock_start_weight: boolean;
-  client_can_edit_goal: boolean;
-  allow_custom_goal_text: boolean;
-}
-
 export function AdminGoalsTab({ clientId, trainerId, clientName = "Client" }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [controlsOpen, setControlsOpen] = useState(false);
-  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
 
   // Fetch goals for this client
   const { data: goals, isLoading } = useQuery({
@@ -90,28 +64,18 @@ export function AdminGoalsTab({ clientId, trainerId, clientName = "Client" }: Pr
     },
   });
 
-  // Fetch feature settings (reuse client_feature_settings)
+  // Fetch all goal feature flags from DB
   const { data: featureSettings } = useQuery({
     queryKey: ["client-feature-settings-goals", clientId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_feature_settings")
-        .select("goals_enabled")
+        .select("goals_enabled, pace_enabled, back_on_pace_enabled, lock_start_weight_after_set, client_can_edit_goal, allow_custom_goal_text")
         .eq("client_id", clientId)
         .maybeSingle();
       if (error) throw error;
       return data;
     },
-  });
-
-  // Local goal feature controls stored as simple flags per goal or client
-  const [localControls, setLocalControls] = useState<GoalFeatureSettings>({
-    goals_enabled: true,
-    pace_enabled: true,
-    back_on_pace_enabled: true,
-    lock_start_weight: true,
-    client_can_edit_goal: false,
-    allow_custom_goal_text: true,
   });
 
   // Update goal status
@@ -133,24 +97,32 @@ export function AdminGoalsTab({ clientId, trainerId, clientName = "Client" }: Pr
     },
   });
 
-  // Toggle goals_enabled in client_feature_settings
-  const toggleGoalsEnabledMutation = useMutation({
-    mutationFn: async (enabled: boolean) => {
+  // Toggle any flag — all persisted to DB
+  const toggleFlagMutation = useMutation({
+    mutationFn: async ({ key, value }: { key: string; value: boolean }) => {
       const { error } = await supabase
         .from("client_feature_settings")
-        .update({ goals_enabled: enabled })
+        .update({ [key]: value })
         .eq("client_id", clientId);
       if (error) throw error;
     },
-    onSuccess: (_, enabled) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client-feature-settings-goals", clientId] });
       queryClient.invalidateQueries({ queryKey: ["client-feature-settings", clientId] });
-      toast({ title: enabled ? "Goals enabled" : "Goals disabled" });
     },
   });
 
   const activeGoals = goals?.filter(g => g.status === "active") || [];
   const completedGoals = goals?.filter(g => g.status === "completed") || [];
+
+  const flags = featureSettings ?? {
+    goals_enabled: true,
+    pace_enabled: true,
+    back_on_pace_enabled: true,
+    lock_start_weight_after_set: true,
+    client_can_edit_goal: false,
+    allow_custom_goal_text: true,
+  };
 
   if (isLoading) {
     return (
@@ -214,7 +186,7 @@ export function AdminGoalsTab({ clientId, trainerId, clientName = "Client" }: Pr
         </Card>
       )}
 
-      {/* Feature Controls */}
+      {/* Feature Controls — all persisted to DB */}
       <Collapsible open={controlsOpen} onOpenChange={setControlsOpen}>
         <CollapsibleTrigger asChild>
           <Button variant="outline" className="w-full justify-between" size="sm">
@@ -225,24 +197,12 @@ export function AdminGoalsTab({ clientId, trainerId, clientName = "Client" }: Pr
         <CollapsibleContent>
           <Card className="mt-3">
             <CardContent className="pt-4 space-y-4">
-              {/* Goals Enabled — synced to DB */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="font-medium">Goals Enabled</Label>
-                  <p className="text-xs text-muted-foreground">Show Goals tab to client</p>
-                </div>
-                <Switch
-                  checked={featureSettings?.goals_enabled ?? true}
-                  onCheckedChange={(v) => toggleGoalsEnabledMutation.mutate(v)}
-                />
-              </div>
-
-              {/* Local controls (UI-level, save to your own table if needed) */}
               {([
-                { key: "pace_enabled", label: "Pace Tracking", desc: "Show ahead/on pace/behind status" },
-                { key: "back_on_pace_enabled", label: "Back-On-Pace Guidance", desc: "Show tomorrow's target weight" },
-                { key: "lock_start_weight", label: "Lock Start Weight", desc: "Prevent editing after it's set" },
-                { key: "client_can_edit_goal", label: "Client Can Edit Goal", desc: "Allow client to modify their goal" },
+                { key: "goals_enabled", label: "Goals Enabled", desc: "Show Goals tab to client" },
+                { key: "pace_enabled", label: "Pace Tracking", desc: "Show ahead / on pace / behind status" },
+                { key: "back_on_pace_enabled", label: "Back-On-Pace Guidance", desc: "Show tomorrow's target weight when behind" },
+                { key: "lock_start_weight_after_set", label: "Lock Start Weight", desc: "Prevent editing start weight after it is set" },
+                { key: "client_can_edit_goal", label: "Client Can Edit Goal", desc: "Allow client to modify their own goal" },
                 { key: "allow_custom_goal_text", label: "Allow Custom Goal Text", desc: "Allow 'Other (Custom)' goal type" },
               ] as const).map(({ key, label, desc }) => (
                 <div key={key} className="flex items-center justify-between">
@@ -251,8 +211,8 @@ export function AdminGoalsTab({ clientId, trainerId, clientName = "Client" }: Pr
                     <p className="text-xs text-muted-foreground">{desc}</p>
                   </div>
                   <Switch
-                    checked={localControls[key]}
-                    onCheckedChange={(v) => setLocalControls(prev => ({ ...prev, [key]: v }))}
+                    checked={(flags as Record<string, boolean>)[key] ?? true}
+                    onCheckedChange={(v) => toggleFlagMutation.mutate({ key, value: v })}
                   />
                 </div>
               ))}

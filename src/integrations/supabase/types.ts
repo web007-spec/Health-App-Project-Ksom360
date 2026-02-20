@@ -411,8 +411,11 @@ export type Database = {
           active_fast_start_at: string | null
           active_fast_target_hours: number | null
           activity_logging_enabled: boolean
+          allow_custom_goal_text: boolean
+          back_on_pace_enabled: boolean
           body_metrics_enabled: boolean
           calendar_days_ahead: number
+          client_can_edit_goal: boolean
           client_id: string
           created_at: string
           dashboard_hero_image_url: string | null
@@ -432,6 +435,7 @@ export type Database = {
           id: string
           last_fast_completed_at: string | null
           last_fast_ended_at: string | null
+          lock_start_weight_after_set: boolean
           macros_enabled: boolean
           maintenance_mode: boolean
           maintenance_schedule_type: string | null
@@ -440,6 +444,7 @@ export type Database = {
           meal_plan_header_label: string
           meal_plan_type: string
           messages_enabled: boolean
+          pace_enabled: boolean
           progress_photos_enabled: boolean
           protocol_assigned_by: string | null
           protocol_completed: boolean
@@ -457,8 +462,11 @@ export type Database = {
           active_fast_start_at?: string | null
           active_fast_target_hours?: number | null
           activity_logging_enabled?: boolean
+          allow_custom_goal_text?: boolean
+          back_on_pace_enabled?: boolean
           body_metrics_enabled?: boolean
           calendar_days_ahead?: number
+          client_can_edit_goal?: boolean
           client_id: string
           created_at?: string
           dashboard_hero_image_url?: string | null
@@ -478,6 +486,7 @@ export type Database = {
           id?: string
           last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
+          lock_start_weight_after_set?: boolean
           macros_enabled?: boolean
           maintenance_mode?: boolean
           maintenance_schedule_type?: string | null
@@ -486,6 +495,7 @@ export type Database = {
           meal_plan_header_label?: string
           meal_plan_type?: string
           messages_enabled?: boolean
+          pace_enabled?: boolean
           progress_photos_enabled?: boolean
           protocol_assigned_by?: string | null
           protocol_completed?: boolean
@@ -503,8 +513,11 @@ export type Database = {
           active_fast_start_at?: string | null
           active_fast_target_hours?: number | null
           activity_logging_enabled?: boolean
+          allow_custom_goal_text?: boolean
+          back_on_pace_enabled?: boolean
           body_metrics_enabled?: boolean
           calendar_days_ahead?: number
+          client_can_edit_goal?: boolean
           client_id?: string
           created_at?: string
           dashboard_hero_image_url?: string | null
@@ -524,6 +537,7 @@ export type Database = {
           id?: string
           last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
+          lock_start_weight_after_set?: boolean
           macros_enabled?: boolean
           maintenance_mode?: boolean
           maintenance_schedule_type?: string | null
@@ -532,6 +546,7 @@ export type Database = {
           meal_plan_header_label?: string
           meal_plan_type?: string
           messages_enabled?: boolean
+          pace_enabled?: boolean
           progress_photos_enabled?: boolean
           protocol_assigned_by?: string | null
           protocol_completed?: boolean
