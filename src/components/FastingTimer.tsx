@@ -1,6 +1,5 @@
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import timerBg from "@/assets/fasting-timer-bg.jpg";
 
 // Fasting stages with hour thresholds, icons, and arc colors
 const FASTING_STAGES = [
@@ -120,32 +119,6 @@ export function FastingTimer({ fastStartAt, targetHours, now, demoProgress }: Fa
       {/* Timer Ring */}
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size}>
-          {/* Clip path for inner circle background */}
-          <defs>
-            <clipPath id="innerCircleClip">
-              <circle cx={cx} cy={cy} r={radius - bandWidth / 2} />
-            </clipPath>
-          </defs>
-
-          {/* Lion background image inside the timer circle */}
-          <image
-            href={timerBg}
-            x={cx - (radius - bandWidth / 2)}
-            y={cy - (radius - bandWidth / 2)}
-            width={(radius - bandWidth / 2) * 2}
-            height={(radius - bandWidth / 2) * 2}
-            clipPath="url(#innerCircleClip)"
-            preserveAspectRatio="xMidYMid slice"
-          />
-
-          {/* Dark overlay on background for readability */}
-          <circle
-            cx={cx} cy={cy} r={radius - bandWidth / 2}
-            fill="black"
-            opacity={0.55}
-            clipPath="url(#innerCircleClip)"
-          />
-
           {/* Background track */}
           <circle
             cx={cx} cy={cy} r={radius}

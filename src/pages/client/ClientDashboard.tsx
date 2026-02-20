@@ -1,4 +1,5 @@
 import { ClientLayout } from "@/components/ClientLayout";
+import fastingCardBgImg from "@/assets/fasting-timer-bg.jpg";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -335,11 +336,13 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
 
     return (
       <Card className="overflow-hidden border-primary/20 shadow-lg relative">
-        {/* Blurred logo background */}
+        {/* Lion card background */}
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(/logo.png)`, opacity: 0.25 }}
+          style={{ backgroundImage: `url(${fastingCardBgImg})` }}
         />
+        {/* Dark overlay for text readability */}
+        <div className="absolute inset-0 bg-black/60" />
         <CardContent className="px-5 pt-8 pb-6 space-y-5 relative z-10">
           <div className="flex items-center justify-between">
             <div>
