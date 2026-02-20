@@ -546,6 +546,40 @@ export default function ClientDashboard() {
   const { settings } = useClientFeatureSettings();
   const { toast } = useToast();
 
+  // Unread messages count for floating lion badge
+  const { data: unreadMessageCount = 0 } = useQuery({
+    queryKey: ["unread-messages-badge", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return 0;
+      const { data: memberships } = await supabase
+        .from("conversation_members")
+        .select("conversation_id")
+        .eq("user_id", user.id);
+      if (!memberships?.length) return 0;
+      const convoIds = memberships.map((m) => m.conversation_id);
+      const { data: readReceipts } = await supabase
+        .from("conversation_read_receipts")
+        .select("conversation_id, last_read_at")
+        .eq("user_id", user.id)
+        .in("conversation_id", convoIds);
+      const readMap = new Map(readReceipts?.map((r) => [r.conversation_id, r.last_read_at]) || []);
+      const { data: messages } = await supabase
+        .from("conversation_messages")
+        .select("conversation_id, created_at, sender_id")
+        .in("conversation_id", convoIds)
+        .neq("sender_id", user.id);
+      if (!messages?.length) return 0;
+      let total = 0;
+      for (const msg of messages) {
+        const lastRead = readMap.get(msg.conversation_id);
+        if (!lastRead || new Date(msg.created_at) > new Date(lastRead)) total++;
+      }
+      return total;
+    },
+    enabled: !!user?.id,
+    refetchInterval: 30_000,
+  });
+
   const DIET_STYLES = [
     { value: "standard_keto", label: "Standard Keto", split: "75F / 20P / 5C", icon: "🥑", fatPct: 0.75, proteinPct: 0.20, carbsPct: 0.05 },
     { value: "high_protein_keto", label: "High Protein Keto", split: "60F / 35P / 5C", icon: "💪", fatPct: 0.60, proteinPct: 0.35, carbsPct: 0.05 },
@@ -553,6 +587,7 @@ export default function ClientDashboard() {
   ];
 
   // Quick-edit macro sheet state
+
   const [macroEditOpen, setMacroEditOpen] = useState(false);
   const [editMode, setEditMode] = useState<"grams" | "percent">("grams");
   const [customCalories, setCustomCalories] = useState("");
@@ -1726,13 +1761,21 @@ export default function ClientDashboard() {
       />
 
       {/* Floating Message Button */}
-      <button
-        onClick={() => navigate("/client/messages")}
-        className="fixed bottom-20 right-4 z-30 w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 overflow-hidden"
-        aria-label="Messages"
-      >
-        <img src="/logo.png" alt="Messages" className="w-full h-full object-cover" />
-      </button>
+      <div className="fixed bottom-20 right-4 z-30">
+        <button
+          onClick={() => navigate("/client/messages")}
+          className="relative w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 overflow-visible"
+          aria-label="Messages"
+        >
+          <img src="/logo.png" alt="Messages" className="w-12 h-12 rounded-full object-cover" />
+          {unreadMessageCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground flex items-center justify-center px-1 border-2 border-background shadow-md z-10">
+              {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+            </span>
+          )}
+        </button>
+      </div>
+
 
       <QuickCardioFlow
         open={cardioFlowOpen}
