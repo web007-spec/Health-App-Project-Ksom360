@@ -37,10 +37,16 @@ export function SaveAsTemplateDialog({
 
   const saveAsTemplateMutation = useMutation({
     mutationFn: async () => {
-      // Fetch original workout
+      // Fetch original workout with sections and exercises
       const { data: original, error: fetchError } = await supabase
         .from("workout_plans")
-        .select("*")
+        .select(`
+          *,
+          workout_sections(
+            *,
+            workout_plan_exercises(*)
+          )
+        `)
         .eq("id", workoutId)
         .single();
       if (fetchError) throw fetchError;
@@ -63,30 +69,45 @@ export function SaveAsTemplateDialog({
         .single();
       if (createError) throw createError;
 
-      // Copy exercises to template
-      const { data: exercises, error: exError } = await supabase
-        .from("workout_plan_exercises")
-        .select("*")
-        .eq("workout_plan_id", workoutId);
-      if (exError) throw exError;
+      // Copy sections and their exercises
+      for (const section of original.workout_sections || []) {
+        const { data: newSection, error: sectionError } = await supabase
+          .from("workout_sections")
+          .insert({
+            workout_plan_id: newTemplate.id,
+            name: section.name,
+            section_type: section.section_type,
+            order_index: section.order_index,
+            rounds: section.rounds,
+            work_seconds: section.work_seconds,
+            rest_seconds: section.rest_seconds,
+            rest_between_rounds_seconds: section.rest_between_rounds_seconds,
+            notes: section.notes,
+          })
+          .select()
+          .single();
+        if (sectionError) throw sectionError;
 
-      if (exercises && exercises.length > 0) {
-        const { error: insertError } = await supabase
-          .from("workout_plan_exercises")
-          .insert(
-            exercises.map((ex) => ({
-              workout_plan_id: newTemplate.id,
-              exercise_id: ex.exercise_id,
-              sets: ex.sets,
-              reps: ex.reps,
-              duration_seconds: ex.duration_seconds,
-              rest_seconds: ex.rest_seconds,
-              order_index: ex.order_index,
-              notes: ex.notes,
-              tempo: ex.tempo,
-            }))
-          );
-        if (insertError) throw insertError;
+        if (section.workout_plan_exercises && section.workout_plan_exercises.length > 0) {
+          const { error: insertError } = await supabase
+            .from("workout_plan_exercises")
+            .insert(
+              section.workout_plan_exercises.map((ex: any) => ({
+                workout_plan_id: newTemplate.id,
+                section_id: newSection.id,
+                exercise_id: ex.exercise_id,
+                sets: ex.sets,
+                reps: ex.reps,
+                duration_seconds: ex.duration_seconds,
+                rest_seconds: ex.rest_seconds,
+                order_index: ex.order_index,
+                notes: ex.notes,
+                tempo: ex.tempo,
+                exercise_type: ex.exercise_type,
+              }))
+            );
+          if (insertError) throw insertError;
+        }
       }
     },
     onSuccess: () => {
