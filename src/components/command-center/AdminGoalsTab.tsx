@@ -78,11 +78,17 @@ export function AdminGoalsTab({ clientId, trainerId, clientName = "Client" }: Pr
     },
   });
 
-  // Update goal status
+  // Update goal status with ended_reason for audit trail
   const updateStatusMutation = useMutation({
     mutationFn: async ({ goalId, status }: { goalId: string; status: string }) => {
       const updates: Record<string, unknown> = { status };
-      if (status === "completed") updates.completed_at = new Date().toISOString();
+      if (status === "completed") {
+        updates.completed_at = new Date().toISOString();
+        updates.ended_reason = "completed";
+      } else if (status === "paused") {
+        updates.ended_reason = "coach_ended";
+      }
+      // ended_at is auto-stamped by the stamp_goal_end DB trigger
       const { error } = await supabase
         .from("fitness_goals")
         .update(updates)

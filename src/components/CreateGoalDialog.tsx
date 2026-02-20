@@ -47,7 +47,6 @@ export function CreateGoalDialog({ open, onOpenChange, clientId, clientName }: C
   const [goalType, setGoalType] = useState<GoalLifeEventValue>("wedding");
   const [customText, setCustomText] = useState("");
   const [goalWeight, setGoalWeight] = useState("");
-  const [startWeight, setStartWeight] = useState("");
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [targetDate, setTargetDate] = useState<Date>();
   const [notes, setNotes] = useState("");
@@ -60,7 +59,6 @@ export function CreateGoalDialog({ open, onOpenChange, clientId, clientName }: C
     const errs: Record<string, string> = {};
     if (isCustom && !customText.trim()) errs.customText = "Please describe your goal";
     if (!goalWeight || isNaN(parseFloat(goalWeight)) || parseFloat(goalWeight) <= 0) errs.goalWeight = "Enter a valid goal weight";
-    if (!startWeight || isNaN(parseFloat(startWeight)) || parseFloat(startWeight) <= 0) errs.startWeight = "Enter a valid start weight";
     if (!targetDate) errs.targetDate = "Target date is required";
     if (targetDate && startDate >= targetDate) errs.targetDate = "Target date must be after start date";
     return errs;
@@ -77,6 +75,8 @@ export function CreateGoalDialog({ open, onOpenChange, clientId, clientName }: C
 
       const title = isCustom ? customText.trim() : goalLabel.replace(/^[\S]+\s/, ""); // strip emoji
 
+      // current_value (start weight) is intentionally left NULL — the DB trigger
+      // auto-sets it from the first qualifying Weight metric_entry on/after start_date.
       const { error } = await supabase.from("fitness_goals").insert({
         client_id: clientId,
         trainer_id: user?.id,
@@ -84,7 +84,7 @@ export function CreateGoalDialog({ open, onOpenChange, clientId, clientName }: C
         title,
         description: notes.trim() || null,
         target_value: parseFloat(goalWeight),
-        current_value: parseFloat(startWeight),
+        current_value: null,
         unit: "lbs",
         start_date: format(startDate, "yyyy-MM-dd"),
         target_date: format(targetDate!, "yyyy-MM-dd"),
@@ -109,7 +109,6 @@ export function CreateGoalDialog({ open, onOpenChange, clientId, clientName }: C
     setGoalType("wedding");
     setCustomText("");
     setGoalWeight("");
-    setStartWeight("");
     setStartDate(new Date());
     setTargetDate(undefined);
     setNotes("");
@@ -155,30 +154,18 @@ export function CreateGoalDialog({ open, onOpenChange, clientId, clientName }: C
             </div>
           )}
 
-          {/* Weights */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Start Weight (lbs)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="e.g., 185"
-                value={startWeight}
-                onChange={e => setStartWeight(e.target.value)}
-              />
-              {errors.startWeight && <p className="text-xs text-destructive">{errors.startWeight}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label>Goal Weight (lbs)</Label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="e.g., 165"
-                value={goalWeight}
-                onChange={e => setGoalWeight(e.target.value)}
-              />
-              {errors.goalWeight && <p className="text-xs text-destructive">{errors.goalWeight}</p>}
-            </div>
+          {/* Goal Weight — start weight is set automatically by DB trigger from first weigh-in */}
+          <div className="space-y-2">
+            <Label>Goal Weight (lbs)</Label>
+            <Input
+              type="number"
+              step="0.1"
+              placeholder="e.g., 165"
+              value={goalWeight}
+              onChange={e => setGoalWeight(e.target.value)}
+            />
+            {errors.goalWeight && <p className="text-xs text-destructive">{errors.goalWeight}</p>}
+            <p className="text-xs text-muted-foreground">Start weight is auto-set from the client's first weigh-in on/after the start date.</p>
           </div>
 
           {/* Dates */}
