@@ -199,6 +199,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   const steps = stepsRef.current;
 
   const [stepIdx, setStepIdx] = useState(0);
+  const stepIdxRef = useRef(0);
 
   const [stepTimer, setStepTimer] = useState(-1);
   const stepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -216,6 +217,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
 
   const voiceEnabledRef = useRef(voiceEnabled);
   useEffect(() => { voiceEnabledRef.current = voiceEnabled; }, [voiceEnabled]);
+  useEffect(() => { stepIdxRef.current = stepIdx; }, [stepIdx]);
 
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
 
@@ -296,8 +298,23 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
           done.finally(() => advanceStep());
           return 0;
         }
-        if (next === 10 && voiceEnabledRef.current) speakText("Ten seconds left. Hang in there!");
-        if ((next === 3 || next === 2 || next === 1) && voiceEnabledRef.current) speakText(toWords(next));
+        if (next === 10 && voiceEnabledRef.current) {
+          // Check if we're in a between-rounds rest — use round-up speech
+          const step = stepsRef.current[stepIdxRef.current];
+          if (step?.type === "rest" && step.isCircuit) {
+            const nextRound = step.round + 1;
+            speakText(`Alright, let's go round ${toWords(nextRound)}! Three, two, one, let's go!`);
+          } else {
+            speakText("Ten seconds left. Keep pushing!");
+          }
+        }
+        if ((next === 3 || next === 2 || next === 1) && voiceEnabledRef.current) {
+          // Only count down for non-rest-between-rounds steps (rest-between-rounds uses the 10s speech above)
+          const step = stepsRef.current[stepIdxRef.current];
+          if (!(step?.type === "rest" && step.isCircuit)) {
+            speakText(toWords(next));
+          }
+        }
         return next;
       });
     }, 1000);
@@ -353,7 +370,25 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
       else setStepTimer(-1);
     } else if (currentStep.type === "rest") {
       const secs = currentStep.restSeconds || 60;
-      if (voiceEnabledRef.current) speakText(`Rest for ${secs} seconds.`);
+      if (voiceEnabledRef.current) {
+        if (currentStep.isCircuit) {
+          // Between-rounds rest: announce round completion and upcoming round
+          const section = sections[currentStep.sectionIdx];
+          const completedRound = currentStep.round;
+          const totalRounds = section?.rounds || 1;
+          const roundsLeft = totalRounds - completedRound;
+          const nextRound = completedRound + 1;
+          let msg = `You just finished round ${toWords(completedRound)}`;
+          if (roundsLeft === 1) {
+            msg += ` with ${toWords(roundsLeft)} more round to go. Take a quick rest and get ready for round ${toWords(nextRound)}!`;
+          } else if (roundsLeft > 1) {
+            msg += ` with ${toWords(roundsLeft)} more rounds to go. Take a quick rest and get ready for round ${toWords(nextRound)}!`;
+          }
+          speakText(msg);
+        } else {
+          speakText(`Rest for ${secs} seconds.`);
+        }
+      }
       startStepCountdown(secs);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
