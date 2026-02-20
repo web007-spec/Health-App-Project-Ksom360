@@ -243,6 +243,26 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
     return () => { if (elapsedRef.current) clearInterval(elapsedRef.current); };
   }, [phase, isPaused]);
 
+  const voiceEnabledRef = useRef(voiceEnabled);
+  useEffect(() => { voiceEnabledRef.current = voiceEnabled; }, [voiceEnabled]);
+
+  const advanceStep = useCallback(() => {
+    setStepIdx((prev) => {
+      const next = prev + 1;
+      if (next >= steps.length) {
+        if (voiceEnabledRef.current) speak("Workout complete! Amazing job today!");
+        return prev;
+      }
+      return next;
+    });
+  }, [steps.length]);
+
+  const startStepTimer = useCallback((seconds: number) => {
+    if (stepTimerRef.current) clearInterval(stepTimerRef.current);
+    setStepTimer(seconds);
+    setStepTimerMax(seconds);
+  }, []);
+
   // Announce exercise when step changes
   useEffect(() => {
     if (phase !== "playing" || !currentStep) return;
@@ -254,55 +274,36 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
       if (dur) announcement += `For ${dur} seconds. Let's go!`;
       else if (reps) announcement += `${reps} reps. Let's go!`;
       else announcement += "Let's go!";
-      if (voiceEnabled) speak(announcement);
-      // Start step timer if duration based
-      if (dur) {
-        startStepTimer(dur);
-      }
+      if (voiceEnabledRef.current) speak(announcement);
+      if (dur) startStepTimer(dur);
     } else if (currentStep.type === "rest" && currentStep.restSeconds) {
-      if (voiceEnabled) speak(`Rest for ${currentStep.restSeconds} seconds.`);
+      if (voiceEnabledRef.current) speak(`Rest for ${currentStep.restSeconds} seconds.`);
       startStepTimer(currentStep.restSeconds);
     }
-  }, [stepIdx, phase]);
+  }, [stepIdx, phase, startStepTimer]);
 
-  const startStepTimer = (seconds: number) => {
-    if (stepTimerRef.current) clearInterval(stepTimerRef.current);
-    setStepTimer(seconds);
-    setStepTimerMax(seconds);
-  };
-
-  // Step timer countdown
+  // Step timer countdown — restarts whenever stepTimerMax or stepIdx changes
   useEffect(() => {
-    if (stepTimerMax === 0 || stepTimer <= 0) return;
+    if (stepTimerRef.current) clearInterval(stepTimerRef.current);
+    if (stepTimerMax === 0) return;
     if (isPaused) return;
+
     stepTimerRef.current = setInterval(() => {
       setStepTimer((prev) => {
         if (prev <= 1) {
           clearInterval(stepTimerRef.current!);
-          // Auto advance
-          if (voiceEnabled) speak("Great job! Moving on.");
+          if (voiceEnabledRef.current) speak("Great job! Moving on.");
           advanceStep();
           return 0;
         }
-        if (prev === 11 && voiceEnabled) speak("Ten seconds left. Hang in there!");
-        if (prev <= 4 && voiceEnabled) speak(String(prev - 1));
+        if (prev === 11 && voiceEnabledRef.current) speak("Ten seconds left. Hang in there!");
+        if (prev <= 4 && prev > 1 && voiceEnabledRef.current) speak(String(prev - 1));
         return prev - 1;
       });
     }, 1000);
     return () => { if (stepTimerRef.current) clearInterval(stepTimerRef.current); };
-  }, [stepTimer > 0 ? stepTimerMax : 0, isPaused]);
+  }, [stepTimerMax, stepIdx, isPaused, advanceStep]);
 
-  const advanceStep = useCallback(() => {
-    setStepIdx((prev) => {
-      const next = prev + 1;
-      if (next >= steps.length) {
-        // Workout complete
-        if (voiceEnabled) speak("Workout complete! Amazing job today!");
-        return prev;
-      }
-      return next;
-    });
-  }, [steps.length]);
 
   const goToPrevStep = () => {
     setStepIdx((prev) => Math.max(0, prev - 1));
