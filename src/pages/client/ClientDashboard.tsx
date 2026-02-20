@@ -430,7 +430,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <p className={`text-xs font-semibold uppercase tracking-wider ${ewCardImageUrl ? "text-white/70" : "text-muted-foreground"}`}>
+                  <p className={`text-xs font-bold uppercase tracking-wider drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${ewCardImageUrl ? "text-white" : "text-muted-foreground"}`}>
                     {isMaintenanceMode ? "Maintenance Schedule" : "Fasting Protocol"}
                   </p>
                   {isCoachAssigned && !isMaintenanceMode && (
@@ -439,7 +439,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
                     </Badge>
                   )}
                 </div>
-                <h3 className="text-base font-bold mt-0.5">{isMaintenanceMode ? (maintenanceLabel || "Maintenance") : planName}</h3>
+                <h3 className={`text-base font-black mt-0.5 drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)] ${ewCardImageUrl ? "text-white" : ""}`}>{isMaintenanceMode ? (maintenanceLabel || "Maintenance") : planName}</h3>
               </div>
               {hasDuration && !isMaintenanceMode && (
                 <Badge variant={ewCardImageUrl ? "outline" : "secondary"} className={`text-xs ${ewCardImageUrl ? "border-white/40 text-white bg-white/10" : ""}`}>
@@ -453,13 +453,13 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
               )}
             </div>
             <div className="text-center py-6">
-              <Badge className={`mb-3 ${ewCardImageUrl ? "bg-emerald-400/20 text-emerald-300 border-emerald-400/40" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"} hover:bg-emerald-500/10`}>
+              <Badge className={`mb-3 ${ewCardImageUrl ? "bg-emerald-400/20 text-white border-emerald-400/40 font-bold drop-shadow" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"} hover:bg-emerald-500/10`}>
                 Eating Window
               </Badge>
-              <p className={`text-4xl font-bold tabular-nums tracking-tight drop-shadow-lg`}>{ewTimeStr}</p>
-              <p className={`text-sm mt-2 ${ewCardImageUrl ? "text-white/70" : "text-muted-foreground"}`}>Closes in {ewH}h {ewM}m</p>
-              <p className={`text-sm font-medium mt-1 ${ewCardImageUrl ? "text-emerald-300" : "text-emerald-600"}`}>Meals are available</p>
-              <div className={`flex justify-center gap-4 text-xs mt-2 ${ewCardImageUrl ? "text-white/60" : "text-muted-foreground"}`}>
+              <p className={`text-4xl font-black tabular-nums tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] ${ewCardImageUrl ? "text-white" : ""}`}>{ewTimeStr}</p>
+              <p className={`text-sm mt-2 font-bold drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)] ${ewCardImageUrl ? "text-white" : "text-muted-foreground"}`}>Closes in {ewH}h {ewM}m</p>
+              <p className={`text-sm font-extrabold mt-1 drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)] ${ewCardImageUrl ? "text-white" : "text-emerald-600"}`}>Meals are available</p>
+              <div className={`flex justify-center gap-4 text-xs mt-2 font-bold drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${ewCardImageUrl ? "text-white" : "text-muted-foreground"}`}>
                 {featureSettings?.last_fast_ended_at && (
                   <span>Fast ended: {format(new Date(featureSettings.last_fast_ended_at), "MMM d, h:mm a")}</span>
                 )}
