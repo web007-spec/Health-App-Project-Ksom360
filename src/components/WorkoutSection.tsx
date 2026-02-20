@@ -225,11 +225,11 @@ export function WorkoutSection({
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">Duration (sec)</Label>
+                        <Label className="text-xs">Duration (min)</Label>
                         <Input
                           type="number"
-                          value={exercise.duration_seconds || ""}
-                          onChange={(e) => onUpdateExercise(section.id, exercise.id, { duration_seconds: parseInt(e.target.value) || null })}
+                          value={exercise.duration_seconds ? Math.round(exercise.duration_seconds / 60) : ""}
+                          onChange={(e) => onUpdateExercise(section.id, exercise.id, { duration_seconds: e.target.value ? parseInt(e.target.value) * 60 : null })}
                           className="h-8"
                         />
                       </div>
