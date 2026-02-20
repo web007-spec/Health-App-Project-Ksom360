@@ -405,8 +405,8 @@ export default function WorkoutDetail() {
                         <div className="text-sm text-muted-foreground mt-1">
                           {exercise.sets && `${exercise.sets} sets`}
                           {exercise.reps && ` × ${exercise.reps} reps`}
-                          {exercise.duration_seconds && ` • ${exercise.duration_seconds}s`}
-                          {exercise.rest_seconds && ` • ${exercise.rest_seconds}s rest`}
+                          {exercise.duration_seconds && ` • ${exercise.duration_seconds >= 3600 ? `${Math.round(exercise.duration_seconds / 3600)}hr` : exercise.duration_seconds >= 60 ? `${Math.round(exercise.duration_seconds / 60)}min` : `${exercise.duration_seconds}s`}`}
+                          {exercise.rest_seconds && ` • ${exercise.rest_seconds >= 60 ? `${Math.round(exercise.rest_seconds / 60)}min rest` : `${exercise.rest_seconds}s rest`}`}
                           {exercise.tempo && ` • Tempo: ${exercise.tempo}`}
                         </div>
                         {exercise.notes && (
