@@ -333,9 +333,19 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   };
 
   const togglePause = () => {
-    setIsPaused((p) => !p);
-    if (!isPaused && "speechSynthesis" in window) window.speechSynthesis.pause();
-    if (isPaused && "speechSynthesis" in window) window.speechSynthesis.resume();
+    const nowPaused = !isPausedRef.current;
+    isPausedRef.current = nowPaused;
+    setIsPaused(nowPaused);
+    if ("speechSynthesis" in window) {
+      if (nowPaused) {
+        window.speechSynthesis.cancel();
+      } else {
+        // re-announce current exercise on resume
+        if (voiceEnabledRef.current && currentStep?.type === "exercise" && currentStep?.exercise?.exercise_name) {
+          speakText(`Resuming. ${currentStep.exercise.exercise_name}.`);
+        }
+      }
+    }
   };
 
   const goToPrevStep = () => {
@@ -637,10 +647,10 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
         </div>
       </div>
 
-      {/* Lock overlay — covers controls but not the stop/pause buttons */}
+      {/* Lock overlay — only covers content area above the bottom controls */}
       {isLocked && (
         <div
-          className="absolute inset-0 z-[201] flex items-center justify-center bg-black/60"
+          className="absolute inset-x-0 top-0 bottom-[160px] z-[201] flex items-center justify-center bg-black/60"
           onClick={() => setIsLocked(false)}
         >
           <div className="text-center text-white">
@@ -653,7 +663,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
 
       {/* End Workout Dialog */}
       <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="z-[300]">
           <AlertDialogHeader>
             <AlertDialogTitle>End Workout?</AlertDialogTitle>
             <AlertDialogDescription>Choose to save your progress or discard it.</AlertDialogDescription>
