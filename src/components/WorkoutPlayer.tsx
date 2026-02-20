@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Square, Lock, Play, Pause, SkipBack, SkipForward, Heart, Volume2, VolumeX } from "lucide-react";
+import { X, Square, Lock, Play, Pause, SkipBack, SkipForward, Heart, MoreVertical, Timer } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -130,16 +130,10 @@ function buildSteps(sections: Section[]): WorkoutStep[] {
   return steps;
 }
 
-// Number words for clean TTS pronunciation
-const NUM_WORDS: Record<number, string> = { 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten" };
-function toWords(n: number): string { return NUM_WORDS[n] ?? String(n); }
-
 // Active audio element — stop it before playing a new one
 let activeAudio: HTMLAudioElement | null = null;
 
-// Returns a Promise that resolves only when the audio has finished playing
 async function playElevenLabsSpeech(text: string): Promise<void> {
-  // Cancel any currently playing audio immediately
   if (activeAudio) {
     activeAudio.pause();
     activeAudio.src = "";
@@ -172,7 +166,6 @@ async function playElevenLabsSpeech(text: string): Promise<void> {
   });
 }
 
-// Browser speech fallback — returns Promise that resolves when done
 function browserSpeak(text: string): Promise<void> {
   if (!("speechSynthesis" in window)) return Promise.resolve();
   window.speechSynthesis.cancel();
@@ -189,7 +182,6 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   const { toast } = useToast();
   const startedAtRef = useRef(new Date().toISOString());
   const [setLogs, setSetLogs] = useState<Record<string, SetLog>>({});
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [isLocked, setIsLocked] = useState(false);
 
   const [phase, setPhase] = useState<"getready" | "countdown" | "playing">("getready");
@@ -215,25 +207,17 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   const [swapDialogOpen, setSwapDialogOpen] = useState(false);
   const [swapTarget, setSwapTarget] = useState<{ sectionIdx: number; exerciseIdx: number } | null>(null);
 
-  const voiceEnabledRef = useRef(voiceEnabled);
-  useEffect(() => { voiceEnabledRef.current = voiceEnabled; }, [voiceEnabled]);
   useEffect(() => { stepIdxRef.current = stepIdx; }, [stepIdx]);
-
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
 
-  // speakText returns a Promise that resolves when audio finishes
   const speakText = useCallback((text: string): Promise<void> => {
-    if (!voiceEnabledRef.current) return Promise.resolve();
     return playElevenLabsSpeech(text).catch(() => browserSpeak(text));
   }, []);
 
   useEffect(() => {
     if (!videoRef.current) return;
-    if (isPaused) {
-      videoRef.current.pause();
-    } else {
-      videoRef.current.play().catch(() => {});
-    }
+    if (isPaused) videoRef.current.pause();
+    else videoRef.current.play().catch(() => {});
   }, [isPaused]);
 
   const currentStep = steps[stepIdx] || null;
@@ -264,21 +248,16 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   const remainingSeconds = Math.max(0, totalEstimatedSeconds - elapsedSeconds);
   const estimatedCal = Math.round(elapsedSeconds * 0.13);
 
-  // ── Advance to next step ──
   const advanceStep = useCallback(() => {
     if (stepTimerRef.current) clearInterval(stepTimerRef.current);
     setStepTimer(-1);
     setStepIdx((prev) => {
       const next = prev + 1;
-      if (next >= steps.length) {
-        if (voiceEnabledRef.current) speakText("Workout complete! Amazing job today!");
-        return prev;
-      }
+      if (next >= steps.length) return prev;
       return next;
     });
-  }, [steps.length, speakText]);
+  }, [steps.length]);
 
-  // ── Start per-step countdown timer ──
   const startStepCountdown = useCallback((seconds: number) => {
     if (stepTimerRef.current) clearInterval(stepTimerRef.current);
     stepTimerDurationRef.current = seconds;
@@ -290,39 +269,14 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
         const next = prev - 1;
         if (next <= 0) {
           clearInterval(stepTimerRef.current!);
-          const step = stepsRef.current[stepIdxRef.current];
-          const isCircuitRest = step?.type === "rest" && step.isCircuit;
-          const donePhrase = isCircuitRest ? "Let's go!" : "Great job! Moving on.";
-          const done = voiceEnabledRef.current
-            ? speakText(donePhrase)
-            : Promise.resolve();
-          done.finally(() => advanceStep());
+          advanceStep();
           return 0;
-        }
-        if (voiceEnabledRef.current) {
-          const step = stepsRef.current[stepIdxRef.current];
-          const isCircuitRest = step?.type === "rest" && step.isCircuit;
-
-          if (next === 10) {
-            if (isCircuitRest) {
-              // Announce the round name at 10s — the 3,2,1 will fire naturally at 3,2,1
-              const nextRound = step.round + 1;
-              speakText(`Alright, let's go round ${toWords(nextRound)}!`);
-            } else {
-              speakText("Ten seconds left. Keep pushing!");
-            }
-          }
-          // 3-2-1 fires for ALL steps (including circuit rests) so it aligns with the clock
-          if (next === 3 || next === 2 || next === 1) {
-            speakText(toWords(next));
-          }
         }
         return next;
       });
     }, 1000);
-  }, [advanceStep, speakText]);
+  }, [advanceStep]);
 
-  // ── GET READY → COUNTDOWN → PLAYING ──
   useEffect(() => {
     if (phase === "getready") {
       const t = setTimeout(() => setPhase("countdown"), 1800);
@@ -331,12 +285,9 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
     if (phase === "countdown") {
       setCountdownNum(3);
       let n = 3;
-      speakText("Three");
       const interval = setInterval(() => {
         n--;
         setCountdownNum(n);
-        if (n === 2) speakText("Two");
-        else if (n === 1) speakText("One");
         if (n <= 0) {
           clearInterval(interval);
           setTimeout(() => setPhase("playing"), 500);
@@ -344,9 +295,8 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [phase, speakText]);
+  }, [phase]);
 
-  // ── Global elapsed timer ──
   useEffect(() => {
     if (phase !== "playing") return;
     elapsedRef.current = setInterval(() => {
@@ -355,48 +305,19 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
     return () => { if (elapsedRef.current) clearInterval(elapsedRef.current); };
   }, [phase]);
 
-  // ── Announce & start timer when step changes ──
   useEffect(() => {
     if (phase !== "playing" || !currentStep) return;
-
     if (currentStep.type === "exercise" && currentStep.exercise) {
       const ex = currentStep.exercise;
-      const dur = ex.duration_seconds;
-      const reps = ex.reps;
-      let msg = `${ex.exercise_name}. `;
-      if (dur) msg += `For ${dur} seconds. Let's go!`;
-      else if (reps) msg += `${reps} reps. Let's go!`;
-      else msg += "Let's go!";
-      if (voiceEnabledRef.current) speakText(msg);
-      if (dur) startStepCountdown(dur);
+      if (ex.duration_seconds) startStepCountdown(ex.duration_seconds);
       else setStepTimer(-1);
     } else if (currentStep.type === "rest") {
       const secs = currentStep.restSeconds || 60;
-      if (voiceEnabledRef.current) {
-        if (currentStep.isCircuit) {
-          // Between-rounds rest: announce round completion and upcoming round
-          const section = sections[currentStep.sectionIdx];
-          const completedRound = currentStep.round;
-          const totalRounds = section?.rounds || 1;
-          const roundsLeft = totalRounds - completedRound;
-          const nextRound = completedRound + 1;
-          let msg = `You just finished round ${toWords(completedRound)}`;
-          if (roundsLeft === 1) {
-            msg += ` with ${toWords(roundsLeft)} more round to go. Take a quick rest and get ready for round ${toWords(nextRound)}!`;
-          } else if (roundsLeft > 1) {
-            msg += ` with ${toWords(roundsLeft)} more rounds to go. Take a quick rest and get ready for round ${toWords(nextRound)}!`;
-          }
-          speakText(msg);
-        } else {
-          speakText(`Rest for ${secs} seconds.`);
-        }
-      }
       startStepCountdown(secs);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepIdx, phase]);
 
-  // ── Handlers ──
   const handleComplete = () => {
     if (elapsedRef.current) clearInterval(elapsedRef.current);
     if (stepTimerRef.current) clearInterval(stepTimerRef.current);
@@ -419,15 +340,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
     const nowPaused = !isPausedRef.current;
     isPausedRef.current = nowPaused;
     setIsPaused(nowPaused);
-    if ("speechSynthesis" in window) {
-      if (nowPaused) {
-        window.speechSynthesis.cancel();
-      } else {
-        if (voiceEnabledRef.current && currentStep?.type === "exercise" && currentStep?.exercise?.exercise_name) {
-          speakText(`Resuming. ${currentStep.exercise.exercise_name}.`);
-        }
-      }
-    }
+    if ("speechSynthesis" in window && nowPaused) window.speechSynthesis.cancel();
   };
 
   const goToPrevStep = () => {
@@ -466,11 +379,11 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   // ─── GET READY SCREEN ───
   if (phase === "getready") {
     return (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[hsl(218,33%,15%)]">
-        <Button variant="ghost" size="icon" className="absolute top-6 left-4 text-white/60 hover:text-white" onClick={onExit}>
+      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-foreground">
+        <Button variant="ghost" size="icon" className="absolute top-6 left-4 text-background/60 hover:text-background" onClick={onExit}>
           <X className="h-6 w-6" />
         </Button>
-        <h1 className="text-7xl font-light text-white tracking-widest text-center leading-tight">
+        <h1 className="text-7xl font-light text-background tracking-widest text-center leading-tight">
           GET<br />READY
         </h1>
       </div>
@@ -480,8 +393,8 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   // ─── COUNTDOWN SCREEN ───
   if (phase === "countdown") {
     return (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[hsl(218,33%,15%)]">
-        <span className="text-9xl font-black text-white tabular-nums">{countdownNum > 0 ? countdownNum : "GO!"}</span>
+      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-foreground">
+        <span className="text-9xl font-black text-background tabular-nums">{countdownNum > 0 ? countdownNum : "GO!"}</span>
       </div>
     );
   }
@@ -498,6 +411,11 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
 
   const currentExercise = currentStep.exercise;
   const isRest = currentStep.type === "rest";
+  const currentSection = sections[currentStep.sectionIdx];
+  const isGrouped = currentSection && ["superset", "circuit"].includes(currentSection.section_type);
+  const sectionLabel = isGrouped
+    ? `${currentSection.section_type === "superset" ? "Superset" : "Circuit"} of ${currentSection.rounds} sets`
+    : currentSection?.name || "";
 
   // Next exercise info
   let nextExerciseName = "";
@@ -513,220 +431,270 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
       else if (reps) nextExerciseDuration = `${reps} reps`;
     } else if (nextStep.type === "rest") {
       nextExerciseName = "Rest";
-      nextExerciseDuration = nextStep.restSeconds ? formatTime(nextStep.restSeconds) : "";
+      nextExerciseDuration = nextStep.restSeconds ? `${nextStep.restSeconds}s` : "";
     }
   }
 
+  const timerPercent = stepTimer > 0 && stepTimerDurationRef.current > 0
+    ? Math.round((stepTimer / stepTimerDurationRef.current) * 100)
+    : 0;
+
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col bg-black">
-      {/* ── Header ── */}
-      <div className="bg-black text-white text-center pt-12 pb-3 px-4 relative">
-        <p className="text-base font-semibold tracking-wide">
-          {isRest ? "Rest" : currentExercise?.exercise_name || ""}
-        </p>
-        {isPaused && (
-          <span className="absolute right-4 top-12 text-xs text-primary font-bold tracking-widest">PAUSED</span>
+    <div className="fixed inset-0 z-[200] flex flex-col bg-background">
+      {/* ── Top Nav Bar ── */}
+      <div className="flex items-center justify-between px-4 pt-12 pb-3 bg-background border-b border-border/50">
+        <Button variant="ghost" size="sm" className="text-muted-foreground font-medium" onClick={() => setShowDiscardDialog(true)}>
+          <X className="h-4 w-4 mr-1" /> Cancel
+        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={togglePause} className="text-muted-foreground">
+            {isPaused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
+          </Button>
+          <Button
+            size="sm"
+            className="font-semibold px-5"
+            onClick={handleEndEarly}
+          >
+            Save
+          </Button>
+        </div>
+      </div>
+
+      {/* ── Stats Bar ── */}
+      <div className="grid grid-cols-3 px-4 py-3 border-b border-border/40 bg-background">
+        <div className="text-center">
+          <p className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">TIME</p>
+          <p className="text-base font-bold tabular-nums">{formatTime(elapsedSeconds)}</p>
+        </div>
+        <div className="text-center border-x border-border/40">
+          <p className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">Active</p>
+          <p className="text-base font-bold">{estimatedCal} Cal</p>
+        </div>
+        <div className="text-center">
+          <p className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">Progress</p>
+          <p className="text-base font-bold">{completedPercent}%</p>
+        </div>
+      </div>
+
+      {/* ── Scrollable Content ── */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Rest Screen */}
+        {isRest ? (
+          <div className="flex flex-col items-center justify-center py-12 px-6 gap-6">
+            <div className="relative w-40 h-40">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="54" fill="none" stroke="hsl(var(--muted))" strokeWidth="8" />
+                <circle
+                  cx="60" cy="60" r="54"
+                  fill="none"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 54}`}
+                  strokeDashoffset={`${2 * Math.PI * 54 * (1 - timerPercent / 100)}`}
+                  className="transition-all duration-1000"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <Timer className="h-5 w-5 text-primary mb-1" />
+                <p className="text-3xl font-black tabular-nums">{stepTimer > 0 ? stepTimer : "—"}</p>
+                <p className="text-xs text-muted-foreground font-medium">seconds</p>
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold">Rest</p>
+              <p className="text-muted-foreground text-sm mt-1">
+                {nextExerciseName ? `Up next: ${nextExerciseName}` : "Get ready!"}
+              </p>
+            </div>
+            <Button variant="outline" className="w-full max-w-xs" onClick={advanceStep}>
+              Skip Rest
+            </Button>
+          </div>
+        ) : (
+          <>
+            {/* Section header */}
+            {sectionLabel && (
+              <div className="flex items-center gap-3 px-4 py-3 bg-muted/30 border-l-4 border-primary mx-0">
+                <p className="text-sm font-semibold text-foreground">{sectionLabel}</p>
+              </div>
+            )}
+
+            {/* Set indicator for grouped */}
+            {isGrouped && (
+              <div className="px-4 pt-4 pb-1">
+                <p className="text-lg font-bold">Set {currentStep.round}</p>
+              </div>
+            )}
+
+            {/* Exercise Card */}
+            {currentExercise && (
+              <div className="border-l-4 border-primary mx-4 my-3 bg-card rounded-r-xl overflow-hidden shadow-sm">
+                <div className="flex items-center gap-3 p-3">
+                  {/* Thumbnail */}
+                  <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0 flex items-center justify-center">
+                    {currentExercise.exercise_video ? (
+                      <video
+                        ref={videoRef}
+                        key={currentExercise.id + stepIdx}
+                        src={currentExercise.exercise_video}
+                        className="w-full h-full object-cover"
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                      />
+                    ) : currentExercise.exercise_image ? (
+                      <img src={currentExercise.exercise_image} alt={currentExercise.exercise_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-2xl font-black text-muted-foreground/30">
+                        {currentExercise.exercise_name?.charAt(0) || "?"}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Name + target */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-foreground leading-tight">{currentExercise.exercise_name}</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      {currentExercise.duration_seconds
+                        ? `${currentExercise.duration_seconds}s`
+                        : currentExercise.reps
+                        ? `${currentExercise.reps} reps`
+                        : ""}
+                    </p>
+                  </div>
+
+                  <Button variant="ghost" size="icon" className="text-muted-foreground flex-shrink-0">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Timer for timed exercises */}
+                {currentExercise.duration_seconds && stepTimer > 0 && (
+                  <div className="px-3 pb-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs text-muted-foreground font-medium">Time remaining</span>
+                      <span className="text-2xl font-black tabular-nums text-primary">{formatTime(stepTimer)}</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div
+                        className="bg-primary h-2 rounded-full transition-all duration-1000"
+                        style={{ width: `${timerPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Rep + weight logging for rep-based */}
+                {!currentExercise.duration_seconds && currentStep.setKey && (
+                  <div className="px-3 pb-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Previous</p>
+                        <p className="text-sm text-muted-foreground">—</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Reps</p>
+                        <Input
+                          type="number"
+                          value={setLogs[currentStep.setKey]?.reps || ""}
+                          onChange={(e) => updateSetLog(currentStep.setKey!, "reps", e.target.value)}
+                          className="h-10 text-center text-lg font-bold border-2 focus:border-primary"
+                          placeholder="0"
+                          inputMode="numeric"
+                        />
+                      </div>
+                    </div>
+                    {/* Weight row */}
+                    <div className="mt-2">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Weight (lbs)</p>
+                      <Input
+                        type="number"
+                        value={setLogs[currentStep.setKey]?.weight || ""}
+                        onChange={(e) => updateSetLog(currentStep.setKey!, "weight", e.target.value)}
+                        className="h-10 text-center text-lg font-bold border-2 focus:border-primary"
+                        placeholder="0"
+                        inputMode="decimal"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Notes */}
+            {currentExercise?.notes && (
+              <p className="text-sm text-muted-foreground px-4 pb-2 italic">{currentExercise.notes}</p>
+            )}
+
+            {/* Next up preview */}
+            {nextExerciseName && (
+              <div className="mx-4 mt-2 mb-3 px-3 py-2.5 bg-muted/40 rounded-xl flex items-center gap-3 border border-border/50">
+                {nextExerciseImage ? (
+                  <img src={nextExerciseImage} alt={nextExerciseName} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                    <span className="text-base font-bold text-muted-foreground/40">{nextExerciseName.charAt(0)}</span>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground font-medium">Up Next</p>
+                  <p className="text-sm font-semibold truncate">{nextExerciseName}</p>
+                  {nextExerciseDuration && <p className="text-xs text-muted-foreground">{nextExerciseDuration}</p>}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      {/* ── Main Content ── */}
-      <div className="flex-1 flex flex-col bg-white overflow-hidden">
-        {/* Media area */}
-        <div className="flex-1 relative bg-muted/20">
-          {!isRest && currentExercise?.exercise_video ? (
-            <video
-              ref={videoRef}
-              key={currentExercise.id + stepIdx}
-              src={currentExercise.exercise_video}
-              className="w-full h-full object-cover"
-              autoPlay
-              loop
-              muted
-              playsInline
-            />
-          ) : !isRest && currentExercise?.exercise_image ? (
-            <img
-              src={currentExercise.exercise_image}
-              alt={currentExercise.exercise_name}
-              className="w-full h-full object-cover"
-            />
-          ) : isRest ? (
-            <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-muted/30">
-              <Heart className="h-16 w-16 text-primary/40" />
-              <p className="text-muted-foreground font-medium">Recovery Time</p>
-            </div>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-6xl font-black text-muted-foreground/20">
-                {currentExercise?.exercise_name?.charAt(0) || "?"}
-              </span>
-            </div>
-          )}
+      {/* ── Bottom Controls ── */}
+      {!isLocked && (
+        <div className="bg-background border-t border-border/50 px-4 pb-8 pt-3">
+          <div className="flex items-center justify-between gap-2">
+            <Button variant="ghost" size="icon" onClick={goToPrevStep} disabled={stepIdx === 0} className="text-muted-foreground">
+              <SkipBack className="h-5 w-5" />
+            </Button>
 
-          {/* Lock overlay */}
-          {isLocked && (
-            <div
-              className="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer z-10"
-              onClick={() => setIsLocked(false)}
+            <Button
+              size="lg"
+              className="flex-1 h-12 font-bold text-base rounded-xl"
+              onClick={!isRest && currentStep?.type === "exercise" && !currentExercise?.duration_seconds ? markStepDone : advanceStep}
             >
-              <div className="text-center text-white">
-                <Lock className="h-8 w-8 mx-auto mb-2 opacity-60" />
-                <p className="text-sm opacity-60">Tap to unlock</p>
-              </div>
-            </div>
-          )}
-        </div>
+              {isRest ? "Skip Rest" : currentExercise?.duration_seconds ? "Skip" : "Next →"}
+            </Button>
 
-        {/* ── Timer & Info ── */}
-        <div className="px-4 pt-3 pb-2 bg-white">
-          <div className="flex items-center justify-between mb-2">
-            {/* Timer */}
-            <div className="text-center flex-1">
-              {stepTimer > 0 ? (
-                <p className="text-4xl font-black tabular-nums text-foreground">{formatTime(stepTimer)}</p>
-              ) : (
-                <p className="text-2xl font-semibold text-muted-foreground">
-                  {currentExercise?.reps ? `${currentExercise.reps} reps` : "--"}
-                </p>
-              )}
-            </div>
+            <Button variant="ghost" size="icon" onClick={() => setIsLocked(true)} className="text-muted-foreground">
+              <Lock className="h-5 w-5" />
+            </Button>
           </div>
 
-          {/* Progress bar */}
-          {stepTimer > 0 && stepTimerDurationRef.current > 0 && (
-            <div className="w-full bg-muted rounded-full h-1.5 mb-2">
-              <div
-                className="bg-primary h-1.5 rounded-full transition-all"
-                style={{ width: `${((stepTimerDurationRef.current - stepTimer) / stepTimerDurationRef.current) * 100}%` }}
-              />
-            </div>
-          )}
-
-          {/* Set logging for rep-based exercises */}
-          {!isRest && currentStep.setKey && !currentExercise?.duration_seconds && (
-            <div className="mt-3 flex items-center gap-2">
-              <div className="flex-1">
-                <p className="text-xs text-muted-foreground mb-1">Reps</p>
-                <Input
-                  type="number"
-                  value={setLogs[currentStep.setKey]?.reps || ""}
-                  onChange={(e) => updateSetLog(currentStep.setKey!, "reps", e.target.value)}
-                  className="h-9 text-center"
-                  placeholder="0"
-                />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs text-muted-foreground mb-1">Weight (lbs)</p>
-                <Input
-                  type="number"
-                  value={setLogs[currentStep.setKey]?.weight || ""}
-                  onChange={(e) => updateSetLog(currentStep.setKey!, "weight", e.target.value)}
-                  className="h-9 text-center"
-                  placeholder="0"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ── Up Next ── */}
-        {nextExerciseName && (
-          <div className="px-4 py-2 bg-muted/30 border-t border-border/40 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0 flex items-center justify-center">
-              {nextExerciseImage ? (
-                <img src={nextExerciseImage} alt={nextExerciseName} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-xl font-bold text-muted-foreground/40">{nextExerciseName.charAt(0)}</span>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground">Up Next</p>
-              <p className="text-sm font-semibold truncate">{nextExerciseName}</p>
-              {nextExerciseDuration && <p className="text-xs text-muted-foreground">{nextExerciseDuration}</p>}
-            </div>
+          <div className="flex justify-center mt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive/60 text-xs"
+              onClick={() => setShowDiscardDialog(true)}
+            >
+              <Square className="h-3 w-3 mr-1" /> End Workout
+            </Button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ── Controls ── */}
-        {!isLocked && (
-          <div className="px-4 pb-6 pt-2 bg-white">
-            <div className="flex items-center justify-between gap-2">
-              {/* Voice toggle */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setVoiceEnabled((v) => !v)}
-                className="text-muted-foreground"
-              >
-                {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-              </Button>
-
-              {/* Prev */}
-              <Button variant="outline" size="icon" onClick={goToPrevStep} disabled={stepIdx === 0}>
-                <SkipBack className="h-5 w-5" />
-              </Button>
-
-              {/* Play/Pause */}
-              <Button size="icon" className="h-14 w-14 rounded-full" onClick={togglePause}>
-                {isPaused ? <Play className="h-6 w-6" /> : <Pause className="h-6 w-6" />}
-              </Button>
-
-              {/* Next / Done */}
-              {currentStep?.type === "exercise" && !currentExercise?.duration_seconds ? (
-                <Button variant="outline" size="icon" onClick={markStepDone}>
-                  <SkipForward className="h-5 w-5" />
-                </Button>
-              ) : (
-                <Button variant="outline" size="icon" onClick={advanceStep}>
-                  <SkipForward className="h-5 w-5" />
-                </Button>
-              )}
-
-              {/* Lock */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsLocked(true)}
-                className="text-muted-foreground"
-              >
-                <Lock className="h-5 w-5" />
-              </Button>
-            </div>
-
-            {/* Exit menu */}
-            <div className="flex justify-center mt-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive/60 text-xs"
-                onClick={() => setShowDiscardDialog(true)}
-              >
-                <Square className="h-3 w-3 mr-1" /> End Workout
-              </Button>
-            </div>
+      {/* Lock overlay */}
+      {isLocked && (
+        <div
+          className="fixed inset-0 z-[210] bg-foreground/80 flex items-center justify-center cursor-pointer"
+          onClick={() => setIsLocked(false)}
+        >
+          <div className="text-center text-background">
+            <Lock className="h-10 w-10 mx-auto mb-3 opacity-60" />
+            <p className="text-sm opacity-60 font-medium">Tap to unlock</p>
           </div>
-        )}
-      </div>
-
-      {/* ── Bottom stats bar ── */}
-      <div className="bg-black text-white px-4 py-2 flex items-center justify-around text-center">
-        <div>
-          <p className="text-xs text-white/50">Done</p>
-          <p className="text-sm font-bold">{completedPercent}%</p>
         </div>
-        <div>
-          <p className="text-xs text-white/50">Elapsed</p>
-          <p className="text-sm font-bold">{formatTime(elapsedSeconds)}</p>
-        </div>
-        <div>
-          <p className="text-xs text-white/50">Remaining</p>
-          <p className="text-sm font-bold">{formatTime(remainingSeconds)}</p>
-        </div>
-        <div>
-          <p className="text-xs text-white/50">Cal</p>
-          <p className="text-sm font-bold">{estimatedCal}</p>
-        </div>
-      </div>
+      )}
 
       {/* ── End workout dialog ── */}
       <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
@@ -737,10 +705,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
             <AlertDialogAction onClick={handleEndEarly}>Save & End</AlertDialogAction>
-            <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90"
-              onClick={handleDiscard}
-            >
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={handleDiscard}>
               Discard
             </AlertDialogAction>
             <AlertDialogCancel>Keep Going</AlertDialogCancel>
@@ -753,9 +718,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
         <ExerciseSwapDialog
           open={swapDialogOpen}
           onOpenChange={setSwapDialogOpen}
-          currentExercise={
-            sections[swapTarget.sectionIdx]?.exercises[swapTarget.exerciseIdx] as any
-          }
+          currentExercise={sections[swapTarget.sectionIdx]?.exercises[swapTarget.exerciseIdx] as any}
           onSwap={handleSwapExercise}
         />
       )}
