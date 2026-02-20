@@ -2,7 +2,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, Clock, Users, Copy, Edit, Trash2, UserPlus, BookTemplate } from "lucide-react";
+import { Plus, Search, Filter, Clock, Users, Copy, Edit, Trash2, UserPlus, BookTemplate, Dumbbell } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -279,95 +279,104 @@ export default function Workouts() {
             workoutPlans.map((workout) => (
               <Card 
                 key={workout.id} 
-                className="hover:shadow-lg transition-shadow cursor-pointer"
+                className="hover:shadow-lg transition-shadow cursor-pointer overflow-hidden"
                 onClick={() => navigate(`/workouts/${workout.id}`)}
               >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1 flex-1">
-                      <CardTitle className="text-lg">{workout.name}</CardTitle>
-                      <Badge variant="secondary" className="text-xs">
-                        {workout.category}
+                {/* Cover Image */}
+                <div className="relative">
+                  {workout.image_url ? (
+                    <img
+                      src={workout.image_url}
+                      alt={workout.name}
+                      className="w-full h-40 object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-40 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                      <Dumbbell className="h-10 w-10 text-primary/40" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <h3 className="text-white font-bold text-base drop-shadow-lg line-clamp-1">{workout.name}</h3>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <Badge className="bg-white/20 text-white border-0 text-[10px] backdrop-blur-sm">
+                        {workout.category || "General"}
+                      </Badge>
+                      <Badge className={`text-[10px] border-0 ${difficultyColors[workout.difficulty as keyof typeof difficultyColors] || "bg-muted text-muted-foreground"}`}>
+                        {workout.difficulty}
                       </Badge>
                     </div>
-                    <Badge className={difficultyColors[workout.difficulty as keyof typeof difficultyColors]}>
-                      {workout.difficulty}
-                    </Badge>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Clock className="h-4 w-4" />
+                </div>
+
+                <CardContent className="p-3 space-y-3">
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5" />
                       <span>{workout.duration_minutes} min</span>
                     </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Users className="h-4 w-4" />
-                      <span>0 clients</span>
+                    <div className="flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5" />
+                      <span>{workout.workout_plan_exercises?.[0]?.count || 0} exercises</span>
                     </div>
                   </div>
                   
-                  <div className="pt-2 border-t border-border">
-                    <p className="text-sm text-muted-foreground mb-3">
-                      {workout.workout_plan_exercises?.[0]?.count || 0} exercises
-                    </p>
-                    <div className="flex gap-2 flex-wrap">
-                      <Button 
-                        size="sm" 
-                        className="flex-1 min-w-[80px]"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setWorkoutToAssign({ id: workout.id, name: workout.name });
-                          setAssignDialogOpen(true);
-                        }}
-                      >
-                        <UserPlus className="h-3.5 w-3.5 mr-1.5" />
-                        Assign
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/workouts/edit/${workout.id}`);
-                        }}
-                      >
-                        <Edit className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setWorkoutToTemplate({ id: workout.id, name: workout.name });
-                          setTemplateDialogOpen(true);
-                        }}
-                        title="Save as Template"
-                      >
-                        <BookTemplate className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          duplicateMutation.mutate(workout.id);
-                        }}
-                        disabled={duplicateMutation.isPending}
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(workout.id);
-                        }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
-                    </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button 
+                      size="sm" 
+                      className="flex-1 min-w-[80px]"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setWorkoutToAssign({ id: workout.id, name: workout.name });
+                        setAssignDialogOpen(true);
+                      }}
+                    >
+                      <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+                      Assign
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/workouts/edit/${workout.id}`);
+                      }}
+                    >
+                      <Edit className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setWorkoutToTemplate({ id: workout.id, name: workout.name });
+                        setTemplateDialogOpen(true);
+                      }}
+                      title="Save as Template"
+                    >
+                      <BookTemplate className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        duplicateMutation.mutate(workout.id);
+                      }}
+                      disabled={duplicateMutation.isPending}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(workout.id);
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
