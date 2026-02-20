@@ -290,28 +290,30 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
         const next = prev - 1;
         if (next <= 0) {
           clearInterval(stepTimerRef.current!);
-          // "Great job!" plays first; advanceStep only fires when it's done
-          // so the next exercise announcement never overlaps
+          const step = stepsRef.current[stepIdxRef.current];
+          const isCircuitRest = step?.type === "rest" && step.isCircuit;
+          const donePhrase = isCircuitRest ? "Let's go!" : "Great job! Moving on.";
           const done = voiceEnabledRef.current
-            ? speakText("Great job! Moving on.")
+            ? speakText(donePhrase)
             : Promise.resolve();
           done.finally(() => advanceStep());
           return 0;
         }
-        if (next === 10 && voiceEnabledRef.current) {
-          // Check if we're in a between-rounds rest — use round-up speech
+        if (voiceEnabledRef.current) {
           const step = stepsRef.current[stepIdxRef.current];
-          if (step?.type === "rest" && step.isCircuit) {
-            const nextRound = step.round + 1;
-            speakText(`Alright, let's go round ${toWords(nextRound)}! Three, two, one, let's go!`);
-          } else {
-            speakText("Ten seconds left. Keep pushing!");
+          const isCircuitRest = step?.type === "rest" && step.isCircuit;
+
+          if (next === 10) {
+            if (isCircuitRest) {
+              // Announce the round name at 10s — the 3,2,1 will fire naturally at 3,2,1
+              const nextRound = step.round + 1;
+              speakText(`Alright, let's go round ${toWords(nextRound)}!`);
+            } else {
+              speakText("Ten seconds left. Keep pushing!");
+            }
           }
-        }
-        if ((next === 3 || next === 2 || next === 1) && voiceEnabledRef.current) {
-          // Only count down for non-rest-between-rounds steps (rest-between-rounds uses the 10s speech above)
-          const step = stepsRef.current[stepIdxRef.current];
-          if (!(step?.type === "rest" && step.isCircuit)) {
+          // 3-2-1 fires for ALL steps (including circuit rests) so it aligns with the clock
+          if (next === 3 || next === 2 || next === 1) {
             speakText(toWords(next));
           }
         }
