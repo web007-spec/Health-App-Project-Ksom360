@@ -246,36 +246,40 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
     const step = steps[stepIdx];
     if (!step) return;
 
-    if (step.type === "rest") {
-      const nextEx = steps[stepIdx + 1]?.exercise;
-      const msg = nextEx
-        ? `Rest. Up next: ${nextEx.exercise_name}`
-        : "Rest up, you're almost done!";
-      elevenLabsSpeakNow(msg).catch(() => {});
-    } else if (step.type === "exercise" && step.exercise) {
-      const ex = step.exercise;
-      const section = sections[step.sectionIdx];
-      const isGrouped = ["superset", "circuit"].includes(section?.section_type);
-      let msg = ex.exercise_name || "";
-      if (isGrouped) {
-        msg += `, round ${step.round}`;
-      } else if (ex.sets && ex.sets > 1) {
-        msg += `, set ${step.round} of ${ex.sets}`;
+    // Small delay on the very first step so "1" browser-speech fully finishes
+    // before we cancel and fire the ElevenLabs request
+    const delayMs = stepIdx === 0 ? 500 : 0;
+
+    const timer = setTimeout(() => {
+      if (step.type === "rest") {
+        const nextEx = steps[stepIdx + 1]?.exercise;
+        const msg = nextEx
+          ? `Rest. Up next: ${nextEx.exercise_name}`
+          : "Rest up, you're almost done!";
+        elevenLabsSpeakNow(msg).catch(() => {});
+      } else if (step.type === "exercise" && step.exercise) {
+        const ex = step.exercise;
+        const section = sections[step.sectionIdx];
+        const isGrouped = ["superset", "circuit"].includes(section?.section_type);
+        let msg = ex.exercise_name || "";
+        if (isGrouped) {
+          msg += `, round ${step.round}`;
+        } else if (ex.sets && ex.sets > 1) {
+          msg += `, set ${step.round} of ${ex.sets}`;
+        }
+        if (ex.reps) msg += `, ${ex.reps} reps`;
+        elevenLabsSpeakNow(msg).catch(() => {});
       }
-      if (ex.reps) msg += `, ${ex.reps} reps`;
-      elevenLabsSpeakNow(msg).catch(() => {});
-    }
+    }, delayMs);
+
+    return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepIdx, phase]);
 
-  // "Get ready!" — browser speech (instant)
+  // "Get ready!" — browser speech (instant). Each speak fn cancels prior speech itself.
   useEffect(() => {
     if (phase === "getready") {
       browserSpeakNow("Get ready").catch(() => {});
-    }
-    // Cancel all speech when phase changes to avoid carry-over
-    if (phase === "countdown" || phase === "playing") {
-      cancelSpeech();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
