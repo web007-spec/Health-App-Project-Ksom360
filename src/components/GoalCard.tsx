@@ -1,161 +1,198 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Target, TrendingUp, Calendar, Award, Play, Pause, CheckCircle2 } from "lucide-react";
-import { format, parseISO, differenceInDays } from "date-fns";
+import { Calendar, CheckCircle2, TrendingDown, TrendingUp, Minus, Clock, AlertTriangle } from "lucide-react";
+import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { weightProgressPct, paceStatus, requiredWeightTomorrow } from "@/lib/weightGoalProgress";
+import { daysRemaining, expectedPct } from "@/lib/goalDates";
+import { GOAL_LIFE_EVENTS } from "@/components/CreateGoalDialog";
 
 interface Goal {
   id: string;
   goal_type: string;
   title: string;
   description: string | null;
-  target_value: number | null;
-  current_value: number | null;
+  target_value: number | null;   // goal weight
+  current_value: number | null;  // start weight (locked after set)
   unit: string | null;
   start_date: string;
   target_date: string;
   status: string;
   completed_at: string | null;
+  // optional enrichment from trainer view
+  client_profile?: { full_name?: string };
+  // today's weight from metric entries (passed in)
+  today_weight?: number | null;
 }
 
 interface GoalCardProps {
   goal: Goal;
-  onUpdateProgress?: (goalId: string, value: number) => void;
   onStatusChange?: (goalId: string, status: string) => void;
   isTrainer?: boolean;
+  showClientName?: boolean;
 }
 
-export function GoalCard({ goal, onUpdateProgress, onStatusChange, isTrainer = false }: GoalCardProps) {
-  const progress = goal.target_value
-    ? Math.min(Math.round((Number(goal.current_value || 0) / goal.target_value) * 100), 100)
-    : 0;
+const PACE_CONFIG = {
+  ahead: { label: "Ahead of pace", color: "text-success", bg: "bg-success/10", Icon: TrendingDown },
+  on_pace: { label: "On pace", color: "text-primary", bg: "bg-primary/10", Icon: Minus },
+  behind: { label: "Behind pace", color: "text-destructive", bg: "bg-destructive/10", Icon: TrendingUp },
+} as const;
 
-  const daysRemaining = differenceInDays(parseISO(goal.target_date), new Date());
-  const daysTotal = differenceInDays(parseISO(goal.target_date), parseISO(goal.start_date));
-  const timeProgress = Math.max(0, Math.min(100, ((daysTotal - daysRemaining) / daysTotal) * 100));
+export function GoalCard({ goal, onStatusChange, isTrainer = false, showClientName = false }: GoalCardProps) {
+  const startWeight = goal.current_value;          // locked start weight
+  const goalWeight = goal.target_value;
+  const todayWeight = goal.today_weight ?? startWeight; // fall back to start if no weigh-in yet
 
-  const statusConfig = {
-    active: { color: "bg-primary", label: "Active", icon: Play },
-    completed: { color: "bg-success", label: "Completed", icon: CheckCircle2 },
-    paused: { color: "bg-muted", label: "Paused", icon: Pause },
-    abandoned: { color: "bg-destructive", label: "Abandoned", icon: Target },
-  };
+  // Life event emoji
+  const eventEntry = GOAL_LIFE_EVENTS.find(e => e.value === goal.goal_type);
+  const emoji = eventEntry ? eventEntry.label.split(" ")[0] : "🎯";
 
-  const config = statusConfig[goal.status as keyof typeof statusConfig] || statusConfig.active;
-  const StatusIcon = config.icon;
+  // Progress
+  const progressPct =
+    startWeight != null && goalWeight != null && todayWeight != null
+      ? weightProgressPct(startWeight, todayWeight, goalWeight)
+      : 0;
 
-  const goalTypeLabels = {
-    weight: "Weight",
-    body_fat: "Body Fat",
-    workouts: "Workouts",
-    strength: "Strength",
-    custom: "Custom",
-  };
+  const pace = startWeight != null && goalWeight != null
+    ? paceStatus(progressPct, goal.start_date, goal.target_date)
+    : "on_pace";
+
+  const paceConf = PACE_CONFIG[pace];
+  const PaceIcon = paceConf.Icon;
+
+  const remaining = daysRemaining(goal.target_date);
+
+  // Back-on-pace guidance
+  const backOnPaceWeight =
+    pace === "behind" && startWeight != null && goalWeight != null
+      ? requiredWeightTomorrow(startWeight, goalWeight, goal.start_date, goal.target_date)
+      : null;
+
+  const isCompleted = goal.status === "completed";
+  const isActive = goal.status === "active";
+
+  const weightChange = todayWeight != null && startWeight != null ? startWeight - todayWeight : null;
+  const totalNeeded = startWeight != null && goalWeight != null ? startWeight - goalWeight : null;
 
   return (
-    <Card className={cn("relative overflow-hidden", goal.status === "completed" && "border-success")}>
-      {/* Status indicator bar */}
-      <div className={cn("absolute top-0 left-0 right-0 h-1", config.color)} />
+    <Card className={cn(
+      "relative overflow-hidden transition-all",
+      isCompleted && "border-success/50"
+    )}>
+      {/* Top accent bar */}
+      <div className={cn(
+        "absolute top-0 left-0 right-0 h-1",
+        isCompleted ? "bg-success" : "bg-primary"
+      )} />
 
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="space-y-1 flex-1">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">{goalTypeLabels[goal.goal_type as keyof typeof goalTypeLabels]}</Badge>
-              <Badge className={cn("gap-1", config.color)}>
-                <StatusIcon className="h-3 w-3" />
-                {config.label}
-              </Badge>
+      <CardContent className="pt-5 pb-4 space-y-4">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="text-2xl leading-none">{emoji}</span>
+            <div className="min-w-0">
+              <p className="font-semibold text-base leading-tight truncate">{goal.title}</p>
+              {showClientName && goal.client_profile?.full_name && (
+                <p className="text-xs text-muted-foreground mt-0.5">{goal.client_profile.full_name}</p>
+              )}
+              {goal.description && (
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{goal.description}</p>
+              )}
             </div>
-            <CardTitle className="text-xl">{goal.title}</CardTitle>
-            {goal.description && <CardDescription>{goal.description}</CardDescription>}
           </div>
+
+          {isCompleted ? (
+            <Badge className="bg-success/15 text-success border-success/30 shrink-0">
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              Done
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="shrink-0 gap-1">
+              <Clock className="h-3 w-3" />
+              {remaining > 0 ? `${remaining}d left` : "Overdue"}
+            </Badge>
           
-          {isTrainer && onStatusChange && goal.status === "active" && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onStatusChange(goal.id, "completed")}
-            >
-              Mark Complete
-            </Button>
           )}
         </div>
-      </CardHeader>
 
-      <CardContent className="space-y-4">
-        {/* Progress Section */}
-        {goal.target_value && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Progress</span>
-              <span className="font-medium">
-                {goal.current_value || 0} / {goal.target_value} {goal.unit}
-              </span>
+        {/* Weight stats */}
+        {startWeight != null && goalWeight != null && (
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-lg bg-muted/40 p-2.5">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Start</p>
+              <p className="text-sm font-bold mt-0.5">{startWeight} lbs</p>
             </div>
-            <Progress value={progress} className="h-3" />
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>{progress}% Complete</span>
-              {progress >= 100 && (
-                <span className="text-success font-medium flex items-center gap-1">
-                  <Award className="h-3 w-3" />
-                  Goal Achieved!
-                </span>
-              )}
+            <div className="rounded-lg bg-muted/40 p-2.5">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Today</p>
+              <p className="text-sm font-bold mt-0.5">{todayWeight} lbs</p>
+            </div>
+            <div className="rounded-lg bg-primary/10 p-2.5">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Goal</p>
+              <p className="text-sm font-bold mt-0.5 text-primary">{goalWeight} lbs</p>
             </div>
           </div>
         )}
 
-        {/* Time Progress */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
-              Timeline
-            </span>
-            <span className="font-medium">
-              {daysRemaining > 0 ? `${daysRemaining} days left` : "Deadline passed"}
-            </span>
+        {/* Progress bar */}
+        {startWeight != null && goalWeight != null && (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Progress</span>
+              <span className="font-semibold">{Math.round(progressPct)}%</span>
+            </div>
+            <Progress value={progressPct} className="h-2" />
+            {totalNeeded != null && weightChange != null && (
+              <p className="text-xs text-muted-foreground">
+                {Math.abs(Math.round(weightChange * 10) / 10)} / {Math.abs(Math.round(totalNeeded * 10) / 10)} lbs {totalNeeded > 0 ? "lost" : "gained"}
+              </p>
+            )}
           </div>
-          <Progress value={timeProgress} className="h-2" />
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Started {format(parseISO(goal.start_date), "MMM d, yyyy")}</span>
-            <span>Target: {format(parseISO(goal.target_date), "MMM d, yyyy")}</span>
+        )}
+
+        {/* Pace badge + back-on-pace tip */}
+        {isActive && startWeight != null && goalWeight != null && (
+          <div className="space-y-2">
+            <div className={cn("flex items-center gap-2 rounded-lg px-3 py-2", paceConf.bg)}>
+              <PaceIcon className={cn("h-4 w-4 shrink-0", paceConf.color)} />
+              <span className={cn("text-sm font-medium", paceConf.color)}>{paceConf.label}</span>
+            </div>
+
+            {backOnPaceWeight != null && (
+              <div className="flex items-start gap-2 rounded-lg bg-destructive/10 border border-destructive/20 px-3 py-2">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
+                <p className="text-xs text-destructive">
+                  To be on pace tomorrow: target <strong>{backOnPaceWeight} lbs</strong>
+                </p>
+              </div>
+            )}
           </div>
+        )}
+
+        {/* Dates */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
+          <span className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {format(parseISO(goal.start_date), "MMM d, yyyy")}
+          </span>
+          <span>→</span>
+          <span className="flex items-center gap-1">
+            {format(parseISO(goal.target_date), "MMM d, yyyy")}
+            <Calendar className="h-3 w-3" />
+          </span>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          <div className="p-3 rounded-lg border bg-muted/30">
-            <p className="text-xs text-muted-foreground mb-1">Current</p>
-            <p className="text-lg font-bold">
-              {goal.current_value || 0} {goal.unit}
-            </p>
-          </div>
-          <div className="p-3 rounded-lg border bg-muted/30">
-            <p className="text-xs text-muted-foreground mb-1">Target</p>
-            <p className="text-lg font-bold">
-              {goal.target_value} {goal.unit}
-            </p>
-          </div>
-        </div>
-
-        {/* Action Buttons for Clients */}
-        {!isTrainer && onUpdateProgress && goal.status === "active" && (
+        {/* Trainer action */}
+        {isTrainer && onStatusChange && isActive && (
           <Button
             variant="outline"
+            size="sm"
             className="w-full"
-            onClick={() => {
-              const newValue = prompt(`Enter your current ${goal.unit} value:`);
-              if (newValue && !isNaN(parseFloat(newValue))) {
-                onUpdateProgress(goal.id, parseFloat(newValue));
-              }
-            }}
+            onClick={() => onStatusChange(goal.id, "completed")}
           >
-            <TrendingUp className="h-4 w-4 mr-2" />
-            Update Progress
+            <CheckCircle2 className="h-4 w-4 mr-2" />
+            Mark Completed
           </Button>
         )}
       </CardContent>

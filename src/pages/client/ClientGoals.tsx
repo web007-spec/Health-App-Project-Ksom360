@@ -2,18 +2,13 @@ import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GoalCard } from "@/components/GoalCard";
-import { Target, Trophy, Pause, X } from "lucide-react";
+import { Target, Trophy, Pause } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { showBrowserNotification } from "@/lib/notifications";
-import confetti from "canvas-confetti";
 
 export default function ClientGoals() {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   // Fetch client goals
   const { data: goals, isLoading } = useQuery({
@@ -24,93 +19,38 @@ export default function ClientGoals() {
         .select("*")
         .eq("client_id", user?.id)
         .order("created_at", { ascending: false });
-
       if (error) throw error;
       return data;
     },
     enabled: !!user?.id,
   });
 
-  // Update goal progress
-  const updateProgressMutation = useMutation({
-    mutationFn: async ({ goalId, value }: { goalId: string; value: number }) => {
-      // Get current goal to check if achievement is reached
-      const { data: currentGoal } = await supabase
-        .from("fitness_goals")
-        .select("*")
-        .eq("id", goalId)
-        .single();
+  // Fetch latest body weight entry for progress
+  const { data: latestWeight } = useQuery({
+    queryKey: ["client-latest-weight", user?.id],
+    queryFn: async () => {
+      // Try to get latest metric entry for weight
+      const { data: metric } = await supabase
+        .from("client_metrics")
+        .select("id, metric_definitions!inner(name)")
+        .eq("client_id", user?.id)
+        .filter("metric_definitions.name", "eq", "Weight")
+        .maybeSingle();
 
-      const { error } = await supabase
-        .from("fitness_goals")
-        .update({ current_value: value, updated_at: new Date().toISOString() })
-        .eq("id", goalId)
-        .eq("client_id", user?.id);
+      if (!metric) return null;
 
-      if (error) throw error;
-      
-      return { currentGoal, newValue: value };
+      const { data: entry } = await supabase
+        .from("metric_entries")
+        .select("value")
+        .eq("client_metric_id", metric.id)
+        .order("recorded_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      return entry?.value ?? null;
     },
-    onSuccess: async (data) => {
-      queryClient.invalidateQueries({ queryKey: ["client-goals"] });
-      
-      const { currentGoal, newValue } = data;
-      
-      // Check if goal is achieved
-      if (currentGoal && currentGoal.target_value && newValue >= currentGoal.target_value) {
-        const wasNotAchieved = !currentGoal.current_value || currentGoal.current_value < currentGoal.target_value;
-        
-        if (wasNotAchieved) {
-          // Mark goal as completed
-          await supabase
-            .from("fitness_goals")
-            .update({ 
-              status: "completed", 
-              completed_at: new Date().toISOString() 
-            })
-            .eq("id", currentGoal.id);
-          
-          // Trigger celebration
-          confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.6 }
-          });
-          
-          // Show browser notification
-          showBrowserNotification("🎉 Goal Achieved!", {
-            body: `Congratulations! You've achieved your goal: ${currentGoal.title}`,
-            icon: "/favicon.ico",
-          });
-          
-          // Show toast with celebration
-          toast({
-            title: "🎉 Goal Achieved!",
-            description: `Amazing work! You've reached your goal: ${currentGoal.title}`,
-          });
-          
-          return;
-        }
-      }
-      
-      // Regular progress update toast
-      toast({
-        title: "Success",
-        description: "Progress updated successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update progress",
-        variant: "destructive",
-      });
-    },
+    enabled: !!user?.id,
   });
-
-  const handleUpdateProgress = (goalId: string, value: number) => {
-    updateProgressMutation.mutate({ goalId, value });
-  };
 
   const activeGoals = goals?.filter((g) => g.status === "active") || [];
   const completedGoals = goals?.filter((g) => g.status === "completed") || [];
@@ -131,38 +71,37 @@ export default function ClientGoals() {
 
   return (
     <ClientLayout>
-      <div className="p-6 space-y-6">
+      <div className="p-4 space-y-6 pb-24">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-foreground">My Goals</h1>
-          <p className="text-muted-foreground mt-1">Track your fitness goals and progress</p>
+          <h1 className="text-2xl font-bold text-foreground">My Goals</h1>
+          <p className="text-muted-foreground text-sm mt-1">Track your progress toward what matters most</p>
         </div>
 
         {goals && goals.length > 0 ? (
-          <Tabs defaultValue="active" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="active" className="gap-2">
-                <Target className="h-4 w-4" />
+          <Tabs defaultValue="active" className="space-y-4">
+            <TabsList className="w-full">
+              <TabsTrigger value="active" className="flex-1 gap-1.5">
+                <Target className="h-3.5 w-3.5" />
                 Active ({activeGoals.length})
               </TabsTrigger>
-              <TabsTrigger value="completed" className="gap-2">
-                <Trophy className="h-4 w-4" />
-                Completed ({completedGoals.length})
+              <TabsTrigger value="completed" className="flex-1 gap-1.5">
+                <Trophy className="h-3.5 w-3.5" />
+                Done ({completedGoals.length})
               </TabsTrigger>
-              <TabsTrigger value="paused" className="gap-2">
-                <Pause className="h-4 w-4" />
+              <TabsTrigger value="paused" className="flex-1 gap-1.5">
+                <Pause className="h-3.5 w-3.5" />
                 Paused ({pausedGoals.length})
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="active" className="space-y-4">
               {activeGoals.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-4">
                   {activeGoals.map((goal) => (
                     <GoalCard
                       key={goal.id}
-                      goal={goal}
-                      onUpdateProgress={handleUpdateProgress}
+                      goal={{ ...goal, today_weight: latestWeight ?? undefined }}
                     />
                   ))}
                 </div>
@@ -171,7 +110,7 @@ export default function ClientGoals() {
                   <CardContent className="py-12 text-center">
                     <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No active goals</h3>
-                    <p className="text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       Your trainer will set goals to help you stay on track
                     </p>
                   </CardContent>
@@ -181,7 +120,7 @@ export default function ClientGoals() {
 
             <TabsContent value="completed" className="space-y-4">
               {completedGoals.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-4">
                   {completedGoals.map((goal) => (
                     <GoalCard key={goal.id} goal={goal} />
                   ))}
@@ -191,7 +130,7 @@ export default function ClientGoals() {
                   <CardContent className="py-12 text-center">
                     <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No completed goals yet</h3>
-                    <p className="text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       Complete your active goals to see them here
                     </p>
                   </CardContent>
@@ -201,7 +140,7 @@ export default function ClientGoals() {
 
             <TabsContent value="paused" className="space-y-4">
               {pausedGoals.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-4">
                   {pausedGoals.map((goal) => (
                     <GoalCard key={goal.id} goal={goal} />
                   ))}
@@ -211,7 +150,7 @@ export default function ClientGoals() {
                   <CardContent className="py-12 text-center">
                     <Pause className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No paused goals</h3>
-                    <p className="text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       Goals that are temporarily paused will appear here
                     </p>
                   </CardContent>
@@ -221,11 +160,11 @@ export default function ClientGoals() {
           </Tabs>
         ) : (
           <Card>
-            <CardContent className="py-12 text-center">
+            <CardContent className="py-16 text-center">
               <Target className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2">No goals yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Your trainer will set personalized fitness goals to help you succeed
+              <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+                Your trainer will set personalized goals to help you succeed
               </p>
             </CardContent>
           </Card>

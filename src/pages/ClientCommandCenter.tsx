@@ -22,6 +22,7 @@ import { ClientSettingsTab } from "@/components/command-center/ClientSettingsTab
 import { ClientMealPlanTab } from "@/components/command-center/ClientMealPlanTab";
 import { ClientOnDemandTab } from "@/components/command-center/ClientOnDemandTab";
 import { ClientCalendarTab } from "@/components/command-center/ClientCalendarTab";
+import { AdminGoalsTab } from "@/components/command-center/AdminGoalsTab";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ClientCommandCenter() {
@@ -210,6 +211,7 @@ export default function ClientCommandCenter() {
             <TabsTrigger value="food-journal">Food Journal</TabsTrigger>
             <TabsTrigger value="macros">Macros</TabsTrigger>
             <TabsTrigger value="meal-plan">Meal Plan</TabsTrigger>
+            <TabsTrigger value="goals">Goals</TabsTrigger>
             <TabsTrigger value="on-demand">On-Demand</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
@@ -237,6 +239,9 @@ export default function ClientCommandCenter() {
           </TabsContent>
           <TabsContent value="meal-plan">
             <ClientMealPlanTab clientId={clientId!} trainerId={user?.id!} />
+          </TabsContent>
+          <TabsContent value="goals">
+            <AdminGoalsTab clientId={clientId!} trainerId={user?.id!} clientName={clientData?.client?.full_name} />
           </TabsContent>
           <TabsContent value="on-demand">
             <ClientOnDemandTab clientId={clientId!} trainerId={user?.id!} />
