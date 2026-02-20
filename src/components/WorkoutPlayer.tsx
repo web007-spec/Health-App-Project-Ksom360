@@ -160,22 +160,33 @@ async function playElevenLabsSpeech(text: string): Promise<void> {
   const url = URL.createObjectURL(blob);
   const audio = new Audio(url);
   activeAudio = audio;
-  audio.onended = () => {
-    URL.revokeObjectURL(url);
-    if (activeAudio === audio) activeAudio = null;
-  };
-  await audio.play();
+  // Return a promise that resolves when audio finishes
+  return new Promise((resolve) => {
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+      if (activeAudio === audio) activeAudio = null;
+      resolve();
+    };
+    audio.onerror = () => { resolve(); };
+    audio.play().catch(() => resolve());
+  });
 }
 
-// Browser speech fallback
-function browserSpeak(text: string) {
-  if (!("speechSynthesis" in window)) return;
+// Browser speech fallback — returns a Promise that resolves when done
+function browserSpeak(text: string): Promise<void> {
+  if (!("speechSynthesis" in window)) return Promise.resolve();
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
   utter.rate = 0.95;
-  window.speechSynthesis.speak(utter);
+  return new Promise((resolve) => {
+    utter.onend = () => resolve();
+    utter.onerror = () => resolve();
+    window.speechSynthesis.speak(utter);
+  });
 }
 
+// Flag to block the step-change announcement while "Great job!" is still playing
+let pendingStepAnnounce = false;
 
 
 export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onExit }: WorkoutPlayerProps) {
@@ -216,10 +227,10 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   // Keep isPausedRef in sync so intervals can read it without stale closures
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
 
-  // Scoped speakText — uses voiceEnabledRef, tries ElevenLabs, falls back to browser
-  const speakText = useCallback((text: string) => {
-    if (!voiceEnabledRef.current) return;
-    playElevenLabsSpeech(text).catch(() => browserSpeak(text));
+  // Scoped speakText — returns a Promise that resolves when audio finishes
+  const speakText = useCallback((text: string): Promise<void> => {
+    if (!voiceEnabledRef.current) return Promise.resolve();
+    return playElevenLabsSpeech(text).catch(() => browserSpeak(text));
   }, []);
 
   // Pause/resume the video element when isPaused changes
@@ -287,9 +298,16 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
         const next = prev - 1;
         if (next <= 0) {
           clearInterval(stepTimerRef.current!);
-          if (voiceEnabledRef.current) speakText("Great job! Moving on.");
+          if (voiceEnabledRef.current) {
+            // Block the next step's announcement until "Great job!" finishes
+            pendingStepAnnounce = true;
+            speakText("Great job! Moving on.").finally(() => {
+              pendingStepAnnounce = false;
+            });
+          }
           setTimeout(() => advanceStep(), 100);
           return 0;
+
         }
         // Only speak countdown cues — use spelled-out words, not digits
         if (next === 10 && voiceEnabledRef.current) speakText("Ten seconds left. Hang in there!");
@@ -336,21 +354,38 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   useEffect(() => {
     if (phase !== "playing" || !currentStep) return;
 
-    if (currentStep.type === "exercise" && currentStep.exercise) {
-      const ex = currentStep.exercise;
-      const dur = ex.duration_seconds;
-      const reps = ex.reps;
-      let msg = `${ex.exercise_name}. `;
-      if (dur) msg += `For ${dur} seconds. Let's go!`;
-      else if (reps) msg += `${reps} reps. Let's go!`;
-      else msg += "Let's go!";
-      if (voiceEnabledRef.current) speakText(msg);
-      if (dur) startStepCountdown(dur);
-      else setStepTimer(-1);
-    } else if (currentStep.type === "rest") {
-      const secs = currentStep.restSeconds || 60;
-      if (voiceEnabledRef.current) speakText(`Rest for ${secs} seconds.`);
-      startStepCountdown(secs);
+    const announce = () => {
+      if (currentStep.type === "exercise" && currentStep.exercise) {
+        const ex = currentStep.exercise;
+        const dur = ex.duration_seconds;
+        const reps = ex.reps;
+        let msg = `${ex.exercise_name}. `;
+        if (dur) msg += `For ${dur} seconds. Let's go!`;
+        else if (reps) msg += `${reps} reps. Let's go!`;
+        else msg += "Let's go!";
+        if (voiceEnabledRef.current) speakText(msg);
+        if (dur) startStepCountdown(dur);
+        else setStepTimer(-1);
+      } else if (currentStep.type === "rest") {
+        const secs = currentStep.restSeconds || 60;
+        if (voiceEnabledRef.current) speakText(`Rest for ${secs} seconds.`);
+        startStepCountdown(secs);
+      }
+    };
+
+    // If "Great job!" is still playing, poll until it finishes then announce
+    if (pendingStepAnnounce) {
+      let cancelled = false;
+      const poll = setInterval(() => {
+        if (cancelled) { clearInterval(poll); return; }
+        if (!pendingStepAnnounce) {
+          clearInterval(poll);
+          announce();
+        }
+      }, 100);
+      return () => { cancelled = true; clearInterval(poll); };
+    } else {
+      announce();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepIdx, phase]);
