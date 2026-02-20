@@ -181,6 +181,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   const isPausedRef = useRef(false);
   const [isPaused, setIsPaused] = useState(false);
 
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [swapDialogOpen, setSwapDialogOpen] = useState(false);
   const [swapTarget, setSwapTarget] = useState<{ sectionIdx: number; exerciseIdx: number } | null>(null);
@@ -190,6 +191,16 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
 
   // Keep isPausedRef in sync so intervals can read it without stale closures
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
+
+  // Pause/resume the video element when isPaused changes
+  useEffect(() => {
+    if (!videoRef.current) return;
+    if (isPaused) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isPaused]);
 
   const currentStep = steps[stepIdx] || null;
   const nextStep = steps[stepIdx + 1] || null;
@@ -453,6 +464,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
         <div className="flex-1 relative bg-muted/20">
           {!isRest && currentExercise?.exercise_video ? (
             <video
+              ref={videoRef}
               key={currentExercise.id + stepIdx}
               src={currentExercise.exercise_video}
               autoPlay
