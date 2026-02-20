@@ -459,11 +459,15 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
               <p className={`text-4xl font-black tabular-nums tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] ${ewCardImageUrl ? "text-white" : ""}`}>{ewTimeStr}</p>
               <p className={`text-sm mt-2 font-bold drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)] ${ewCardImageUrl ? "text-white" : "text-muted-foreground"}`}>Closes in {ewH}h {ewM}m</p>
               <p className={`text-sm font-extrabold mt-1 drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)] ${ewCardImageUrl ? "text-white" : "text-emerald-600"}`}>Meals are available</p>
-              <div className={`inline-flex flex-wrap justify-center gap-3 text-xs mt-2 font-bold mx-auto px-4 py-2 rounded-xl ${ewCardImageUrl ? "bg-black/30 backdrop-blur-sm text-white border border-white/20" : "text-muted-foreground"}`}>
+              <div className="flex justify-center gap-3 mt-2">
                 {featureSettings?.last_fast_ended_at && (
-                  <span>Fast ended: {format(new Date(featureSettings.last_fast_ended_at), "MMM d, h:mm a")}</span>
+                  <span className={`text-xs font-bold px-3 py-1.5 rounded-xl ${ewCardImageUrl ? "bg-black/30 backdrop-blur-sm text-white border border-white/20" : "text-muted-foreground"}`}>
+                    Fast ended: {format(new Date(featureSettings.last_fast_ended_at), "MMM d, h:mm a")}
+                  </span>
                 )}
-                <span>Window closes: {format(ewEnd, "MMM d, h:mm a")}</span>
+                <span className={`text-xs font-bold px-3 py-1.5 rounded-xl ${ewCardImageUrl ? "bg-black/30 backdrop-blur-sm text-white border border-white/20" : "text-muted-foreground"}`}>
+                  Window closes: {format(ewEnd, "MMM d, h:mm a")}
+                </span>
               </div>
             </div>
             <Button
