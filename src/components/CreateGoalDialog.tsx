@@ -91,10 +91,73 @@ export function CreateGoalDialog({ open, onOpenChange, clientId, clientName }: C
         status: "active",
       });
       if (error) throw error;
+
+      // Auto-send in-app message to client
+      try {
+        if (!user?.id) return;
+
+        // Find or create a direct conversation between trainer and client
+        const { data: myMemberships } = await supabase
+          .from("conversation_members")
+          .select("conversation_id")
+          .eq("user_id", user.id);
+
+        let conversationId: string | null = null;
+
+        if (myMemberships?.length) {
+          const myConvoIds = myMemberships.map((m) => m.conversation_id);
+          const { data: theirMemberships } = await supabase
+            .from("conversation_members")
+            .select("conversation_id")
+            .eq("user_id", clientId)
+            .in("conversation_id", myConvoIds);
+
+          if (theirMemberships?.length) {
+            const sharedIds = theirMemberships.map((m) => m.conversation_id);
+            const { data: directConvos } = await supabase
+              .from("conversations")
+              .select("id")
+              .in("id", sharedIds)
+              .eq("type", "direct");
+            if (directConvos?.length) conversationId = directConvos[0].id;
+          }
+        }
+
+        if (!conversationId) {
+          const { data: newConvo } = await supabase
+            .from("conversations")
+            .insert({ type: "direct", created_by: user.id })
+            .select()
+            .single();
+          if (newConvo) {
+            conversationId = newConvo.id;
+            await supabase.from("conversation_members").insert([
+              { conversation_id: conversationId, user_id: user.id },
+              { conversation_id: conversationId, user_id: clientId },
+            ]);
+          }
+        }
+
+        if (conversationId) {
+          const emoji = GOAL_LIFE_EVENTS.find(e => e.value === goalType)?.label.split(" ")[0] ?? "🎯";
+          await supabase.from("conversation_messages").insert({
+            conversation_id: conversationId,
+            sender_id: user.id,
+            content: `${emoji} Your new goal "${title}" is ready! Tap Goals to view your progress tracker, weight targets, and daily pace. Let's get to work! 💪`,
+          });
+          await supabase
+            .from("conversations")
+            .update({ updated_at: new Date().toISOString() })
+            .eq("id", conversationId);
+        }
+      } catch (msgErr) {
+        console.warn("Failed to send goal notification message:", msgErr);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["client-goals"] });
       queryClient.invalidateQueries({ queryKey: ["goals"] });
+      queryClient.invalidateQueries({ queryKey: ["unseen-goals-badge", clientId] });
       toast({ title: "Goal created", description: `Goal set for ${clientName}` });
       handleClose();
     },
