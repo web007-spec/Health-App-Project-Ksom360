@@ -547,27 +547,28 @@ export default function ClientDashboard() {
   const { toast } = useToast();
 
   // Unread messages count for floating lion badge
+  // Use clientId (effectiveClientId) so it works correctly when trainer is previewing as a client
   const { data: unreadMessageCount = 0 } = useQuery({
-    queryKey: ["unread-messages-badge", user?.id],
+    queryKey: ["unread-messages-badge", clientId],
     queryFn: async () => {
-      if (!user?.id) return 0;
+      if (!clientId) return 0;
       const { data: memberships } = await supabase
         .from("conversation_members")
         .select("conversation_id")
-        .eq("user_id", user.id);
+        .eq("user_id", clientId);
       if (!memberships?.length) return 0;
       const convoIds = memberships.map((m) => m.conversation_id);
       const { data: readReceipts } = await supabase
         .from("conversation_read_receipts")
         .select("conversation_id, last_read_at")
-        .eq("user_id", user.id)
+        .eq("user_id", clientId)
         .in("conversation_id", convoIds);
       const readMap = new Map(readReceipts?.map((r) => [r.conversation_id, r.last_read_at]) || []);
       const { data: messages } = await supabase
         .from("conversation_messages")
         .select("conversation_id, created_at, sender_id")
         .in("conversation_id", convoIds)
-        .neq("sender_id", user.id);
+        .neq("sender_id", clientId);
       if (!messages?.length) return 0;
       let total = 0;
       for (const msg of messages) {
@@ -576,8 +577,8 @@ export default function ClientDashboard() {
       }
       return total;
     },
-    enabled: !!user?.id,
-    refetchInterval: 30_000,
+    enabled: !!clientId,
+    refetchInterval: 15_000,
   });
 
   const DIET_STYLES = [
