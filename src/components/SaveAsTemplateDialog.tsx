@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 
 interface SaveAsTemplateDialogProps {
@@ -29,27 +30,71 @@ export function SaveAsTemplateDialog({
   workoutName,
 }: SaveAsTemplateDialogProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [templateCategory, setTemplateCategory] = useState("");
+  const [templateName, setTemplateName] = useState(`${workoutName} Template`);
 
   const saveAsTemplateMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
+      // Fetch original workout
+      const { data: original, error: fetchError } = await supabase
         .from("workout_plans")
-        .update({
+        .select("*")
+        .eq("id", workoutId)
+        .single();
+      if (fetchError) throw fetchError;
+
+      // Create a NEW template copy — original workout is untouched
+      const { data: newTemplate, error: createError } = await supabase
+        .from("workout_plans")
+        .insert({
+          name: templateName || workoutName,
+          description: original.description,
+          category: original.category,
+          difficulty: original.difficulty,
+          duration_minutes: original.duration_minutes,
+          image_url: original.image_url,
+          trainer_id: user?.id,
           is_template: true,
           template_category: templateCategory || null,
         })
-        .eq("id", workoutId);
+        .select()
+        .single();
+      if (createError) throw createError;
 
-      if (error) throw error;
+      // Copy exercises to template
+      const { data: exercises, error: exError } = await supabase
+        .from("workout_plan_exercises")
+        .select("*")
+        .eq("workout_plan_id", workoutId);
+      if (exError) throw exError;
+
+      if (exercises && exercises.length > 0) {
+        const { error: insertError } = await supabase
+          .from("workout_plan_exercises")
+          .insert(
+            exercises.map((ex) => ({
+              workout_plan_id: newTemplate.id,
+              exercise_id: ex.exercise_id,
+              sets: ex.sets,
+              reps: ex.reps,
+              duration_seconds: ex.duration_seconds,
+              rest_seconds: ex.rest_seconds,
+              order_index: ex.order_index,
+              notes: ex.notes,
+              tempo: ex.tempo,
+            }))
+          );
+        if (insertError) throw insertError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workout-plans"] });
       queryClient.invalidateQueries({ queryKey: ["workout-templates"] });
       toast({
         title: "Template Saved",
-        description: `"${workoutName}" has been saved as a template`,
+        description: `"${templateName || workoutName}" has been saved as a template`,
       });
       onOpenChange(false);
       setTemplateCategory("");
@@ -75,25 +120,34 @@ export function SaveAsTemplateDialog({
           <DialogHeader>
             <DialogTitle>Save as Template</DialogTitle>
             <DialogDescription>
-              Save "{workoutName}" as a reusable template. You can quickly create new
-              workouts from this template in the future.
+              A copy of "{workoutName}" will be saved as a reusable template. Your original workout stays unchanged.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4">
-            <Label htmlFor="template-category">
-              Template Category (Optional)
-            </Label>
-            <Input
-              id="template-category"
-              value={templateCategory}
-              onChange={(e) => setTemplateCategory(e.target.value)}
-              placeholder="e.g., Beginner, HIIT, Strength Training"
-              className="mt-2"
-            />
-            <p className="text-sm text-muted-foreground mt-2">
-              Organize templates by category for easier browsing
-            </p>
+          <div className="py-4 space-y-4">
+            <div>
+              <Label htmlFor="template-name">Template Name</Label>
+              <Input
+                id="template-name"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="Template name..."
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="template-category">Category (Optional)</Label>
+              <Input
+                id="template-category"
+                value={templateCategory}
+                onChange={(e) => setTemplateCategory(e.target.value)}
+                placeholder="e.g., Beginner, HIIT, Strength Training"
+                className="mt-2"
+              />
+              <p className="text-sm text-muted-foreground mt-2">
+                Organize templates by category for easier browsing
+              </p>
+            </div>
           </div>
 
           <DialogFooter>
