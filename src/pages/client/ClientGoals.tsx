@@ -3,12 +3,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GoalCard } from "@/components/GoalCard";
 import { Target, Trophy, Pause } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
+import { useEffect } from "react";
 
 export default function ClientGoals() {
   const clientId = useEffectiveClientId();
+  const queryClient = useQueryClient();
+
+  // Mark goals as seen when user visits this page
+  useEffect(() => {
+    if (!clientId) return;
+    localStorage.setItem(`goals-last-seen-${clientId}`, new Date().toISOString());
+    queryClient.invalidateQueries({ queryKey: ["unseen-goals-badge", clientId] });
+  }, [clientId, queryClient]);
 
   // Fetch client goals
   const { data: goals, isLoading } = useQuery({

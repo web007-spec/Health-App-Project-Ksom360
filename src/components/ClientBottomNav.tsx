@@ -2,24 +2,53 @@ import { ClipboardList, Dumbbell, User, Play, Target } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useClientFeatureSettings } from "@/hooks/useClientFeatureSettings";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 
 interface NavItem {
   label: string;
   to: string;
   icon: React.ElementType;
   featureKey?: string;
+  badge?: boolean;
 }
 
 const navItems: NavItem[] = [
   { label: "Today", to: "/client/dashboard", icon: ClipboardList },
   { label: "Coaching", to: "/client/coaching", icon: Dumbbell },
-  { label: "Goals", to: "/client/goals", icon: Target, featureKey: "goals_enabled" },
+  { label: "Goals", to: "/client/goals", icon: Target, featureKey: "goals_enabled", badge: true },
   { label: "On-demand", to: "/client/on-demand", icon: Play },
   { label: "You", to: "/client/profile", icon: User },
 ];
 
 export function ClientBottomNav() {
   const { settings } = useClientFeatureSettings();
+  const { userRole } = useAuth();
+  const clientId = useEffectiveClientId();
+
+  // Check for unseen goals (goals created after last visit to /client/goals)
+  const { data: hasUnseenGoal } = useQuery({
+    queryKey: ["unseen-goals-badge", clientId],
+    queryFn: async () => {
+      const lastSeen = localStorage.getItem(`goals-last-seen-${clientId}`);
+      const query = supabase
+        .from("fitness_goals")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", clientId!)
+        .eq("status", "active");
+
+      if (lastSeen) {
+        query.gt("created_at", lastSeen);
+      }
+
+      const { count } = await query;
+      return (count ?? 0) > 0;
+    },
+    enabled: !!clientId && userRole !== "trainer",
+    refetchInterval: 30_000,
+  });
 
   const visibleItems = navItems.filter((item) => {
     if (!item.featureKey) return true;
@@ -40,7 +69,12 @@ export function ClientBottomNav() {
               )
             }
           >
-            <item.icon className="h-5 w-5" />
+            <div className="relative">
+              <item.icon className="h-5 w-5" />
+              {item.badge && hasUnseenGoal && userRole !== "trainer" && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive border border-card" />
+              )}
+            </div>
             <span className="text-[11px] font-medium">{item.label}</span>
           </NavLink>
         ))}
