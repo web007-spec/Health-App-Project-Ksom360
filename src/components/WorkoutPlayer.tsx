@@ -207,12 +207,54 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   const [swapDialogOpen, setSwapDialogOpen] = useState(false);
   const [swapTarget, setSwapTarget] = useState<{ sectionIdx: number; exerciseIdx: number } | null>(null);
 
+  // Track if voice was already announced for the current step
+  const announcedStepRef = useRef<number>(-1);
+
   useEffect(() => { stepIdxRef.current = stepIdx; }, [stepIdx]);
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
 
   const speakText = useCallback((text: string): Promise<void> => {
     return playElevenLabsSpeech(text).catch(() => browserSpeak(text));
   }, []);
+
+  // Announce exercise/rest when step changes
+  useEffect(() => {
+    if (phase !== "playing") return;
+    if (announcedStepRef.current === stepIdx) return;
+    announcedStepRef.current = stepIdx;
+
+    const step = steps[stepIdx];
+    if (!step) return;
+
+    if (step.type === "rest") {
+      const nextEx = steps[stepIdx + 1]?.exercise;
+      const msg = nextEx
+        ? `Rest. Up next: ${nextEx.exercise_name}`
+        : "Rest up, you're almost done!";
+      speakText(msg).catch(() => {});
+    } else if (step.type === "exercise" && step.exercise) {
+      const ex = step.exercise;
+      const section = sections[step.sectionIdx];
+      const isGrouped = ["superset", "circuit"].includes(section?.section_type);
+      let msg = ex.exercise_name || "";
+      if (isGrouped) {
+        msg += `, round ${step.round}`;
+      } else if (ex.sets && ex.sets > 1) {
+        msg += `, set ${step.round} of ${ex.sets}`;
+      }
+      if (ex.reps) msg += `, ${ex.reps} reps`;
+      speakText(msg).catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stepIdx, phase]);
+
+  // Announce GET READY
+  useEffect(() => {
+    if (phase === "getready") {
+      speakText("Get ready!").catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   useEffect(() => {
     if (!videoRef.current) return;
@@ -413,6 +455,8 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   const isRest = currentStep.type === "rest";
   const currentSection = sections[currentStep.sectionIdx];
   const isGrouped = currentSection && ["superset", "circuit"].includes(currentSection.section_type);
+  const isCircuitMode = currentStep.isCircuit;
+
   const sectionLabel = isGrouped
     ? `${currentSection.section_type === "superset" ? "Superset" : "Circuit"} of ${currentSection.rounds} sets`
     : currentSection?.name || "";
@@ -439,6 +483,204 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
     ? Math.round((stepTimer / stepTimerDurationRef.current) * 100)
     : 0;
 
+  // ─── CIRCUIT / TIMED CINEMATIC MODE ───────────────────────────────────────
+  if (isCircuitMode && !isRest) {
+    const hasMedia = currentExercise?.exercise_video || currentExercise?.exercise_image;
+    return (
+      <div className="fixed inset-0 z-[200] flex flex-col bg-background">
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-4 pt-12 pb-3 bg-background/90 backdrop-blur border-b border-border/30">
+          <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setShowDiscardDialog(true)}>
+            <X className="h-4 w-4 mr-1" /> Cancel
+          </Button>
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+              {currentSection?.name || sectionLabel}
+            </p>
+            <p className="text-sm font-bold">Round {currentStep.round} of {currentSection?.rounds}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={togglePause} className="text-muted-foreground">
+              {isPaused ? <Play className="h-5 w-5" /> : <Pause className="h-5 w-5" />}
+            </Button>
+            <Button size="sm" className="font-semibold px-4" onClick={handleEndEarly}>Save</Button>
+          </div>
+        </div>
+
+        {/* Stats bar */}
+        <div className="grid grid-cols-3 px-4 py-2 border-b border-border/30 bg-background">
+          <div className="text-center">
+            <p className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">TIME</p>
+            <p className="text-sm font-bold tabular-nums">{formatTime(elapsedSeconds)}</p>
+          </div>
+          <div className="text-center border-x border-border/30">
+            <p className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">Cal</p>
+            <p className="text-sm font-bold">{estimatedCal}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">Progress</p>
+            <p className="text-sm font-bold">{completedPercent}%</p>
+          </div>
+        </div>
+
+        {/* Main cinematic area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Large media display */}
+          <div className="relative flex-1 bg-foreground/5 overflow-hidden">
+            {currentExercise?.exercise_video ? (
+              <video
+                ref={videoRef}
+                key={currentExercise.id + stepIdx}
+                src={currentExercise.exercise_video}
+                className="w-full h-full object-cover"
+                autoPlay
+                loop
+                muted
+                playsInline
+              />
+            ) : currentExercise?.exercise_image ? (
+              <img
+                src={currentExercise.exercise_image}
+                alt={currentExercise.exercise_name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <span className="text-8xl font-black text-foreground/10">
+                  {currentExercise?.exercise_name?.charAt(0) || "?"}
+                </span>
+              </div>
+            )}
+
+            {/* Overlay gradient at bottom */}
+            <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background to-transparent" />
+
+            {/* Exercise name overlay */}
+            <div className="absolute inset-x-0 bottom-0 px-4 pb-3">
+              <p className="text-2xl font-black text-foreground drop-shadow-lg leading-tight">
+                {currentExercise?.exercise_name}
+              </p>
+              {currentExercise?.reps && (
+                <p className="text-base font-semibold text-primary">{currentExercise.reps} reps</p>
+              )}
+              {currentExercise?.notes && (
+                <p className="text-xs text-muted-foreground italic mt-0.5">{currentExercise.notes}</p>
+              )}
+            </div>
+
+            {/* Countdown timer bubble — for timed exercises */}
+            {currentExercise?.duration_seconds && stepTimer > 0 && (
+              <div className="absolute top-3 right-3">
+                <div className="relative w-20 h-20">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
+                    <circle cx="40" cy="40" r="34" fill="rgba(0,0,0,0.55)" stroke="rgba(255,255,255,0.15)" strokeWidth="5" />
+                    <circle
+                      cx="40" cy="40" r="34"
+                      fill="none"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth="5"
+                      strokeLinecap="round"
+                      strokeDasharray={`${2 * Math.PI * 34}`}
+                      strokeDashoffset={`${2 * Math.PI * 34 * (1 - timerPercent / 100)}`}
+                      className="transition-all duration-1000"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-xl font-black text-white tabular-nums leading-none">{stepTimer}</span>
+                    <span className="text-[9px] text-white/60 font-medium">sec</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Pause overlay */}
+            {isPaused && (
+              <div
+                className="absolute inset-0 bg-background/70 flex items-center justify-center cursor-pointer"
+                onClick={togglePause}
+              >
+                <Play className="h-16 w-16 text-foreground opacity-70" />
+              </div>
+            )}
+          </div>
+
+          {/* Up Next strip */}
+          {nextExerciseName && (
+            <div className="flex items-center gap-3 px-4 py-3 border-t border-border/40 bg-muted/20">
+              {nextExerciseImage ? (
+                <img src={nextExerciseImage} alt={nextExerciseName} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                  <span className="text-lg font-bold text-muted-foreground/40">{nextExerciseName.charAt(0)}</span>
+                </div>
+              )}
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground font-medium">Up Next</p>
+                <p className="text-sm font-semibold">{nextExerciseName}</p>
+                {nextExerciseDuration && <p className="text-xs text-muted-foreground">{nextExerciseDuration}</p>}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom controls */}
+        {!isLocked && (
+          <div className="bg-background border-t border-border/50 px-4 pb-8 pt-3">
+            <div className="flex items-center justify-between gap-2">
+              <Button variant="ghost" size="icon" onClick={goToPrevStep} disabled={stepIdx === 0} className="text-muted-foreground">
+                <SkipBack className="h-5 w-5" />
+              </Button>
+              <Button
+                size="lg"
+                className="flex-1 h-12 font-bold text-base rounded-xl"
+                onClick={currentExercise?.duration_seconds ? advanceStep : markStepDone}
+              >
+                {currentExercise?.duration_seconds ? "Skip" : "Done →"}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setIsLocked(true)} className="text-muted-foreground">
+                <Lock className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="flex justify-center mt-2">
+              <Button variant="ghost" size="sm" className="text-destructive/60 text-xs" onClick={() => setShowDiscardDialog(true)}>
+                <Square className="h-3 w-3 mr-1" /> End Workout
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Lock overlay */}
+        {isLocked && (
+          <div
+            className="fixed inset-0 z-[210] bg-foreground/80 flex items-center justify-center cursor-pointer"
+            onClick={() => setIsLocked(false)}
+          >
+            <div className="text-center text-background">
+              <Lock className="h-10 w-10 mx-auto mb-3 opacity-60" />
+              <p className="text-sm opacity-60 font-medium">Tap to unlock</p>
+            </div>
+          </div>
+        )}
+
+        {/* End workout dialog */}
+        <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+          <AlertDialogContent className="z-[300]">
+            <AlertDialogHeader>
+              <AlertDialogTitle>End Workout?</AlertDialogTitle>
+              <AlertDialogDescription>What would you like to do with this session?</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+              <AlertDialogAction onClick={handleEndEarly}>Save & End</AlertDialogAction>
+              <AlertDialogAction className="bg-destructive hover:bg-destructive/90" onClick={handleDiscard}>Discard</AlertDialogAction>
+              <AlertDialogCancel>Keep Going</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
+  }
+
+  // ─── STANDARD GYM MODE (rep-based / non-circuit) ─────────────────────────
   return (
     <div className="fixed inset-0 z-[200] flex flex-col bg-background">
       {/* ── Top Nav Bar ── */}
