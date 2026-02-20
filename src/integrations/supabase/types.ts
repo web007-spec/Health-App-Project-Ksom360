@@ -1637,6 +1637,33 @@ export type Database = {
         }
         Relationships: []
       }
+      eating_window_meal_photos: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          image_url: string
+          order_index: number
+          trainer_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          image_url: string
+          order_index?: number
+          trainer_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          order_index?: number
+          trainer_id?: string
+        }
+        Relationships: []
+      }
       exercise_alternatives: {
         Row: {
           alternative_exercise_id: string

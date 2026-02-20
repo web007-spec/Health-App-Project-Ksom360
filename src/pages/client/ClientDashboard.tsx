@@ -87,6 +87,23 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     enabled: !!featureSettings?.selected_protocol_id,
   });
 
+  // Meal slideshow photos for the eating window card
+  const { data: mealPhotos = [] } = useQuery({
+    queryKey: ["eating-window-meal-photos", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("eating_window_meal_photos")
+        .select("image_url")
+        .eq("client_id", clientId!)
+        .order("order_index", { ascending: true });
+      if (error) throw error;
+      return (data || []).map((p: any) => p.image_url as string);
+    },
+    enabled: !!clientId,
+  });
+
+  const [slideshowIndex, setSlideshowIndex] = useState(0);
+
   const isFasting = !!featureSettings?.active_fast_start_at;
   const hasEatingWindow = !!featureSettings?.eating_window_ends_at && new Date(featureSettings.eating_window_ends_at) > now;
 
@@ -96,6 +113,15 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     const interval = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(interval);
   }, [isFasting, hasEatingWindow]);
+
+  // Auto-rotate slideshow every 4 seconds
+  useEffect(() => {
+    if (mealPhotos.length < 2) return;
+    const interval = setInterval(() => {
+      setSlideshowIndex((prev) => (prev + 1) % mealPhotos.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [mealPhotos.length]);
 
   const startFastMutation = useMutation({
     mutationFn: async () => {
@@ -414,65 +440,94 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     const ewTimeStr = `${String(ewH).padStart(2, "0")}:${String(ewM).padStart(2, "0")}:${String(ewS).padStart(2, "0")}`;
 
     const ewCardImageUrl = featureSettings?.eating_window_card_image_url;
+    // Use slideshow photo if available, otherwise fall back to the single card image
+    const activeSlideshowPhoto = mealPhotos.length > 0 ? mealPhotos[slideshowIndex] : null;
+    const backgroundImage = activeSlideshowPhoto || ewCardImageUrl;
+    const hasBackground = !!backgroundImage;
 
     return (
       <Card className="overflow-hidden border-primary/20 shadow-lg">
-        <div
-          className="relative"
-          style={ewCardImageUrl ? {
-            backgroundImage: `url(${ewCardImageUrl})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          } : {}}
-        >
-          
-          <CardContent className={`px-5 pt-8 pb-6 space-y-4 relative ${ewCardImageUrl ? "text-white" : ""}`}>
+        <div className="relative">
+          {/* Slideshow background images */}
+          {mealPhotos.length > 0 && mealPhotos.map((photo, idx) => (
+            <div
+              key={photo}
+              className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000"
+              style={{
+                backgroundImage: `url(${photo})`,
+                opacity: idx === slideshowIndex ? 1 : 0,
+              }}
+            />
+          ))}
+          {/* Fallback single image */}
+          {mealPhotos.length === 0 && ewCardImageUrl && (
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${ewCardImageUrl})` }}
+            />
+          )}
+          {/* Dark overlay for readability when image is present */}
+          {hasBackground && <div className="absolute inset-0 bg-black/40" />}
+
+          <CardContent className={`px-5 pt-8 pb-6 space-y-4 relative ${hasBackground ? "text-white" : ""}`}>
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <p className={`text-xs font-bold uppercase tracking-wider drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${ewCardImageUrl ? "text-white" : "text-muted-foreground"}`}>
+                  <p className={`text-xs font-bold uppercase tracking-wider drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${hasBackground ? "text-white" : "text-muted-foreground"}`}>
                     {isMaintenanceMode ? "Maintenance Schedule" : "Fasting Protocol"}
                   </p>
                   {isCoachAssigned && !isMaintenanceMode && (
-                    <Badge className={`text-[10px] px-1.5 py-0 ${ewCardImageUrl ? "bg-white/20 text-white border-white/30" : "bg-primary/10 text-primary border-primary/20"} hover:bg-primary/10`}>
+                    <Badge className={`text-[10px] px-1.5 py-0 ${hasBackground ? "bg-white/20 text-white border-white/30" : "bg-primary/10 text-primary border-primary/20"} hover:bg-primary/10`}>
                       Coach Assigned
                     </Badge>
                   )}
                 </div>
-                <h3 className={`text-base font-black mt-0.5 drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)] ${ewCardImageUrl ? "text-white" : ""}`}>{isMaintenanceMode ? (maintenanceLabel || "Maintenance") : planName}</h3>
+                <h3 className={`text-base font-black mt-0.5 drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)] ${hasBackground ? "text-white" : ""}`}>{isMaintenanceMode ? (maintenanceLabel || "Maintenance") : planName}</h3>
               </div>
               {hasDuration && !isMaintenanceMode && (
-                <Badge variant={ewCardImageUrl ? "outline" : "secondary"} className={`text-xs ${ewCardImageUrl ? "border-white/40 text-white bg-white/10" : ""}`}>
+                <Badge variant={hasBackground ? "outline" : "secondary"} className={`text-xs ${hasBackground ? "border-white/40 text-white bg-white/10" : ""}`}>
                   Day {dayNumber} / {activeProtocol!.duration_days}
                 </Badge>
               )}
               {isMaintenanceMode && (
-                <Badge variant={ewCardImageUrl ? "outline" : "secondary"} className={`text-xs ${ewCardImageUrl ? "border-white/40 text-white bg-white/10" : ""}`}>
+                <Badge variant={hasBackground ? "outline" : "secondary"} className={`text-xs ${hasBackground ? "border-white/40 text-white bg-white/10" : ""}`}>
                   Maintenance
                 </Badge>
               )}
             </div>
             <div className="text-center py-6">
-              <Badge className={`mb-3 ${ewCardImageUrl ? "bg-black/30 backdrop-blur-sm text-white border-white/20 font-bold" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"} hover:bg-black/40`}>
+              <Badge className={`mb-3 ${hasBackground ? "bg-black/30 backdrop-blur-sm text-white border-white/20 font-bold" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"} hover:bg-black/40`}>
                 Eating Window
               </Badge>
-              <p className={`text-4xl font-black tabular-nums tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] ${ewCardImageUrl ? "text-white" : ""}`}>{ewTimeStr}</p>
-              <p className={`text-sm mt-2 font-bold drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)] ${ewCardImageUrl ? "text-white" : "text-muted-foreground"}`}>Closes in {ewH}h {ewM}m</p>
-              <p className={`text-sm font-extrabold mt-1 drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)] ${ewCardImageUrl ? "text-white" : "text-emerald-600"}`}>Meals are available</p>
+              <p className={`text-4xl font-black tabular-nums tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] ${hasBackground ? "text-white" : ""}`}>{ewTimeStr}</p>
+              <p className={`text-sm mt-2 font-bold drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)] ${hasBackground ? "text-white" : "text-muted-foreground"}`}>Closes in {ewH}h {ewM}m</p>
+              <p className={`text-sm font-extrabold mt-1 drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)] ${hasBackground ? "text-white" : "text-emerald-600"}`}>Meals are available</p>
               <div className="flex justify-center gap-3 mt-2">
                 {featureSettings?.last_fast_ended_at && (
-                  <span className={`text-xs font-bold px-3 py-1.5 rounded-xl ${ewCardImageUrl ? "bg-white/10 backdrop-blur-sm text-white border border-white/20" : "text-muted-foreground"}`}>
+                  <span className={`text-xs font-bold px-3 py-1.5 rounded-xl ${hasBackground ? "bg-white/10 backdrop-blur-sm text-white border border-white/20" : "text-muted-foreground"}`}>
                     Fast ended: {format(new Date(featureSettings.last_fast_ended_at), "MMM d, h:mm a")}
                   </span>
                 )}
-                <span className={`text-xs font-bold px-3 py-1.5 rounded-xl ${ewCardImageUrl ? "bg-white/10 backdrop-blur-sm text-white border border-white/20" : "text-muted-foreground"}`}>
+                <span className={`text-xs font-bold px-3 py-1.5 rounded-xl ${hasBackground ? "bg-white/10 backdrop-blur-sm text-white border border-white/20" : "text-muted-foreground"}`}>
                   Window closes: {format(ewEnd, "MMM d, h:mm a")}
                 </span>
               </div>
+              {/* Slideshow dots */}
+              {mealPhotos.length > 1 && (
+                <div className="flex justify-center gap-1 mt-3">
+                  {mealPhotos.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSlideshowIndex(idx)}
+                      className={`w-1.5 h-1.5 rounded-full transition-all ${idx === slideshowIndex ? "bg-white scale-125" : "bg-white/40"}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
             <Button
-              variant={ewCardImageUrl ? "secondary" : "outline"}
-              className={`w-full h-12 text-base font-bold ${ewCardImageUrl ? "bg-white/20 hover:bg-white/30 text-white border-white/30" : ""}`}
+              variant={hasBackground ? "secondary" : "outline"}
+              className={`w-full h-12 text-base font-bold ${hasBackground ? "bg-white/20 hover:bg-white/30 text-white border-white/30" : ""}`}
               onClick={() => startFastMutation.mutate()}
             >
               <Clock className="h-4 w-4 mr-2" /> Start next fast

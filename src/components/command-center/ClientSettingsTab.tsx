@@ -21,7 +21,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Trash2, Plus } from "lucide-react";
 
 interface ClientSettingsTabProps {
   clientId: string;
@@ -370,6 +371,11 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
               }}
             />
           </div>
+
+          <Separator />
+
+          {/* Meal Slideshow Photos */}
+          <MealSlideshowEditor clientId={clientId} trainerId={trainerId} />
 
           <Separator />
 
@@ -849,5 +855,119 @@ function FastingProtocolAssignment({ clientId, trainerId, settings }: { clientId
         </Button>
       </CardContent>
     </Card>
+  );
+}
+
+// ─── Meal Slideshow Editor ───────────────────────────────────────────────────
+function MealSlideshowEditor({ clientId, trainerId }: { clientId: string; trainerId: string }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [uploading, setUploading] = useState(false);
+
+  const { data: photos = [] } = useQuery({
+    queryKey: ["eating-window-meal-photos", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("eating_window_meal_photos")
+        .select("*")
+        .eq("client_id", clientId)
+        .order("order_index", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("eating_window_meal_photos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["eating-window-meal-photos", clientId] });
+    },
+  });
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const ext = file.name.split(".").pop();
+        const path = `${clientId}/meal-slideshow-${Date.now()}-${i}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("rest-day-images")
+          .upload(path, file, { upsert: true });
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from("rest-day-images").getPublicUrl(path);
+        await supabase.from("eating_window_meal_photos").insert({
+          client_id: clientId,
+          trainer_id: trainerId,
+          image_url: publicUrl,
+          order_index: photos.length + i,
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["eating-window-meal-photos", clientId] });
+      toast({ title: "Photos uploaded!", description: "Meal photos added to the slideshow." });
+    } catch (err) {
+      console.error("Failed to upload meal photos:", err);
+      toast({ title: "Upload failed", variant: "destructive" });
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <Label className="text-sm font-medium flex items-center gap-2">
+        <Image className="h-4 w-4" />
+        Eating Window Meal Slideshow
+      </Label>
+      <p className="text-xs text-muted-foreground">
+        Upload meal photos that will auto-rotate as a slideshow on the client's eating window card.
+      </p>
+
+      {photos.length > 0 && (
+        <div className="grid grid-cols-3 gap-2 max-w-sm">
+          {photos.map((photo: any) => (
+            <div key={photo.id} className="relative group">
+              <img
+                src={photo.image_url}
+                alt="Meal"
+                className="w-full h-20 object-cover rounded-lg border"
+              />
+              <button
+                onClick={() => deleteMutation.mutate(photo.id)}
+                className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        <label className="cursor-pointer">
+          <div className="flex items-center gap-2 px-3 py-2 border rounded-md text-sm hover:bg-muted transition-colors max-w-sm">
+            <Plus className="h-4 w-4" />
+            {uploading ? "Uploading..." : "Add meal photos"}
+          </div>
+          <Input
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            disabled={uploading}
+            onChange={handleUpload}
+          />
+        </label>
+        {photos.length > 0 && (
+          <span className="text-xs text-muted-foreground">{photos.length} photo{photos.length !== 1 ? "s" : ""} in slideshow</span>
+        )}
+      </div>
+    </div>
   );
 }
