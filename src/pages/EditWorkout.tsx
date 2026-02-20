@@ -160,6 +160,9 @@ export default function EditWorkout() {
       const isGrouped = ["superset", "circuit"].includes(section.section_type);
       if (isGrouped) {
         section.exercises.forEach((ex) => { acc += (ex.duration_seconds || 45) * section.rounds; });
+        // Rest between exercises within each round
+        const exRestTotal = section.exercises.reduce((sum, ex) => sum + (ex.rest_seconds || 0), 0);
+        acc += exRestTotal * section.rounds;
         acc += (section.rest_between_rounds_seconds || 60) * Math.max(0, section.rounds - 1);
       } else {
         section.exercises.forEach((ex) => {
