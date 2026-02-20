@@ -114,6 +114,21 @@ export default function WorkoutDetail() {
     0
   );
 
+  // Calculate true duration from actual exercise data (same formula as WorkoutPlayer)
+  const calculatedTotalSeconds = transformedSections.reduce((acc: number, section: any) => {
+    const isGrouped = ["superset", "circuit"].includes(section.section_type);
+    if (isGrouped) {
+      section.exercises.forEach((ex: any) => { acc += (ex.duration_seconds || 45) * section.rounds; });
+      acc += (section.rest_between_rounds_seconds || 60) * Math.max(0, section.rounds - 1);
+    } else {
+      section.exercises.forEach((ex: any) => {
+        acc += ((ex.duration_seconds || 30) + (ex.rest_seconds || 30)) * (ex.sets || 1);
+      });
+    }
+    return acc;
+  }, 0);
+  const calculatedMinutes = Math.ceil(calculatedTotalSeconds / 60);
+
   const saveSession = async (data: CompletionData, isPartial: boolean) => {
     const completedAt = new Date().toISOString();
 
@@ -335,8 +350,8 @@ export default function WorkoutDetail() {
             
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <div className="text-2xl font-bold">{workout.duration_minutes}</div>
+              <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                <div className="text-2xl font-bold">{calculatedMinutes}</div>
                 <div className="text-sm text-muted-foreground">Minutes</div>
               </div>
               <div>
