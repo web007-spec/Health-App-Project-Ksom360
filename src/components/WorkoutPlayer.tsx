@@ -249,48 +249,47 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepIdx, phase]);
 
-  // Announce GET READY
+  // Announce GET READY — use browser speech (instant, no network delay)
   useEffect(() => {
     if (phase === "getready") {
-      speakText("Get ready!").catch(() => {});
+      browserSpeak("Get ready!").catch(() => {});
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
-  // Speak 3-2-1 countdown
+  // Speak 3-2-1 countdown — browser speech only (numbers must be instant, no network)
   useEffect(() => {
-    if (phase === "countdown" && countdownNum > 0) {
-      speakText(String(countdownNum)).catch(() => {});
-    }
-    if (phase === "countdown" && countdownNum === 0) {
-      speakText("Go!").catch(() => {});
+    if (phase !== "countdown") return;
+    if (countdownNum > 0) {
+      browserSpeak(String(countdownNum)).catch(() => {});
+    } else {
+      // "Go!" kicks off the exercise announcement via ElevenLabs right after
+      browserSpeak("Go").catch(() => {});
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countdownNum, phase]);
 
   // Last-few-seconds countdown during timed exercises + motivational cues
   useEffect(() => {
-    if (phase !== "playing" || !currentStep) return;
+    if (phase !== "playing") return;
     const step = steps[stepIdx];
     if (!step || step.type !== "exercise") return;
     const totalSteps = steps.filter(s => s.type === "exercise").length;
     const completedExSteps = steps.slice(0, stepIdx).filter(s => s.type === "exercise").length;
 
-    // Last 3 seconds countdown (avoid re-announcing same tick)
+    // Last 3 seconds: use browser speech — instant, no overlap with ElevenLabs
     if (stepTimer > 0 && stepTimer <= 3 && lastCountdownRef.current !== stepTimer) {
       lastCountdownRef.current = stepTimer;
-      speakText(String(stepTimer)).catch(() => {});
+      browserSpeak(String(stepTimer)).catch(() => {});
       return;
     }
 
-    // Motivational milestone cues (only fire once per step, after announcement)
+    // Motivational milestone cues via ElevenLabs (fired once per milestone)
     if (stepTimer > 3 && announcedStepRef.current === stepIdx) {
-      // Halfway through the workout
       if (completedExSteps === Math.floor(totalSteps / 2) && lastCountdownRef.current !== -99) {
         lastCountdownRef.current = -99;
         speakText("Halfway there! Keep it up!").catch(() => {});
       }
-      // One exercise left
       if (completedExSteps === totalSteps - 1 && lastCountdownRef.current !== -98) {
         lastCountdownRef.current = -98;
         speakText("Last one! You've got this!").catch(() => {});
