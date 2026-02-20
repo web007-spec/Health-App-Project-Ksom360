@@ -85,6 +85,19 @@ function buildSteps(sections: Section[]): WorkoutStep[] {
             isCircuit: true,
             setKey: `${sIdx}-${eIdx}-${round}-1`,
           });
+          // Add rest between exercises within a round (if exercise has rest_seconds > 0)
+          const exRest = ex.rest_seconds || 0;
+          if (exRest > 0 && eIdx < section.exercises.length - 1) {
+            steps.push({
+              type: "rest",
+              sectionIdx: sIdx,
+              exerciseIdx: eIdx,
+              round,
+              restSeconds: exRest,
+              label: `Rest for ${exRest}s`,
+              isCircuit: true,
+            });
+          }
         });
         if (round < section.rounds) {
           const restSec = section.rest_between_rounds_seconds || section.rest_seconds || 60;
@@ -94,7 +107,7 @@ function buildSteps(sections: Section[]): WorkoutStep[] {
             exerciseIdx: 0,
             round,
             restSeconds: restSec,
-            label: `Rest for ${restSec}s`,
+            label: `Rest between rounds ${restSec}s`,
             isCircuit: true,
           });
         }
