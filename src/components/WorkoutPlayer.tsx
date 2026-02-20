@@ -130,8 +130,20 @@ function buildSteps(sections: Section[]): WorkoutStep[] {
   return steps;
 }
 
-// ElevenLabs voice guidance helper — called with a bound voiceEnabledRef
+// Number words for clean TTS pronunciation
+const NUM_WORDS: Record<number, string> = { 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine", 10: "ten" };
+function toWords(n: number): string { return NUM_WORDS[n] ?? String(n); }
+
+// Active audio element — stop it before playing a new one
+let activeAudio: HTMLAudioElement | null = null;
+
 async function playElevenLabsSpeech(text: string): Promise<void> {
+  // Cancel any currently playing audio immediately
+  if (activeAudio) {
+    activeAudio.pause();
+    activeAudio.src = "";
+    activeAudio = null;
+  }
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   const response = await fetch(`${supabaseUrl}/functions/v1/elevenlabs-tts`, {
@@ -147,7 +159,11 @@ async function playElevenLabsSpeech(text: string): Promise<void> {
   const blob = await response.blob();
   const url = URL.createObjectURL(blob);
   const audio = new Audio(url);
-  audio.onended = () => URL.revokeObjectURL(url);
+  activeAudio = audio;
+  audio.onended = () => {
+    URL.revokeObjectURL(url);
+    if (activeAudio === audio) activeAudio = null;
+  };
   await audio.play();
 }
 
@@ -159,6 +175,7 @@ function browserSpeak(text: string) {
   utter.rate = 0.95;
   window.speechSynthesis.speak(utter);
 }
+
 
 
 export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onExit }: WorkoutPlayerProps) {
@@ -271,16 +288,16 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
         if (next <= 0) {
           clearInterval(stepTimerRef.current!);
           if (voiceEnabledRef.current) speakText("Great job! Moving on.");
-          // Use timeout to avoid setState-in-setState
           setTimeout(() => advanceStep(), 100);
           return 0;
         }
+        // Only speak countdown cues — use spelled-out words, not digits
         if (next === 10 && voiceEnabledRef.current) speakText("Ten seconds left. Hang in there!");
-        if (next <= 3 && next > 0 && voiceEnabledRef.current) speakText(String(next));
+        if ((next === 3 || next === 2 || next === 1) && voiceEnabledRef.current) speakText(toWords(next));
         return next;
       });
     }, 1000);
-  }, [advanceStep]);
+  }, [advanceStep, speakText]);
 
   // ── GET READY → COUNTDOWN → PLAYING ──
   useEffect(() => {
@@ -291,11 +308,12 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
     if (phase === "countdown") {
       setCountdownNum(3);
       let n = 3;
-      if (voiceEnabledRef.current) speakText("Three");
+      speakText("Three");
       const interval = setInterval(() => {
         n--;
         setCountdownNum(n);
-        if (n > 0 && voiceEnabledRef.current) speakText(String(n));
+        if (n === 2) speakText("Two");
+        else if (n === 1) speakText("One");
         if (n <= 0) {
           clearInterval(interval);
           setTimeout(() => setPhase("playing"), 500);
@@ -303,7 +321,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [phase]);
+  }, [phase, speakText]);
 
   // ── Global elapsed timer ──
   useEffect(() => {
