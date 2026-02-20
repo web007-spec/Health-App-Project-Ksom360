@@ -130,29 +130,36 @@ function buildSteps(sections: Section[]): WorkoutStep[] {
   return steps;
 }
 
-// Voice guidance — robust across browser quirks
-function speakText(text: string) {
+// ElevenLabs voice guidance helper — called with a bound voiceEnabledRef
+async function playElevenLabsSpeech(text: string): Promise<void> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const response = await fetch(`${supabaseUrl}/functions/v1/elevenlabs-tts`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: supabaseKey,
+      Authorization: `Bearer ${supabaseKey}`,
+    },
+    body: JSON.stringify({ text }),
+  });
+  if (!response.ok) throw new Error(`TTS ${response.status}`);
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const audio = new Audio(url);
+  audio.onended = () => URL.revokeObjectURL(url);
+  await audio.play();
+}
+
+// Browser speech fallback
+function browserSpeak(text: string) {
   if (!("speechSynthesis" in window)) return;
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
-  utter.rate = 0.92;
-  utter.pitch = 1.05;
-  utter.volume = 1;
-  const pickVoice = () => {
-    const voices = window.speechSynthesis.getVoices();
-    return voices.find(
-      (v) =>
-        v.name.includes("Samantha") ||
-        v.name.includes("Google UK English Female") ||
-        v.name.includes("Karen") ||
-        v.name.includes("Victoria") ||
-        (v.lang.startsWith("en") && v.name.toLowerCase().includes("female"))
-    ) || voices.find((v) => v.lang.startsWith("en")) || null;
-  };
-  const voice = pickVoice();
-  if (voice) utter.voice = voice;
+  utter.rate = 0.95;
   window.speechSynthesis.speak(utter);
 }
+
 
 export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onExit }: WorkoutPlayerProps) {
   const { toast } = useToast();
@@ -191,6 +198,12 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
 
   // Keep isPausedRef in sync so intervals can read it without stale closures
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
+
+  // Scoped speakText — uses voiceEnabledRef, tries ElevenLabs, falls back to browser
+  const speakText = useCallback((text: string) => {
+    if (!voiceEnabledRef.current) return;
+    playElevenLabsSpeech(text).catch(() => browserSpeak(text));
+  }, []);
 
   // Pause/resume the video element when isPaused changes
   useEffect(() => {
