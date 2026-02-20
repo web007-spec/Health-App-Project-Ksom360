@@ -453,7 +453,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
               )}
             </div>
             <div className="text-center py-6">
-              <Badge className={`mb-3 ${ewCardImageUrl ? "bg-emerald-400/20 text-white border-emerald-400/40 font-bold drop-shadow" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"} hover:bg-emerald-500/10`}>
+              <Badge className={`mb-3 ${ewCardImageUrl ? "bg-black/30 backdrop-blur-sm text-white border-white/20 font-bold" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"} hover:bg-black/40`}>
                 Eating Window
               </Badge>
               <p className={`text-4xl font-black tabular-nums tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] ${ewCardImageUrl ? "text-white" : ""}`}>{ewTimeStr}</p>
