@@ -693,7 +693,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
 
       {/* ── End workout dialog ── */}
       <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="z-[300]">
           <AlertDialogHeader>
             <AlertDialogTitle>End Workout?</AlertDialogTitle>
             <AlertDialogDescription>What would you like to do with this session?</AlertDialogDescription>
