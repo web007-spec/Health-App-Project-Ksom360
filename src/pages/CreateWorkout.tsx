@@ -359,6 +359,8 @@ export default function CreateWorkout() {
       for (const item of groupItems) {
         const workPerRound = item.target_type === "time" ? (item.time_seconds || 45) : 45;
         totalSeconds += workPerRound * rounds;
+        // Add exercise-level rest within each round
+        totalSeconds += (item.rest_seconds || 0) * rounds;
       }
       totalSeconds += restBetweenRounds * Math.max(0, rounds - 1);
     }

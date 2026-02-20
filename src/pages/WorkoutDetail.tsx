@@ -119,6 +119,8 @@ export default function WorkoutDetail() {
     const isGrouped = ["superset", "circuit"].includes(section.section_type);
     if (isGrouped) {
       section.exercises.forEach((ex: any) => { acc += (ex.duration_seconds || 45) * section.rounds; });
+      const exRestTotal = section.exercises.reduce((sum: number, ex: any) => sum + (ex.rest_seconds || 0), 0);
+      acc += exRestTotal * section.rounds;
       acc += (section.rest_between_rounds_seconds || 60) * Math.max(0, section.rounds - 1);
     } else {
       section.exercises.forEach((ex: any) => {

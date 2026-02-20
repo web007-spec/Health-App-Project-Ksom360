@@ -354,6 +354,8 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
     const isGrouped = ["superset", "circuit"].includes(s.section_type);
     if (isGrouped) {
       s.exercises.forEach((ex) => { acc += (ex.duration_seconds || 45) * s.rounds; });
+      const exRestTotal = s.exercises.reduce((sum, ex) => sum + (ex.rest_seconds || 0), 0);
+      acc += exRestTotal * s.rounds;
       acc += (s.rest_between_rounds_seconds || 60) * Math.max(0, s.rounds - 1);
     } else {
       s.exercises.forEach((ex) => {
