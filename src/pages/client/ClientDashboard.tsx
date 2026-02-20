@@ -425,7 +425,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
             backgroundPosition: "center",
           } : {}}
         >
-          {ewCardImageUrl && <div className="absolute inset-0 bg-black/60" />}
+          
           <CardContent className={`px-5 pt-8 pb-6 space-y-4 relative ${ewCardImageUrl ? "text-white" : ""}`}>
             <div className="flex items-center justify-between">
               <div>
