@@ -117,6 +117,17 @@ export function GoalCard({ goal, onStatusChange, isTrainer = false, showClientNa
           )}
         </div>
 
+        {/* No start weight yet — pending state */}
+        {startWeight == null && goalWeight != null && (
+          <div className="rounded-lg bg-muted/40 border border-dashed border-muted-foreground/30 p-4 text-center space-y-1">
+            <p className="text-sm font-medium text-muted-foreground">⚖️ Awaiting first weigh-in</p>
+            <p className="text-xs text-muted-foreground">
+              Log your weight on or after {format(parseISO(goal.start_date), "MMM d")} to activate progress tracking
+            </p>
+            <p className="text-sm font-semibold mt-2">Goal: <span className="text-primary">{goalWeight} lbs</span></p>
+          </div>
+        )}
+
         {/* Weight stats */}
         {startWeight != null && goalWeight != null && (
           <div className="grid grid-cols-3 gap-2 text-center">
