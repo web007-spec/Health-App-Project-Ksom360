@@ -472,7 +472,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
             </div>
             <Button
               variant={ewCardImageUrl ? "secondary" : "outline"}
-              className={`w-full h-12 text-base ${ewCardImageUrl ? "bg-white/20 hover:bg-white/30 text-white border-white/30" : ""}`}
+              className={`w-full h-12 text-base font-bold ${ewCardImageUrl ? "bg-black/30 backdrop-blur-sm text-white border border-white/20 hover:bg-black/50" : ""}`}
               onClick={() => startFastMutation.mutate()}
             >
               <Clock className="h-4 w-4 mr-2" /> Start next fast
