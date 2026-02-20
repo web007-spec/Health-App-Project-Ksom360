@@ -1,5 +1,5 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -154,6 +154,23 @@ export default function EditWorkout() {
     enabled: !!user?.id,
   });
 
+  // Auto-calculate duration from sections — same formula as WorkoutPlayer
+  const calculatedDuration = useMemo(() => {
+    const totalSeconds = sections.reduce((acc, section) => {
+      const isGrouped = ["superset", "circuit"].includes(section.section_type);
+      if (isGrouped) {
+        section.exercises.forEach((ex) => { acc += (ex.duration_seconds || 45) * section.rounds; });
+        acc += (section.rest_between_rounds_seconds || 60) * Math.max(0, section.rounds - 1);
+      } else {
+        section.exercises.forEach((ex) => {
+          acc += ((ex.duration_seconds || 30) + (ex.rest_seconds || 30)) * (ex.sets || 1);
+        });
+      }
+      return acc;
+    }, 0);
+    return Math.max(1, Math.ceil(totalSeconds / 60));
+  }, [sections]);
+
   const filteredExercises = exercises?.filter((ex) =>
     ex.name.toLowerCase().includes(exerciseSearch.toLowerCase()) ||
     ex.muscle_group?.toLowerCase().includes(exerciseSearch.toLowerCase())
@@ -176,10 +193,10 @@ export default function EditWorkout() {
         updatedData.image_url = urlData.publicUrl;
       }
 
-      // Update workout plan
+      // Update workout plan — use auto-calculated duration
       const { error: workoutError } = await supabase
         .from("workout_plans")
-        .update(updatedData)
+        .update({ ...updatedData, duration_minutes: calculatedDuration })
         .eq("id", id);
 
       if (workoutError) throw workoutError;
@@ -520,12 +537,10 @@ export default function EditWorkout() {
                     </Select>
                   </div>
                   <div>
-                    <Label>Duration (minutes)</Label>
-                    <Input
-                      type="number"
-                      value={workoutData.duration_minutes}
-                      onChange={(e) => setWorkoutData({ ...workoutData, duration_minutes: parseInt(e.target.value) })}
-                    />
+                    <Label>Duration (auto-calculated)</Label>
+                    <div className="flex items-center h-10 px-3 rounded-md border bg-muted text-sm font-medium">
+                      {calculatedDuration} min
+                    </div>
                   </div>
                   <div>
                     <Label>Video URL</Label>
