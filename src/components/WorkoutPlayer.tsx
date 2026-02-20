@@ -137,6 +137,7 @@ function toWords(n: number): string { return NUM_WORDS[n] ?? String(n); }
 // Active audio element — stop it before playing a new one
 let activeAudio: HTMLAudioElement | null = null;
 
+// Returns a Promise that resolves only when the audio has finished playing
 async function playElevenLabsSpeech(text: string): Promise<void> {
   // Cancel any currently playing audio immediately
   if (activeAudio) {
@@ -160,19 +161,18 @@ async function playElevenLabsSpeech(text: string): Promise<void> {
   const url = URL.createObjectURL(blob);
   const audio = new Audio(url);
   activeAudio = audio;
-  // Return a promise that resolves when audio finishes
   return new Promise((resolve) => {
     audio.onended = () => {
       URL.revokeObjectURL(url);
       if (activeAudio === audio) activeAudio = null;
       resolve();
     };
-    audio.onerror = () => { resolve(); };
+    audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
     audio.play().catch(() => resolve());
   });
 }
 
-// Browser speech fallback — returns a Promise that resolves when done
+// Browser speech fallback — returns Promise that resolves when done
 function browserSpeak(text: string): Promise<void> {
   if (!("speechSynthesis" in window)) return Promise.resolve();
   window.speechSynthesis.cancel();
@@ -185,31 +185,24 @@ function browserSpeak(text: string): Promise<void> {
   });
 }
 
-// Flag to block the step-change announcement while "Great job!" is still playing
-let pendingStepAnnounce = false;
-
-
 export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onExit }: WorkoutPlayerProps) {
   const { toast } = useToast();
   const startedAtRef = useRef(new Date().toISOString());
   const [setLogs, setSetLogs] = useState<Record<string, SetLog>>({});
   const [voiceEnabled, setVoiceEnabled] = useState(true);
-  // isLocked locks the screen (hides controls) — NOT disabling buttons
   const [isLocked, setIsLocked] = useState(false);
 
   const [phase, setPhase] = useState<"getready" | "countdown" | "playing">("getready");
   const [countdownNum, setCountdownNum] = useState(3);
 
-  // steps is stable — built once from sections
   const stepsRef = useRef<WorkoutStep[]>(buildSteps(sections));
   const steps = stepsRef.current;
 
   const [stepIdx, setStepIdx] = useState(0);
 
-  // stepTimer: current countdown value; -1 means "no timer for this step"
   const [stepTimer, setStepTimer] = useState(-1);
   const stepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const stepTimerDurationRef = useRef(0); // max duration for progress calc
+  const stepTimerDurationRef = useRef(0);
 
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -224,16 +217,14 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   const voiceEnabledRef = useRef(voiceEnabled);
   useEffect(() => { voiceEnabledRef.current = voiceEnabled; }, [voiceEnabled]);
 
-  // Keep isPausedRef in sync so intervals can read it without stale closures
   useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
 
-  // Scoped speakText — returns a Promise that resolves when audio finishes
+  // speakText returns a Promise that resolves when audio finishes
   const speakText = useCallback((text: string): Promise<void> => {
     if (!voiceEnabledRef.current) return Promise.resolve();
     return playElevenLabsSpeech(text).catch(() => browserSpeak(text));
   }, []);
 
-  // Pause/resume the video element when isPaused changes
   useEffect(() => {
     if (!videoRef.current) return;
     if (isPaused) {
@@ -252,7 +243,6 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
     return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
   };
 
-  // Total estimated seconds
   const totalEstimatedSeconds = sections.reduce((acc, s) => {
     const isGrouped = ["superset", "circuit"].includes(s.section_type);
     if (isGrouped) {
@@ -280,11 +270,11 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
       const next = prev + 1;
       if (next >= steps.length) {
         if (voiceEnabledRef.current) speakText("Workout complete! Amazing job today!");
-        return prev; // stay, show complete screen via currentStep check
+        return prev;
       }
       return next;
     });
-  }, [steps.length]);
+  }, [steps.length, speakText]);
 
   // ── Start per-step countdown timer ──
   const startStepCountdown = useCallback((seconds: number) => {
@@ -293,23 +283,19 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
     setStepTimer(seconds);
 
     stepTimerRef.current = setInterval(() => {
-      if (isPausedRef.current) return; // skip tick while paused
+      if (isPausedRef.current) return;
       setStepTimer((prev) => {
         const next = prev - 1;
         if (next <= 0) {
           clearInterval(stepTimerRef.current!);
-          if (voiceEnabledRef.current) {
-            // Block the next step's announcement until "Great job!" finishes
-            pendingStepAnnounce = true;
-            speakText("Great job! Moving on.").finally(() => {
-              pendingStepAnnounce = false;
-            });
-          }
-          setTimeout(() => advanceStep(), 100);
+          // "Great job!" plays first; advanceStep only fires when it's done
+          // so the next exercise announcement never overlaps
+          const done = voiceEnabledRef.current
+            ? speakText("Great job! Moving on.")
+            : Promise.resolve();
+          done.finally(() => advanceStep());
           return 0;
-
         }
-        // Only speak countdown cues — use spelled-out words, not digits
         if (next === 10 && voiceEnabledRef.current) speakText("Ten seconds left. Hang in there!");
         if ((next === 3 || next === 2 || next === 1) && voiceEnabledRef.current) speakText(toWords(next));
         return next;
@@ -354,38 +340,21 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   useEffect(() => {
     if (phase !== "playing" || !currentStep) return;
 
-    const announce = () => {
-      if (currentStep.type === "exercise" && currentStep.exercise) {
-        const ex = currentStep.exercise;
-        const dur = ex.duration_seconds;
-        const reps = ex.reps;
-        let msg = `${ex.exercise_name}. `;
-        if (dur) msg += `For ${dur} seconds. Let's go!`;
-        else if (reps) msg += `${reps} reps. Let's go!`;
-        else msg += "Let's go!";
-        if (voiceEnabledRef.current) speakText(msg);
-        if (dur) startStepCountdown(dur);
-        else setStepTimer(-1);
-      } else if (currentStep.type === "rest") {
-        const secs = currentStep.restSeconds || 60;
-        if (voiceEnabledRef.current) speakText(`Rest for ${secs} seconds.`);
-        startStepCountdown(secs);
-      }
-    };
-
-    // If "Great job!" is still playing, poll until it finishes then announce
-    if (pendingStepAnnounce) {
-      let cancelled = false;
-      const poll = setInterval(() => {
-        if (cancelled) { clearInterval(poll); return; }
-        if (!pendingStepAnnounce) {
-          clearInterval(poll);
-          announce();
-        }
-      }, 100);
-      return () => { cancelled = true; clearInterval(poll); };
-    } else {
-      announce();
+    if (currentStep.type === "exercise" && currentStep.exercise) {
+      const ex = currentStep.exercise;
+      const dur = ex.duration_seconds;
+      const reps = ex.reps;
+      let msg = `${ex.exercise_name}. `;
+      if (dur) msg += `For ${dur} seconds. Let's go!`;
+      else if (reps) msg += `${reps} reps. Let's go!`;
+      else msg += "Let's go!";
+      if (voiceEnabledRef.current) speakText(msg);
+      if (dur) startStepCountdown(dur);
+      else setStepTimer(-1);
+    } else if (currentStep.type === "rest") {
+      const secs = currentStep.restSeconds || 60;
+      if (voiceEnabledRef.current) speakText(`Rest for ${secs} seconds.`);
+      startStepCountdown(secs);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stepIdx, phase]);
@@ -417,7 +386,6 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
       if (nowPaused) {
         window.speechSynthesis.cancel();
       } else {
-        // re-announce current exercise on resume
         if (voiceEnabledRef.current && currentStep?.type === "exercise" && currentStep?.exercise?.exercise_name) {
           speakText(`Resuming. ${currentStep.exercise.exercise_name}.`);
         }
@@ -533,11 +501,11 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
               ref={videoRef}
               key={currentExercise.id + stepIdx}
               src={currentExercise.exercise_video}
+              className="w-full h-full object-cover"
               autoPlay
               loop
               muted
               playsInline
-              className="w-full h-full object-cover"
             />
           ) : !isRest && currentExercise?.exercise_image ? (
             <img
@@ -546,71 +514,56 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
               className="w-full h-full object-cover"
             />
           ) : isRest ? (
-            <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-secondary">
-              <span className="text-6xl">😮‍💨</span>
-              <p className="text-secondary-foreground text-2xl font-semibold">Rest</p>
+            <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-muted/30">
+              <Heart className="h-16 w-16 text-primary/40" />
+              <p className="text-muted-foreground font-medium">Recovery Time</p>
             </div>
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-muted">
-              <span className="text-8xl font-bold text-muted-foreground/20">
-                {currentExercise?.exercise_name?.charAt(0)?.toUpperCase() || "?"}
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="text-6xl font-black text-muted-foreground/20">
+                {currentExercise?.exercise_name?.charAt(0) || "?"}
               </span>
             </div>
           )}
 
-          {/* Voice toggle */}
-          <button
-            className="absolute top-3 left-3 w-10 h-10 rounded-full bg-black/60 flex items-center justify-center z-10"
-            onClick={() => {
-              setVoiceEnabled((v) => {
-                if (v && "speechSynthesis" in window) window.speechSynthesis.cancel();
-                return !v;
-              });
-            }}
-          >
-            {voiceEnabled ? <Volume2 className="h-4 w-4 text-white" /> : <VolumeX className="h-4 w-4 text-white/40" />}
-          </button>
+          {/* Lock overlay */}
+          {isLocked && (
+            <div
+              className="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer z-10"
+              onClick={() => setIsLocked(false)}
+            >
+              <div className="text-center text-white">
+                <Lock className="h-8 w-8 mx-auto mb-2 opacity-60" />
+                <p className="text-sm opacity-60">Tap to unlock</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Timer & Info ── */}
-        <div className="bg-white px-5 pt-3 pb-2">
-          <div className="text-center">
-            <p className="text-5xl font-black text-foreground tabular-nums tracking-tight">
-              {stepTimer > 0
-                ? formatTime(stepTimer)
-                : isRest
-                  ? formatTime(currentStep.restSeconds || 0)
-                  : currentExercise?.reps
-                    ? `${currentExercise.reps} reps`
-                    : currentExercise?.sets
-                      ? `Set ${currentStep.round} / ${currentStep.exercise?.sets || 1}`
-                      : "--"}
-            </p>
+        <div className="px-4 pt-3 pb-2 bg-white">
+          <div className="flex items-center justify-between mb-2">
+            {/* Timer */}
+            <div className="text-center flex-1">
+              {stepTimer > 0 ? (
+                <p className="text-4xl font-black tabular-nums text-foreground">{formatTime(stepTimer)}</p>
+              ) : (
+                <p className="text-2xl font-semibold text-muted-foreground">
+                  {currentExercise?.reps ? `${currentExercise.reps} reps` : "--"}
+                </p>
+              )}
+            </div>
           </div>
 
-          {/* Up Next */}
-          {nextExerciseName ? (
-            <div className="mt-3 bg-muted/50 rounded-xl p-3">
-              <p className="text-xs font-bold text-foreground uppercase tracking-wide mb-1.5">Up Next</p>
-              <div className="flex items-center gap-3">
-                {nextExerciseImage ? (
-                  <img src={nextExerciseImage} alt={nextExerciseName} className="w-14 h-14 rounded-lg object-cover shrink-0 border border-border" />
-                ) : (
-                  <div className="w-14 h-14 rounded-lg bg-muted shrink-0 flex items-center justify-center">
-                    <span className="text-xl font-bold text-muted-foreground/40">{nextExerciseName.charAt(0)}</span>
-                  </div>
-                )}
-                <div>
-                  <p className="font-semibold text-sm text-foreground leading-tight">{nextExerciseName}</p>
-                  {nextExerciseDuration && (
-                    <span className="inline-block mt-1 bg-muted text-muted-foreground text-xs font-semibold px-2 py-0.5 rounded-full">
-                      {nextExerciseDuration}
-                    </span>
-                  )}
-                </div>
-              </div>
+          {/* Progress bar */}
+          {stepTimer > 0 && stepTimerDurationRef.current > 0 && (
+            <div className="w-full bg-muted rounded-full h-1.5 mb-2">
+              <div
+                className="bg-primary h-1.5 rounded-full transition-all"
+                style={{ width: `${((stepTimerDurationRef.current - stepTimer) / stepTimerDurationRef.current) * 100}%` }}
+              />
             </div>
-          ) : null}
+          )}
 
           {/* Set logging for rep-based exercises */}
           {!isRest && currentStep.setKey && !currentExercise?.duration_seconds && (
@@ -626,7 +579,7 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
                 />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-muted-foreground mb-1">Lbs</p>
+                <p className="text-xs text-muted-foreground mb-1">Weight (lbs)</p>
                 <Input
                   type="number"
                   value={setLogs[currentStep.setKey]?.weight || ""}
@@ -635,130 +588,137 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
                   placeholder="0"
                 />
               </div>
-              <div className="pt-4">
-                <Button size="sm" className="h-9 px-4" onClick={markStepDone}>Done</Button>
-              </div>
             </div>
           )}
         </div>
-      </div>
 
-      {/* ── Bottom Bar ── */}
-      <div className="bg-black text-white shrink-0">
-        {/* Stats */}
-        <div className="flex items-start justify-between px-5 pt-3 pb-1">
-          <div className="text-center">
-            <p className="text-xs text-white/50 font-semibold">Remaining</p>
-            <p className="text-base font-bold tabular-nums">{formatTime(remainingSeconds)}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-white/50 font-semibold">Completed</p>
-            <p className="text-base font-bold">{completedPercent}%</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-white/50 font-semibold">Active</p>
-            <p className="text-base font-bold">{estimatedCal > 0 ? `${estimatedCal} Cal` : "- Cal"}</p>
-          </div>
-          <div className="text-center flex flex-col items-center">
-            <p className="text-xs text-white/50 font-semibold">Zone</p>
-            <div className="flex items-center gap-1 mt-0.5">
-              <Heart className="h-4 w-4 text-destructive fill-destructive" />
-              <p className="text-base font-bold">-</p>
+        {/* ── Up Next ── */}
+        {nextExerciseName && (
+          <div className="px-4 py-2 bg-muted/30 border-t border-border/40 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0 flex items-center justify-center">
+              {nextExerciseImage ? (
+                <img src={nextExerciseImage} alt={nextExerciseName} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xl font-bold text-muted-foreground/40">{nextExerciseName.charAt(0)}</span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-muted-foreground">Up Next</p>
+              <p className="text-sm font-semibold truncate">{nextExerciseName}</p>
+              {nextExerciseDuration && <p className="text-xs text-muted-foreground">{nextExerciseDuration}</p>}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Progress bar */}
-        <div className="px-2 py-1">
-          <div className="h-1 w-full bg-white/20 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full transition-all duration-1000"
-              style={{ width: `${completedPercent}%` }}
-            />
+        {/* ── Controls ── */}
+        {!isLocked && (
+          <div className="px-4 pb-6 pt-2 bg-white">
+            <div className="flex items-center justify-between gap-2">
+              {/* Voice toggle */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setVoiceEnabled((v) => !v)}
+                className="text-muted-foreground"
+              >
+                {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+              </Button>
+
+              {/* Prev */}
+              <Button variant="outline" size="icon" onClick={goToPrevStep} disabled={stepIdx === 0}>
+                <SkipBack className="h-5 w-5" />
+              </Button>
+
+              {/* Play/Pause */}
+              <Button size="icon" className="h-14 w-14 rounded-full" onClick={togglePause}>
+                {isPaused ? <Play className="h-6 w-6" /> : <Pause className="h-6 w-6" />}
+              </Button>
+
+              {/* Next / Done */}
+              {currentStep?.type === "exercise" && !currentExercise?.duration_seconds ? (
+                <Button variant="outline" size="icon" onClick={markStepDone}>
+                  <SkipForward className="h-5 w-5" />
+                </Button>
+              ) : (
+                <Button variant="outline" size="icon" onClick={advanceStep}>
+                  <SkipForward className="h-5 w-5" />
+                </Button>
+              )}
+
+              {/* Lock */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsLocked(true)}
+                className="text-muted-foreground"
+              >
+                <Lock className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Exit menu */}
+            <div className="flex justify-center mt-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive/60 text-xs"
+                onClick={() => setShowDiscardDialog(true)}
+              >
+                <Square className="h-3 w-3 mr-1" /> End Workout
+              </Button>
+            </div>
           </div>
+        )}
+      </div>
+
+      {/* ── Bottom stats bar ── */}
+      <div className="bg-black text-white px-4 py-2 flex items-center justify-around text-center">
+        <div>
+          <p className="text-xs text-white/50">Done</p>
+          <p className="text-sm font-bold">{completedPercent}%</p>
         </div>
-
-        {/* Controls — NOT disabled by lock (lock just shows overlay) */}
-        <div className="flex items-center justify-around px-6 py-4 pb-8">
-          <button
-            className={cn("text-white/60 hover:text-white transition-colors", stepIdx === 0 && "opacity-30")}
-            onClick={goToPrevStep}
-            disabled={stepIdx === 0}
-          >
-            <SkipBack className="h-8 w-8 fill-current" />
-          </button>
-
-          {/* Stop → opens end dialog */}
-          <button
-            className="text-white hover:text-white/80 transition-colors"
-            onClick={() => setShowDiscardDialog(true)}
-          >
-            <Square className="h-7 w-7 fill-current" />
-          </button>
-
-          {/* Lock toggle */}
-          <button
-            className={cn(
-              "transition-colors",
-              isLocked ? "text-primary bg-primary/20 rounded-full p-1" : "text-white/60 hover:text-white"
-            )}
-            onClick={() => setIsLocked((l) => !l)}
-          >
-            <Lock className="h-7 w-7" />
-          </button>
-
-          {/* Pause / Play */}
-          <button
-            className="text-white hover:text-white/80 transition-colors"
-            onClick={togglePause}
-          >
-            {isPaused ? <Play className="h-8 w-8 fill-current" /> : <Pause className="h-8 w-8 fill-current" />}
-          </button>
-
-          {/* Skip forward */}
-          <button
-            className="text-white/60 hover:text-white transition-colors"
-            onClick={advanceStep}
-          >
-            <SkipForward className="h-8 w-8 fill-current" />
-          </button>
+        <div>
+          <p className="text-xs text-white/50">Elapsed</p>
+          <p className="text-sm font-bold">{formatTime(elapsedSeconds)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-white/50">Remaining</p>
+          <p className="text-sm font-bold">{formatTime(remainingSeconds)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-white/50">Cal</p>
+          <p className="text-sm font-bold">{estimatedCal}</p>
         </div>
       </div>
 
-      {/* Lock overlay — only covers content area above the bottom controls */}
-      {isLocked && (
-        <div
-          className="absolute inset-x-0 top-0 bottom-[160px] z-[201] flex items-center justify-center bg-black/60"
-          onClick={() => setIsLocked(false)}
-        >
-          <div className="text-center text-white">
-            <Lock className="h-12 w-12 mx-auto mb-3 text-white/80" />
-            <p className="text-sm font-semibold tracking-wide">Screen Locked</p>
-            <p className="text-xs text-white/60 mt-1">Tap anywhere to unlock</p>
-          </div>
-        </div>
-      )}
-
-      {/* End Workout Dialog */}
+      {/* ── End workout dialog ── */}
       <AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
-        <AlertDialogContent className="z-[300]">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>End Workout?</AlertDialogTitle>
-            <AlertDialogDescription>Choose to save your progress or discard it.</AlertDialogDescription>
+            <AlertDialogDescription>What would you like to do with this session?</AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
-            <Button variant="outline" className="flex-1" onClick={() => setShowDiscardDialog(false)}>Continue</Button>
-            <Button variant="secondary" className="flex-1" onClick={handleEndEarly}>End & Save</Button>
-            <Button variant="destructive" className="flex-1" onClick={handleDiscard}>Discard</Button>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <AlertDialogAction onClick={handleEndEarly}>Save & End</AlertDialogAction>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={handleDiscard}
+            >
+              Discard
+            </AlertDialogAction>
+            <AlertDialogCancel>Keep Going</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* ── Swap exercise dialog ── */}
       {swapTarget && (
         <ExerciseSwapDialog
           open={swapDialogOpen}
           onOpenChange={setSwapDialogOpen}
-          currentExercise={{ id: "", name: "", muscle_group: "", equipment: "" }}
+          currentExercise={
+            sections[swapTarget.sectionIdx]?.exercises[swapTarget.exerciseIdx] as any
+          }
           onSwap={handleSwapExercise}
         />
       )}
