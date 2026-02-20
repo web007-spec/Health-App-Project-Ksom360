@@ -133,7 +133,7 @@ export default function Auth() {
             className="h-20 w-20 rounded-2xl object-contain mx-auto mb-4 shadow-lg"
           />
           <h1 className="text-3xl font-bold text-foreground">KSOM360</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Your complete fitness coaching platform</p>
+          <p className="text-muted-foreground mt-1 text-sm">KSOM360 Fitness Coaching Platform</p>
         </div>
 
         {/* Auth Card */}
