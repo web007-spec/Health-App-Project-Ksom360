@@ -23,13 +23,21 @@ export function useCardioActivityTypes() {
         .select("*")
         .order("name");
       if (error) throw error;
-      // If no rows yet, seed defaults
+      // If no rows yet, seed defaults into DB
       if (!data || data.length === 0) {
-        return DEFAULT_ACTIVITIES.map((a, i) => ({
-          id: `default-${i}`,
+        const rows = DEFAULT_ACTIVITIES.map((a, i) => ({
+          trainer_id: user!.id,
           name: a.name,
           icon_name: a.icon_name,
-        })) as CardioActivityType[];
+          is_default: true,
+          order_index: i,
+        }));
+        const { data: seeded, error: seedErr } = await supabase
+          .from("cardio_activity_types")
+          .insert(rows as any)
+          .select("*");
+        if (seedErr) throw seedErr;
+        return (seeded || []) as CardioActivityType[];
       }
       return data as CardioActivityType[];
     },
