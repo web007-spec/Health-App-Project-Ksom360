@@ -57,11 +57,20 @@ serve(async (req) => {
             content: [
               {
                 type: 'text',
-                text: `You are an expert at reading Apple Health app screenshots. 
+                text: `You are an expert at reading Apple Health app screenshots.
 Analyze this screenshot and extract ALL health metrics you can see.
-Look for: steps, calories burned, heart rate (bpm), resting heart rate, active minutes, distance, workouts, sleep hours, etc.
-Extract exact numbers shown on screen. If a metric is not visible, omit it.
-Use today's date for recorded_at timestamps.`
+
+IMPORTANT MAPPING RULES for data_type:
+- "Move" or "Active Calories" or "Active Energy" → calories_burned
+- "Exercise" minutes → active_minutes  
+- "Steps" → steps
+- "Heart Rate" or "Walking Heart Rate" or "Walking Heart Rate Average" → heart_rate
+- "Resting Heart Rate" → resting_heart_rate
+- "Workouts" (count) → workout
+- Do NOT map "Stand", "Sleep Score", "Walking Speed", "Weight", "Distance" — skip these metrics.
+
+Extract exact numbers shown on screen. If a metric is not in the mapping above, omit it entirely.
+Today's date is ${new Date().toISOString().split('T')[0]}. Ignore any dates shown in the screenshot.`
               },
               {
                 type: 'image_url',
@@ -109,10 +118,6 @@ Use today's date for recorded_at timestamps.`
                   summary: {
                     type: 'string',
                     description: 'Brief summary of what was detected in the screenshot'
-                  },
-                  date_detected: {
-                    type: 'string',
-                    description: 'Date visible in the screenshot if any (ISO format YYYY-MM-DD), or null'
                   }
                 },
                 required: ['metrics', 'summary']
@@ -160,10 +165,10 @@ Use today's date for recorded_at timestamps.`
       );
     }
 
-    // Determine the date to use
-    const recordDate = extracted.date_detected || new Date().toISOString().split('T')[0];
+    // Always use today's date — screenshot dates are unreliable (wrong year, partial dates)
     const now = new Date();
-    const recordedAt = `${recordDate}T${String(now.getHours()).padStart(2,'0')}:00:00Z`;
+    const recordDate = now.toISOString().split('T')[0];
+    const recordedAt = `${recordDate}T${String(now.getUTCHours()).padStart(2,'0')}:00:00Z`;
 
     // Save to database
     const healthRecords = extracted.metrics.map((metric: any) => ({
