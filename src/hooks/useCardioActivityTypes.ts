@@ -8,6 +8,7 @@ export interface CardioActivityType {
   id: string;
   name: string;
   icon_name: string;
+  icon_url?: string | null;
 }
 
 export function useCardioActivityTypes() {
@@ -53,7 +54,7 @@ export function useCardioActivityTypes() {
   });
 
   const addActivity = useMutation({
-    mutationFn: async ({ name, iconName }: { name: string; iconName: string }) => {
+    mutationFn: async ({ name, iconName, iconUrl }: { name: string; iconName: string; iconUrl?: string | null }) => {
       // First ensure defaults exist
       const { data: existing } = await supabase
         .from("cardio_activity_types")
@@ -68,6 +69,7 @@ export function useCardioActivityTypes() {
           trainer_id: user!.id,
           name,
           icon_name: iconName,
+          icon_url: iconUrl || null,
           is_default: false,
           order_index: 999,
         } as any);
@@ -84,10 +86,10 @@ export function useCardioActivityTypes() {
   });
 
   const updateActivity = useMutation({
-    mutationFn: async ({ id, name, iconName }: { id: string; name: string; iconName: string }) => {
+    mutationFn: async ({ id, name, iconName, iconUrl }: { id: string; name: string; iconName: string; iconUrl?: string | null }) => {
       const { error } = await supabase
         .from("cardio_activity_types")
-        .update({ name, icon_name: iconName })
+        .update({ name, icon_name: iconName, icon_url: iconUrl ?? null })
         .eq("id", id);
       if (error) throw error;
     },

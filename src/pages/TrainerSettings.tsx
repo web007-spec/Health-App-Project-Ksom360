@@ -44,15 +44,20 @@ export default function TrainerSettings() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {activities.map((act) => {
                   const Icon = getIconComponent(act.icon_name);
+                  const hasCustomIcon = !!act.icon_url;
                   return (
                     <div
                       key={act.id}
                       className="flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-accent/50 transition-colors group"
                     >
-                      <div className="flex items-center justify-center h-9 w-9 rounded-md bg-primary/10 text-primary shrink-0">
-                        <Icon className="h-5 w-5" />
+                      <div className="flex items-center justify-center h-9 w-9 rounded-md bg-primary/10 text-primary shrink-0 overflow-hidden">
+                        {hasCustomIcon ? (
+                          <img src={act.icon_url!} alt={act.name} className="h-6 w-6 object-contain" />
+                        ) : (
+                          <Icon className="h-5 w-5" />
+                        )}
                       </div>
-                      <span className="font-medium text-sm flex-1 truncate">{act.name}</span>
+                          <span className="font-medium text-sm flex-1 truncate">{act.name}</span>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -78,14 +83,14 @@ export default function TrainerSettings() {
       <AddCardioActivityDialog
         open={addOpen}
         onOpenChange={setAddOpen}
-        onAdd={(name, iconName) => addActivity.mutate({ name, iconName })}
+        onAdd={(name, iconName, iconUrl) => addActivity.mutate({ name, iconName, iconUrl })}
       />
 
       <EditCardioActivityDialog
         open={!!editingActivity}
         onOpenChange={(open) => { if (!open) setEditingActivity(null); }}
         activity={editingActivity}
-        onSave={(id, name, iconName) => updateActivity.mutate({ id, name, iconName })}
+        onSave={(id, name, iconName, iconUrl) => updateActivity.mutate({ id, name, iconName, iconUrl })}
         onDelete={(id) => deleteActivity.mutate(id)}
       />
     </DashboardLayout>
