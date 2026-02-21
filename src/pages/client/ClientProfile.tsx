@@ -1,6 +1,6 @@
 import { ClientLayout } from "@/components/ClientLayout";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronRight, Settings } from "lucide-react";
+import { ChevronRight, Settings, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
@@ -25,6 +25,36 @@ export default function ClientProfile() {
         .single();
       if (error) throw error;
       return data;
+    },
+    enabled: !!clientId,
+  });
+
+  const { data: savedPlan } = useQuery({
+    queryKey: ["saved-fasting-plan", clientId],
+    queryFn: async () => {
+      const { data: settings } = await supabase
+        .from("client_feature_settings")
+        .select("selected_quick_plan_id, selected_protocol_id")
+        .eq("client_id", clientId)
+        .maybeSingle();
+      if (!settings?.selected_quick_plan_id && !settings?.selected_protocol_id) return null;
+      if (settings.selected_quick_plan_id) {
+        const { data } = await supabase
+          .from("quick_fasting_plans")
+          .select("name, fast_hours, eat_hours")
+          .eq("id", settings.selected_quick_plan_id)
+          .maybeSingle();
+        return data ? { ...data, type: "quick" as const } : null;
+      }
+      if (settings.selected_protocol_id) {
+        const { data } = await supabase
+          .from("fasting_protocols")
+          .select("name")
+          .eq("id", settings.selected_protocol_id)
+          .maybeSingle();
+        return data ? { ...data, type: "protocol" as const } : null;
+      }
+      return null;
     },
     enabled: !!clientId,
   });
@@ -85,6 +115,28 @@ export default function ClientProfile() {
 
         {/* Menu items */}
         <div className="divide-y divide-border">
+          {/* Fasting Protocol row */}
+          <button
+            className="flex items-center justify-between w-full py-4 text-left"
+            onClick={() => navigate("/client/choose-protocol")}
+          >
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-blue-400" />
+              <span className="text-foreground">Fasting Protocol</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {savedPlan ? (
+                <span className="text-sm text-blue-400 font-medium">
+                  {savedPlan.name}
+                  {savedPlan.type === "quick" && ` (${savedPlan.fast_hours}:${savedPlan.eat_hours})`}
+                </span>
+              ) : (
+                <span className="text-sm text-muted-foreground">None selected</span>
+              )}
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </button>
+
           {menuItems.map((item) => (
             <button
               key={item.label}
