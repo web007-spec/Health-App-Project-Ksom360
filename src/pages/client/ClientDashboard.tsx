@@ -126,7 +126,7 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
   const startFastMutation = useMutation({
     mutationFn: async () => {
       const targetHours = activeProtocol?.fast_target_hours || featureSettings?.active_fast_target_hours || 16;
-      const { error } = await supabase
+      const { error, count } = await supabase
         .from("client_feature_settings")
         .update({
           active_fast_start_at: new Date().toISOString(),
@@ -138,8 +138,12 @@ function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
+      queryClient.invalidateQueries({ queryKey: ["fasting-profile-data"] });
       // Show PIN creation dialog after starting fast
       setShowCreatePin(true);
+    },
+    onError: (err) => {
+      console.error("Start fast error:", err);
     },
   });
 
