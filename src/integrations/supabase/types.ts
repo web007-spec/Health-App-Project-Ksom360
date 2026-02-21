@@ -4291,6 +4291,14 @@ export type Database = {
         Args: { _conversation_id: string; _user_id: string }
         Returns: boolean
       }
+      is_trainer_of_collection: {
+        Args: { p_collection_id: string }
+        Returns: boolean
+      }
+      is_trainer_of_workout_collection: {
+        Args: { p_collection_id: string }
+        Returns: boolean
+      }
       provision_default_progress_tiles: {
         Args: { p_client_id: string }
         Returns: undefined
