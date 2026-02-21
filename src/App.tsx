@@ -73,6 +73,7 @@ import ClientProtocolDetail from "./pages/client/ClientProtocolDetail";
 import ClientWorkoutHistory from "./pages/ClientWorkoutHistory";
 import ClientCommandCenter from "./pages/ClientCommandCenter";
 import Scheduling from "./pages/Scheduling";
+import TrainerSettings from "./pages/TrainerSettings";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 
@@ -125,6 +126,7 @@ const App = () => (
           <Route path="/clients/:clientId/workout-history" element={<ProtectedRoute allowedRoles={["trainer"]}><ClientWorkoutHistory /></ProtectedRoute>} />
           <Route path="/clients-health" element={<ProtectedRoute allowedRoles={["trainer"]}><ClientsHealth /></ProtectedRoute>} />
           <Route path="/scheduling" element={<ProtectedRoute allowedRoles={["trainer"]}><Scheduling /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute allowedRoles={["trainer"]}><TrainerSettings /></ProtectedRoute>} />
           
           {/* Client Routes */}
           <Route path="/client/dashboard" element={<ProtectedRoute allowedRoles={["client"]}><ClientDashboard /></ProtectedRoute>} />
