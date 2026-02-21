@@ -446,7 +446,7 @@ export default function Exercises() {
       />
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="z-[200]">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete {selectedIds.size} exercise{selectedIds.size > 1 ? 's' : ''}?</AlertDialogTitle>
             <AlertDialogDescription>
