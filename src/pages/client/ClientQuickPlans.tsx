@@ -303,6 +303,27 @@ export default function ClientQuickPlans() {
                   </>
                 )}
 
+                {/* Coach Guidance */}
+                <Separator />
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                    <Zap className="h-4 w-4 text-blue-400" /> Coach Guidance
+                  </h3>
+                  <ul className="space-y-1.5">
+                    {[
+                      "Stay hydrated during fasting hours",
+                      "Begin meals with protein",
+                      "Reduce late-night snacking",
+                      "Prioritize consistent sleep timing",
+                    ].map((tip, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0" />
+                        {tip}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
                 {/* Action Buttons */}
                 <Separator />
                 <div className="space-y-2 pb-1">
