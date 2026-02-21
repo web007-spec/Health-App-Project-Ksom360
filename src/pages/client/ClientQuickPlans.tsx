@@ -93,7 +93,12 @@ export default function ClientQuickPlans() {
       queryClient.invalidateQueries({ queryKey: ["my-feature-settings"] });
       queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
       queryClient.invalidateQueries({ queryKey: ["fasting-gate-state"] });
-      toast.success(startNow ? "Fast started!" : "Quick plan selected!");
+      queryClient.invalidateQueries({ queryKey: ["fasting-profile-data"] });
+      if (startNow) {
+        toast.success("Fast started!");
+      } else {
+        toast.success("Plan saved! Find it in the You tab under Saved Protocol.");
+      }
       navigate("/client/dashboard");
     },
     onError: () => {
