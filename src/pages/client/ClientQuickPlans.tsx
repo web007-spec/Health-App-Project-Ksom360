@@ -120,7 +120,7 @@ export default function ClientQuickPlans() {
 
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
           </div>
         ) : (
           grouped.map((group) => (
@@ -163,8 +163,8 @@ export default function ClientQuickPlans() {
               <div className="p-6 space-y-5">
                 <DialogHeader>
                   <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
-                      <Clock className="h-6 w-6 text-primary" />
+                    <div className="h-12 w-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+                      <Clock className="h-6 w-6 text-blue-400" />
                     </div>
                     <div>
                       <DialogTitle className="text-xl">{selectedPlan.name}</DialogTitle>
@@ -214,7 +214,7 @@ export default function ClientQuickPlans() {
                     <Separator />
                     <div className="space-y-2">
                       <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                        <Zap className="h-4 w-4 text-primary" /> How This Plan Works
+                        <Zap className="h-4 w-4 text-blue-400" /> How This Plan Works
                       </h3>
                       <p className="text-sm text-muted-foreground leading-relaxed">
                         {selectedPlan.description.how_it_works}
@@ -223,7 +223,7 @@ export default function ClientQuickPlans() {
                         <ul className="space-y-1.5 mt-2">
                           {selectedPlan.description.benefits.map((b, i) => (
                             <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                              <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                              <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0" />
                               {b}
                             </li>
                           ))}
@@ -239,7 +239,7 @@ export default function ClientQuickPlans() {
                     <Separator />
                     <div className="space-y-2">
                       <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                        <Utensils className="h-4 w-4 text-primary" /> Daily Structure
+                        <Utensils className="h-4 w-4 text-blue-400" /> Daily Structure
                       </h3>
                       <div className="rounded-lg bg-muted/50 p-3 space-y-2 text-sm">
                         {selectedPlan.description.daily_structure.stop_eating && (
@@ -276,7 +276,7 @@ export default function ClientQuickPlans() {
                     <Separator />
                     <div className="space-y-1.5">
                       <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                        <Target className="h-4 w-4 text-primary" /> Focus
+                        <Target className="h-4 w-4 text-blue-400" /> Focus
                       </h3>
                       <p className="text-sm text-muted-foreground">{selectedPlan.description.focus}</p>
                     </div>
@@ -289,12 +289,12 @@ export default function ClientQuickPlans() {
                     <Separator />
                     <div className="space-y-2">
                       <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                        <Users className="h-4 w-4 text-primary" /> Who This Is For
+                        <Users className="h-4 w-4 text-blue-400" /> Who This Is For
                       </h3>
                       <ul className="space-y-1.5">
                         {selectedPlan.description.who_for.map((w, i) => (
                           <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0" />
                             {w}
                           </li>
                         ))}
@@ -307,7 +307,7 @@ export default function ClientQuickPlans() {
                 <Separator />
                 <div className="space-y-2 pb-1">
                   <Button
-                    className="w-full h-12 text-base"
+                    className="w-full h-12 text-base bg-blue-600 hover:bg-blue-700 text-white"
                     onClick={() => selectPlanMutation.mutate({ plan: selectedPlan, startNow: true })}
                     disabled={selectPlanMutation.isPending}
                   >
