@@ -321,6 +321,13 @@ export default function ClientQuickPlans() {
                   >
                     Save plan for later
                   </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full h-10 text-sm text-muted-foreground"
+                    onClick={() => setSelectedPlan(null)}
+                  >
+                    See All Quick Plans
+                  </Button>
                 </div>
               </div>
             </ScrollArea>
