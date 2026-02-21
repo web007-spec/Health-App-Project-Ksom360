@@ -15,6 +15,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Target, Users, Utensils, Info, Zap } from "lucide-react";
+
+interface PlanDescription {
+  subtitle?: string;
+  how_it_works?: string;
+  benefits?: string[];
+  daily_structure?: {
+    stop_eating?: string;
+    break_fast?: string;
+    meals?: string[];
+    note?: string;
+  };
+  focus?: string;
+  who_for?: string[];
+  length?: string;
+}
 
 interface QuickPlan {
   id: string;
@@ -23,6 +41,7 @@ interface QuickPlan {
   eat_hours: number;
   difficulty_group: string;
   order_index: number;
+  description: PlanDescription | null;
 }
 
 const DIFFICULTY_GROUPS = [
@@ -138,60 +157,173 @@ export default function ClientQuickPlans() {
 
       {/* Plan Detail Dialog */}
       <Dialog open={!!selectedPlan} onOpenChange={(open) => !open && setSelectedPlan(null)}>
-        <DialogContent className="sm:max-w-[420px]">
+        <DialogContent className="sm:max-w-[460px] max-h-[85vh] p-0">
           {selectedPlan && (
-            <>
-              <DialogHeader>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="h-12 w-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <Clock className="h-6 w-6 text-blue-400" />
+            <ScrollArea className="max-h-[80vh]">
+              <div className="p-6 space-y-5">
+                <DialogHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
+                      <Clock className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-xl">{selectedPlan.name}</DialogTitle>
+                      {selectedPlan.description?.subtitle && (
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          {selectedPlan.description.subtitle}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <DialogTitle className="text-xl">{selectedPlan.name}</DialogTitle>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground capitalize">
+                </DialogHeader>
+
+                {/* Protocol Stats */}
+                <div className="rounded-xl bg-muted/50 p-4 space-y-2">
+                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
+                    <Info className="h-4 w-4" /> Protocol Stats
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg bg-background p-3 text-center">
+                      <p className="text-2xl font-bold">{selectedPlan.fast_hours}h</p>
+                      <p className="text-xs text-muted-foreground">Fasting Window</p>
+                    </div>
+                    <div className="rounded-lg bg-background p-3 text-center">
+                      <p className="text-2xl font-bold">
+                        {selectedPlan.eat_hours > 0 ? `${selectedPlan.eat_hours}h` : "—"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {selectedPlan.eat_hours > 0 ? "Eating Window" : "Extended Fast"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <Badge variant="secondary" className="text-xs capitalize">
                       {selectedPlan.difficulty_group.replace("_", " ")}
-                    </p>
+                    </Badge>
+                    {selectedPlan.description?.length && (
+                      <Badge variant="outline" className="text-xs">
+                        {selectedPlan.description.length}
+                      </Badge>
+                    )}
                   </div>
                 </div>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-lg bg-muted/50 p-3 text-center">
-                    <p className="text-2xl font-bold">{selectedPlan.fast_hours}h</p>
-                    <p className="text-xs text-muted-foreground">Fasting Window</p>
-                  </div>
-                  <div className="rounded-lg bg-muted/50 p-3 text-center">
-                    <p className="text-2xl font-bold">
-                      {selectedPlan.eat_hours > 0 ? `${selectedPlan.eat_hours}h` : "—"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {selectedPlan.eat_hours > 0 ? "Eating Window" : "Extended Fast"}
-                    </p>
-                  </div>
+
+                {/* How It Works */}
+                {selectedPlan.description?.how_it_works && (
+                  <>
+                    <Separator />
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                        <Zap className="h-4 w-4 text-primary" /> How This Plan Works
+                      </h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {selectedPlan.description.how_it_works}
+                      </p>
+                      {selectedPlan.description.benefits && selectedPlan.description.benefits.length > 0 && (
+                        <ul className="space-y-1.5 mt-2">
+                          {selectedPlan.description.benefits.map((b, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                              <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                              {b}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* Daily Structure */}
+                {selectedPlan.description?.daily_structure && (
+                  <>
+                    <Separator />
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                        <Utensils className="h-4 w-4 text-primary" /> Daily Structure
+                      </h3>
+                      <div className="rounded-lg bg-muted/50 p-3 space-y-2 text-sm">
+                        {selectedPlan.description.daily_structure.stop_eating && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Stop Eating</span>
+                            <span className="font-medium">{selectedPlan.description.daily_structure.stop_eating}</span>
+                          </div>
+                        )}
+                        {selectedPlan.description.daily_structure.break_fast && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Break Fast</span>
+                            <span className="font-medium">{selectedPlan.description.daily_structure.break_fast}</span>
+                          </div>
+                        )}
+                        {selectedPlan.description.daily_structure.meals && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Meals</span>
+                            <span className="font-medium">{selectedPlan.description.daily_structure.meals.join(", ")}</span>
+                          </div>
+                        )}
+                      </div>
+                      {selectedPlan.description.daily_structure.note && (
+                        <p className="text-xs text-muted-foreground italic">
+                          {selectedPlan.description.daily_structure.note}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* Focus */}
+                {selectedPlan.description?.focus && (
+                  <>
+                    <Separator />
+                    <div className="space-y-1.5">
+                      <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                        <Target className="h-4 w-4 text-primary" /> Focus
+                      </h3>
+                      <p className="text-sm text-muted-foreground">{selectedPlan.description.focus}</p>
+                    </div>
+                  </>
+                )}
+
+                {/* Who This Is For */}
+                {selectedPlan.description?.who_for && selectedPlan.description.who_for.length > 0 && (
+                  <>
+                    <Separator />
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                        <Users className="h-4 w-4 text-primary" /> Who This Is For
+                      </h3>
+                      <ul className="space-y-1.5">
+                        {selectedPlan.description.who_for.map((w, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                            {w}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </>
+                )}
+
+                {/* Action Buttons */}
+                <Separator />
+                <div className="space-y-2 pb-1">
+                  <Button
+                    className="w-full h-12 text-base"
+                    onClick={() => selectPlanMutation.mutate({ plan: selectedPlan, startNow: true })}
+                    disabled={selectPlanMutation.isPending}
+                  >
+                    {selectPlanMutation.isPending ? "Starting..." : "Start Fast Now"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full h-10 text-sm"
+                    onClick={() => selectPlanMutation.mutate({ plan: selectedPlan, startNow: false })}
+                    disabled={selectPlanMutation.isPending}
+                  >
+                    Save plan for later
+                  </Button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">Ongoing</Badge>
-                  <Badge variant="outline" className="text-xs capitalize">
-                    {selectedPlan.difficulty_group.replace("_", " ")}
-                  </Badge>
-                </div>
-                <Button
-                  className="w-full h-12 text-base"
-                  onClick={() => selectPlanMutation.mutate({ plan: selectedPlan, startNow: true })}
-                  disabled={selectPlanMutation.isPending}
-                >
-                  {selectPlanMutation.isPending ? "Starting..." : "Start Fast Now"}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full h-10 text-sm"
-                  onClick={() => selectPlanMutation.mutate({ plan: selectedPlan, startNow: false })}
-                  disabled={selectPlanMutation.isPending}
-                >
-                  Save plan for later
-                </Button>
               </div>
-            </>
+            </ScrollArea>
           )}
         </DialogContent>
       </Dialog>

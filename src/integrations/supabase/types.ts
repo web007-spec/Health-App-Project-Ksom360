@@ -3145,6 +3145,7 @@ export type Database = {
       quick_fasting_plans: {
         Row: {
           created_at: string
+          description: Json | null
           difficulty_group: string
           eat_hours: number
           fast_hours: number
@@ -3154,6 +3155,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          description?: Json | null
           difficulty_group?: string
           eat_hours: number
           fast_hours: number
@@ -3163,6 +3165,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          description?: Json | null
           difficulty_group?: string
           eat_hours?: number
           fast_hours?: number
