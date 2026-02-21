@@ -180,10 +180,10 @@ export function ExerciseCard({ exercise, onEdit, selectionMode, isSelected, onTo
         </div>
 
         <CardContent className="p-4 space-y-3">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-lg text-foreground line-clamp-1 flex-1">{exercise.name}</h3>
+          <div className="flex items-start justify-between gap-1">
+            <h3 className="font-semibold text-lg text-foreground line-clamp-1 flex-1 min-w-0">{exercise.name}</h3>
             {onEdit && (
-              <div className="flex gap-1 shrink-0">
+              <div className="flex gap-0.5 shrink-0">
                 <Button
                   variant="ghost"
                   size="icon"
