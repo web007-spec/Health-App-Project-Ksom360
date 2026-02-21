@@ -5,32 +5,53 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ICON_OPTIONS } from "@/components/cardio/cardioActivities";
 import { cn } from "@/lib/utils";
-import { Trash2 } from "lucide-react";
+import { Trash2, Upload, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EditCardioActivityDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  activity: { id: string; name: string; icon_name: string } | null;
-  onSave: (id: string, name: string, iconName: string) => void;
+  activity: { id: string; name: string; icon_name: string; icon_url?: string | null } | null;
+  onSave: (id: string, name: string, iconName: string, iconUrl?: string | null) => void;
   onDelete: (id: string) => void;
 }
 
 export function EditCardioActivityDialog({ open, onOpenChange, activity, onSave, onDelete }: EditCardioActivityDialogProps) {
   const [name, setName] = useState("");
   const [selectedIcon, setSelectedIcon] = useState("activity");
+  const [iconUrl, setIconUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (activity) {
       setName(activity.name);
       setSelectedIcon(activity.icon_name);
+      setIconUrl(activity.icon_url || null);
       setConfirmDelete(false);
     }
   }, [activity]);
 
+  const handleUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `cardio-icons/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("task-icons").upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from("task-icons").getPublicUrl(path);
+      setIconUrl(publicUrl);
+      setSelectedIcon("custom");
+    } catch {
+      console.error("Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = () => {
     if (!name.trim() || !activity) return;
-    onSave(activity.id, name.trim(), selectedIcon);
+    onSave(activity.id, name.trim(), iconUrl ? "custom" : selectedIcon, iconUrl);
     onOpenChange(false);
   };
 
@@ -55,8 +76,24 @@ export function EditCardioActivityDialog({ open, onOpenChange, activity, onSave,
             <Label>Activity Name</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Lacrosse" autoFocus />
           </div>
+
+          {/* Custom icon preview */}
+          {iconUrl && (
+            <div className="space-y-1">
+              <Label>Custom Icon</Label>
+              <div className="flex items-center gap-2">
+                <div className="h-12 w-12 rounded-lg border-2 border-primary bg-primary/10 flex items-center justify-center overflow-hidden">
+                  <img src={iconUrl} alt="Custom icon" className="h-8 w-8 object-contain" />
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => { setIconUrl(null); setSelectedIcon("activity"); }}>
+                  <X className="h-4 w-4 mr-1" /> Remove
+                </Button>
+              </div>
+            </div>
+          )}
+
           <div>
-            <Label>Icon</Label>
+            <Label>{iconUrl ? "Or choose a built-in icon" : "Icon"}</Label>
             <div className="grid grid-cols-6 gap-2 mt-2">
               {ICON_OPTIONS.map((opt) => {
                 const Icon = opt.icon;
@@ -64,10 +101,10 @@ export function EditCardioActivityDialog({ open, onOpenChange, activity, onSave,
                   <button
                     key={opt.name}
                     type="button"
-                    onClick={() => setSelectedIcon(opt.name)}
+                    onClick={() => { setSelectedIcon(opt.name); setIconUrl(null); }}
                     className={cn(
                       "flex items-center justify-center h-10 w-full rounded-lg border-2 transition-colors",
-                      selectedIcon === opt.name
+                      !iconUrl && selectedIcon === opt.name
                         ? "border-primary bg-primary/10"
                         : "border-border hover:border-primary/40"
                     )}
@@ -79,6 +116,27 @@ export function EditCardioActivityDialog({ open, onOpenChange, activity, onSave,
               })}
             </div>
           </div>
+
+          {/* Upload button */}
+          <div>
+            <Label className="text-xs text-muted-foreground">Or upload your own icon (PNG, SVG, JPG)</Label>
+            <label className="flex items-center gap-2 mt-1.5 cursor-pointer">
+              <Button variant="outline" size="sm" className="gap-1.5 pointer-events-none" asChild>
+                <span>
+                  <Upload className="h-4 w-4" />
+                  {uploading ? "Uploading…" : "Upload Icon"}
+                </span>
+              </Button>
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                disabled={uploading}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }}
+              />
+            </label>
+          </div>
+
           <div className="flex gap-2">
             <Button
               variant="destructive"

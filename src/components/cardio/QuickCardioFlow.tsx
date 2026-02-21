@@ -103,7 +103,11 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
                     className="w-full flex items-center gap-0 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white transition-colors overflow-hidden"
                   >
                     <div className="flex items-center justify-center w-16 h-14 bg-emerald-600/50">
-                      <Icon className="h-6 w-6" />
+                      {act.icon_url ? (
+                        <img src={act.icon_url} alt={act.name} className="h-6 w-6 object-contain" />
+                      ) : (
+                        <Icon className="h-6 w-6" />
+                      )}
                     </div>
                     <div className="h-14 w-px bg-emerald-400/40" />
                     <div
@@ -201,14 +205,14 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
       <AddCardioActivityDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
-        onAdd={(name, iconName) => addActivity.mutate({ name, iconName })}
+        onAdd={(name, iconName, iconUrl) => addActivity.mutate({ name, iconName, iconUrl })}
       />
 
       <EditCardioActivityDialog
         open={!!editingActivity}
         onOpenChange={(v) => { if (!v) setEditingActivity(null); }}
         activity={editingActivity}
-        onSave={(id, name, iconName) => updateActivity.mutate({ id, name, iconName })}
+        onSave={(id, name, iconName, iconUrl) => updateActivity.mutate({ id, name, iconName, iconUrl })}
         onDelete={(id) => deleteActivity.mutate(id)}
       />
     </>
