@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, MoreVertical, Plus } from "lucide-react";
 import { getIconComponent, type TargetType } from "./cardioActivities";
 import { useCardioActivityTypes } from "@/hooks/useCardioActivityTypes";
 import { AddCardioActivityDialog } from "./AddCardioActivityDialog";
+import { EditCardioActivityDialog } from "./EditCardioActivityDialog";
 
 interface QuickCardioFlowProps {
   open: boolean;
@@ -20,8 +21,9 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
   const [targetType, setTargetType] = useState<TargetType>("none");
   const [targetValue, setTargetValue] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<{ id: string; name: string; icon_name: string } | null>(null);
 
-  const { activities, addActivity } = useCardioActivityTypes();
+  const { activities, addActivity, updateActivity, deleteActivity } = useCardioActivityTypes();
 
   const resetAndClose = () => {
     setStep("pick");
@@ -104,7 +106,10 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
                       <Icon className="h-6 w-6" />
                     </div>
                     <div className="h-14 w-px bg-emerald-400/40" />
-                    <div className="flex items-center justify-center w-10 h-14">
+                    <div
+                      className="flex items-center justify-center w-10 h-14 cursor-pointer hover:bg-emerald-700/30 transition-colors"
+                      onClick={(e) => { e.stopPropagation(); setEditingActivity(act); }}
+                    >
                       <MoreVertical className="h-4 w-4 opacity-70" />
                     </div>
                     <span className="text-sm font-semibold flex-1 text-left pl-2">{act.name}</span>
@@ -197,6 +202,14 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
         onAdd={(name, iconName) => addActivity.mutate({ name, iconName })}
+      />
+
+      <EditCardioActivityDialog
+        open={!!editingActivity}
+        onOpenChange={(v) => { if (!v) setEditingActivity(null); }}
+        activity={editingActivity}
+        onSave={(id, name, iconName) => updateActivity.mutate({ id, name, iconName })}
+        onDelete={(id) => deleteActivity.mutate(id)}
       />
     </>
   );
