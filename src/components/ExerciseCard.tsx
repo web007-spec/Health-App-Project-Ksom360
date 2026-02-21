@@ -2,8 +2,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Play, Edit, RefreshCw } from "lucide-react";
+import { Play, Edit, RefreshCw, Trash2 } from "lucide-react";
 import { useState, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,8 +43,11 @@ interface ExerciseCardProps {
 export function ExerciseCard({ exercise, onEdit, selectionMode, isSelected, onToggleSelect }: ExerciseCardProps) {
   const [showVideoDialog, setShowVideoDialog] = useState(false);
   const [showAlternativesDialog, setShowAlternativesDialog] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const queryClient = useQueryClient();
 
   // Fetch tags for this exercise
   const { data: exerciseTags } = useQuery({
@@ -186,6 +201,15 @@ export function ExerciseCard({ exercise, onEdit, selectionMode, isSelected, onTo
                 >
                   <Edit className="h-4 w-4" />
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }}
+                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  title="Delete exercise"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
             )}
           </div>
@@ -254,6 +278,41 @@ export function ExerciseCard({ exercise, onEdit, selectionMode, isSelected, onTo
           muscle_group: exercise.muscle_group || undefined,
         }}
       />
+
+      {/* Single Delete Confirmation */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent className="z-[200]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{exercise.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this exercise from your library.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                setIsDeleting(true);
+                try {
+                  const { error } = await supabase.from("exercises").delete().eq("id", exercise.id);
+                  if (error) throw error;
+                  toast.success(`Deleted "${exercise.name}"`);
+                  queryClient.invalidateQueries({ queryKey: ["exercises"] });
+                } catch {
+                  toast.error("Failed to delete exercise");
+                } finally {
+                  setIsDeleting(false);
+                  setShowDeleteConfirm(false);
+                }
+              }}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
