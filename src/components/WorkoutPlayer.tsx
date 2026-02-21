@@ -145,13 +145,30 @@ function buildSteps(sections: Section[]): WorkoutStep[] {
 
 // ── Single-channel speech system ──────────────────────────────────────────────
 // Only one audio source plays at a time. cancelSpeech() stops everything.
+// A persistent Audio element is used so it can be "unlocked" on mobile via a
+// user-gesture tap, then reused for all subsequent programmatic playback.
+let persistentAudio: HTMLAudioElement | null = null;
 let activeAudio: HTMLAudioElement | null = null;
 let speechAbortController: AbortController | null = null;
+
+/**
+ * Call once inside a click/tap handler (e.g. "Start Workout") to unlock audio
+ * playback on iOS / Android browsers that require a user-gesture.
+ */
+function unlockAudioForMobile() {
+  if (!persistentAudio) {
+    persistentAudio = new Audio();
+  }
+  // A silent play+pause satisfies the user-gesture requirement
+  persistentAudio.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";
+  persistentAudio.volume = 0;
+  persistentAudio.play().then(() => persistentAudio?.pause()).catch(() => {});
+}
 
 function cancelSpeech() {
   if (activeAudio) {
     activeAudio.pause();
-    activeAudio.src = "";
+    activeAudio.currentTime = 0;
     activeAudio = null;
   }
   if (speechAbortController) {
@@ -177,6 +194,7 @@ function browserSpeakNow(text: string): Promise<void> {
 }
 
 // ElevenLabs TTS — for exercise names and motivational cues (high quality)
+// Uses the persistent Audio element so mobile browsers allow playback.
 async function elevenLabsSpeakNow(text: string): Promise<void> {
   cancelSpeech();
   const controller = new AbortController();
@@ -203,15 +221,24 @@ async function elevenLabsSpeakNow(text: string): Promise<void> {
   const blob = await response.blob();
   if (controller.signal.aborted) return;
   const url = URL.createObjectURL(blob);
-  const audio = new Audio(url);
+
+  // Reuse persistent audio element (already unlocked via user gesture)
+  const audio = persistentAudio || new Audio();
+  audio.volume = 1;
+  audio.src = url;
   activeAudio = audio;
   speechAbortController = null;
   return new Promise((resolve) => {
     audio.onended = () => { URL.revokeObjectURL(url); if (activeAudio === audio) activeAudio = null; resolve(); };
     audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
-    audio.play().catch(() => resolve());
+    audio.play().catch(() => {
+      // Final fallback to browser TTS if play still fails
+      URL.revokeObjectURL(url);
+      browserSpeakNow(text).then(resolve).catch(resolve);
+    });
   });
 }
+export { unlockAudioForMobile };
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onExit }: WorkoutPlayerProps) {
@@ -219,6 +246,15 @@ export function WorkoutPlayer({ sections, onComplete, onEndEarly, onDiscard, onE
   const startedAtRef = useRef(new Date().toISOString());
   const [setLogs, setSetLogs] = useState<Record<string, SetLog>>({});
   const [isLocked, setIsLocked] = useState(false);
+
+  // Unlock audio on mount + first user interaction (mobile Safari/Chrome requirement)
+  useEffect(() => {
+    unlockAudioForMobile();
+    const unlock = () => { unlockAudioForMobile(); document.removeEventListener("touchstart", unlock); document.removeEventListener("click", unlock); };
+    document.addEventListener("touchstart", unlock, { once: true });
+    document.addEventListener("click", unlock, { once: true });
+    return () => { document.removeEventListener("touchstart", unlock); document.removeEventListener("click", unlock); };
+  }, []);
 
   const [phase, setPhase] = useState<"getready" | "countdown" | "playing">("getready");
   const [countdownNum, setCountdownNum] = useState(3);

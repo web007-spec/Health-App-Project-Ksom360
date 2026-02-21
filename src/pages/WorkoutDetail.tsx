@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Play, Clock, Dumbbell } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { WorkoutPlayer } from "@/components/WorkoutPlayer";
+import { WorkoutPlayer, unlockAudioForMobile } from "@/components/WorkoutPlayer";
 import { WorkoutSummary } from "@/components/WorkoutSummary";
 import { awardBadges } from "@/hooks/useBadgeAwarder";
 
@@ -337,7 +337,7 @@ export default function WorkoutDetail() {
               <Badge variant="outline">{workout.category}</Badge>
             </div>
           </div>
-          <Button size="lg" onClick={() => setIsPlaying(true)} className="gap-2">
+          <Button size="lg" onClick={() => { unlockAudioForMobile(); setIsPlaying(true); }} className="gap-2">
             <Play className="h-5 w-5" />
             Start Workout
           </Button>
