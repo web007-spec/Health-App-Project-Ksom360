@@ -315,7 +315,7 @@ export default function ClientQuickPlans() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="w-full h-10 text-sm"
+                    className="w-full h-10 text-sm border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"
                     onClick={() => selectPlanMutation.mutate({ plan: selectedPlan, startNow: false })}
                     disabled={selectPlanMutation.isPending}
                   >
@@ -323,7 +323,7 @@ export default function ClientQuickPlans() {
                   </Button>
                   <Button
                     variant="ghost"
-                    className="w-full h-10 text-sm text-muted-foreground"
+                    className="w-full h-10 text-sm text-blue-400/70 hover:text-blue-300 hover:bg-blue-500/10"
                     onClick={() => setSelectedPlan(null)}
                   >
                     See All Quick Plans
