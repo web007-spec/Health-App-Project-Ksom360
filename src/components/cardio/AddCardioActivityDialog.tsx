@@ -7,6 +7,7 @@ import { ICON_OPTIONS } from "@/components/cardio/cardioActivities";
 import { cn } from "@/lib/utils";
 import { Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AddCardioActivityDialogProps {
   open: boolean;
@@ -15,6 +16,7 @@ interface AddCardioActivityDialogProps {
 }
 
 export function AddCardioActivityDialog({ open, onOpenChange, onAdd }: AddCardioActivityDialogProps) {
+  const { user } = useAuth();
   const [name, setName] = useState("");
   const [selectedIcon, setSelectedIcon] = useState("activity");
   const [iconUrl, setIconUrl] = useState<string | null>(null);
@@ -24,7 +26,7 @@ export function AddCardioActivityDialog({ open, onOpenChange, onAdd }: AddCardio
     setUploading(true);
     try {
       const ext = file.name.split(".").pop();
-      const path = `cardio-icons/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const path = `${user?.id}/cardio-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from("task-icons").upload(path, file, { upsert: true });
       if (error) throw error;
       const { data: { publicUrl } } = supabase.storage.from("task-icons").getPublicUrl(path);
