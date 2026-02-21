@@ -83,5 +83,35 @@ export function useCardioActivityTypes() {
     },
   });
 
-  return { activities: activities || [], isLoading, addActivity, seedDefaults };
+  const updateActivity = useMutation({
+    mutationFn: async ({ id, name, iconName }: { id: string; name: string; iconName: string }) => {
+      const { error } = await supabase
+        .from("cardio_activity_types")
+        .update({ name, icon_name: iconName })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cardio-activity-types"] });
+      toast.success("Activity updated");
+    },
+    onError: () => toast.error("Failed to update activity"),
+  });
+
+  const deleteActivity = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("cardio_activity_types")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cardio-activity-types"] });
+      toast.success("Activity removed");
+    },
+    onError: () => toast.error("Failed to remove activity"),
+  });
+
+  return { activities: activities || [], isLoading, addActivity, seedDefaults, updateActivity, deleteActivity };
 }
