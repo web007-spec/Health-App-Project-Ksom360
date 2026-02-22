@@ -19,7 +19,7 @@ export const StaggeredTileGrid = memo(function StaggeredTileGrid({
     activeSoundIds ? activeSoundIds.has(id) : isActiveCheck ? isActiveCheck(id) : false;
 
   return (
-    <div className="grid grid-cols-4 gap-x-4 gap-y-1 px-1">
+    <div className="grid grid-cols-4 gap-x-6 gap-y-1 px-4">
       {sounds.map((s, index) => {
         const isOdd = index % 2 === 1;
         return (
