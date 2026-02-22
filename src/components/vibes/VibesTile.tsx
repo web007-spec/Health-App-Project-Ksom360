@@ -50,11 +50,25 @@ export const VibesTile = memo(function VibesTile({
           }}
         />
 
-        {/* Wood grain overlay */}
+        {/* Deep wood grain overlay — layered for realistic carved look */}
         <div
-          className="absolute inset-0 rounded-[14px] pointer-events-none opacity-[0.04]"
+          className="absolute inset-0 rounded-[14px] pointer-events-none"
           style={{
-            backgroundImage: `repeating-linear-gradient(82deg, transparent, transparent 7px, rgba(255,255,255,0.12) 7px, rgba(255,255,255,0.12) 8px)`,
+            backgroundImage: [
+              `repeating-linear-gradient(78deg, transparent, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px)`,
+              `repeating-linear-gradient(82deg, transparent, transparent 6px, rgba(255,255,255,0.05) 6px, rgba(255,255,255,0.05) 7px)`,
+              `repeating-linear-gradient(85deg, transparent, transparent 11px, rgba(0,0,0,0.06) 11px, rgba(0,0,0,0.06) 12.5px)`,
+              `repeating-linear-gradient(74deg, transparent, transparent 18px, rgba(255,255,255,0.03) 18px, rgba(255,255,255,0.03) 20px)`,
+              `repeating-linear-gradient(80deg, transparent, transparent 25px, rgba(0,0,0,0.04) 25px, rgba(0,0,0,0.04) 27px)`,
+            ].join(", "),
+          }}
+        />
+        {/* Knot / swirl accent */}
+        <div
+          className="absolute inset-0 rounded-[14px] pointer-events-none opacity-[0.06]"
+          style={{
+            backgroundImage: `radial-gradient(ellipse 40% 30% at 70% 60%, rgba(0,0,0,0.3), transparent),
+                              radial-gradient(ellipse 25% 20% at 25% 35%, rgba(0,0,0,0.2), transparent)`,
           }}
         />
 
