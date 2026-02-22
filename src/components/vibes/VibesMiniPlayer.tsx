@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Play, Pause, ChevronUp, Bookmark } from "lucide-react";
+import { useTransparentIcon } from "@/hooks/useTransparentIcon";
 import { Button } from "@/components/ui/button";
 import { VibesMixerSheet } from "@/components/vibes/VibesMixerSheet";
 import { VibesTimerDialog } from "@/components/vibes/VibesTimerDialog";
@@ -9,6 +10,27 @@ import { SaveLocalMixDialog } from "@/components/vibes/SaveLocalMixDialog";
 interface Props {
   mixer: any;
   onMixSaved?: () => void;
+}
+
+/** Small thumbnail that uses the transparent-icon hook */
+function MiniThumb({ iconUrl, index }: { iconUrl?: string; index: number }) {
+  const transparentIcon = useTransparentIcon(iconUrl);
+  return (
+    <div
+      className="absolute rounded-xl overflow-hidden shadow-lg"
+      style={{
+        width: 40, height: 40, left: index * 12, zIndex: 10 - index,
+        background: "linear-gradient(145deg, hsl(38,30%,55%), hsl(30,28%,40%))",
+        border: "2px solid hsl(40,35%,50%)",
+      }}
+    >
+      {transparentIcon ? (
+        <img src={transparentIcon} alt="" className="w-full h-full object-contain p-0.5" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-xs text-white/50">🎵</div>
+      )}
+    </div>
+  );
 }
 
 export function VibesMiniPlayer({ mixer, onMixSaved }: Props) {
@@ -44,21 +66,7 @@ export function VibesMiniPlayer({ mixer, onMixSaved }: Props) {
 
             <div className="relative flex items-center shrink-0" style={{ width: 64, height: 44 }}>
               {iconItems.map((item: any, i: number) => (
-                <div
-                  key={item.soundId}
-                  className="absolute rounded-xl overflow-hidden shadow-lg"
-                  style={{
-                    width: 40, height: 40, left: i * 12, zIndex: 10 - i,
-                    background: "linear-gradient(145deg, hsl(38,30%,55%), hsl(30,28%,40%))",
-                    border: "2px solid hsl(40,35%,50%)",
-                  }}
-                >
-                  {item.iconUrl ? (
-                    <img src={item.iconUrl} alt="" className="w-full h-full object-contain p-0.5" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-xs text-white/50">🎵</div>
-                  )}
-                </div>
+                <MiniThumb key={item.soundId} iconUrl={item.iconUrl} index={i} />
               ))}
             </div>
 
