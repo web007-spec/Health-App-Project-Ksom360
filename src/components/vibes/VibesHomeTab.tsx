@@ -133,7 +133,7 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
       </div>
 
       {/* Mode segmented control */}
-      <div className="flex rounded-full bg-muted/60 p-1 gap-0.5">
+      <div className="flex rounded-full bg-white/10 p-1 gap-0.5">
         {MODES.map((m) => (
           <button
             key={m.value}
@@ -142,7 +142,7 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
               "flex-1 text-xs font-medium py-1.5 rounded-full transition-all duration-[180ms]",
               mode === m.value
                 ? "bg-[hsl(260,45%,38%)] text-white shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-white/50 hover:text-white"
             )}
           >
             {m.label}
@@ -160,7 +160,7 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
               "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap shrink-0 transition-all duration-200 border",
               activeCategory === cat.value
                 ? "bg-[hsl(260,45%,38%)] text-white/90 border-[hsl(260,40%,50%)] shadow-[inset_0_1px_2px_rgba(255,255,255,0.1)]"
-                : "bg-transparent text-muted-foreground border-border hover:border-[hsl(260,30%,45%)] hover:text-foreground"
+                : "bg-transparent text-white/60 border-white/20 hover:border-[hsl(260,30%,45%)] hover:text-white"
             )}
           >
             {cat.label}
