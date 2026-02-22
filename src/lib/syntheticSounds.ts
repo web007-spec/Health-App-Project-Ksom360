@@ -176,6 +176,46 @@ export function generateLofi(ctx: AudioContext, durationSec = 10): AudioBuffer {
   return buffer;
 }
 
+/** Generate binaural beat — two slightly offset sine waves for stereo effect */
+export function generateBinauralBeat(
+  ctx: AudioContext,
+  baseFreq: number,
+  beatFreq: number,
+  durationSec = 10
+): AudioBuffer {
+  const sampleRate = ctx.sampleRate;
+  const length = sampleRate * durationSec;
+  const buffer = ctx.createBuffer(2, length, sampleRate);
+  const freqL = baseFreq;
+  const freqR = baseFreq + beatFreq;
+  for (let ch = 0; ch < 2; ch++) {
+    const data = buffer.getChannelData(ch);
+    const freq = ch === 0 ? freqL : freqR;
+    for (let i = 0; i < length; i++) {
+      const t = i / sampleRate;
+      // Gentle amplitude modulation for warmth
+      const env = 0.85 + 0.15 * Math.sin(t * 0.3);
+      data[i] = Math.sin(t * freq * 2 * Math.PI) * 0.25 * env;
+    }
+  }
+  return buffer;
+}
+
+export type BrainwaveType = "alpha" | "beta" | "theta" | "delta";
+
+export const BRAINWAVE_DEFS: Record<BrainwaveType, { label: string; baseFreq: number; beatFreq: number; icon: string; description: string }> = {
+  alpha: { label: "Alpha", baseFreq: 200, beatFreq: 10, icon: "🧘", description: "Focus & Calm" },
+  beta:  { label: "Beta",  baseFreq: 200, beatFreq: 20, icon: "⚡", description: "Productivity" },
+  theta: { label: "Theta", baseFreq: 200, beatFreq: 6,  icon: "🎨", description: "Creativity" },
+  delta: { label: "Delta", baseFreq: 200, beatFreq: 2,  icon: "😴", description: "Deep Sleep" },
+};
+
+/** Get a binaural beat buffer for a brainwave type */
+export function getBrainwaveBuffer(ctx: AudioContext, type: BrainwaveType): AudioBuffer {
+  const def = BRAINWAVE_DEFS[type];
+  return generateBinauralBeat(ctx, def.baseFreq, def.beatFreq, 10);
+}
+
 const GENERATORS: Record<string, (ctx: AudioContext, dur?: number) => AudioBuffer> = {
   rain: generateRain,
   "ocean waves": generateOcean,
@@ -192,6 +232,5 @@ export function getSyntheticBuffer(ctx: AudioContext, name: string): AudioBuffer
   const key = name.toLowerCase();
   const gen = GENERATORS[key];
   if (gen) return gen(ctx, 10);
-  // Default to white noise for unknown sounds
   return generateWhiteNoise(ctx, 10);
 }
