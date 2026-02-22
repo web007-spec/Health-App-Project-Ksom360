@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SleepStoryPlayer } from "./SleepStoryPlayer";
+import { useIsPremium } from "@/hooks/useIsPremium";
+import { PremiumOverlay, PremiumBadge } from "./PremiumOverlay";
 
 interface Props {
   sounds: any[];
@@ -13,6 +15,7 @@ interface Props {
 export function RestoreSleepTab({ sounds, mixer }: Props) {
   const [selectedStory, setSelectedStory] = useState<any>(null);
   const [playerOpen, setPlayerOpen] = useState(false);
+  const { isPremium } = useIsPremium();
 
   const { data: stories = [], isLoading } = useQuery({
     queryKey: ["restore-sleep-stories-client"],
@@ -38,17 +41,20 @@ export function RestoreSleepTab({ sounds, mixer }: Props) {
 
   const renderCard = (story: any) => {
     const durationMin = Math.round(story.duration_seconds / 60);
+    const isLocked = !isPremium && story.is_premium;
+
     return (
       <button
         key={story.id}
         onClick={() => openStory(story)}
         className={cn(
-          "w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-200",
+          "relative w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-200",
           "bg-gradient-to-br from-[hsl(240,25%,12%)] to-[hsl(240,20%,8%)]",
           "border border-white/[0.06] hover:border-indigo-500/30",
           "active:scale-[0.98]"
         )}
       >
+        {isLocked && <PremiumBadge />}
         <div className="shrink-0 w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center">
           {story.story_type === "story" ? (
             <BookOpen className="h-5 w-5 text-indigo-400/70" />
@@ -123,6 +129,7 @@ export function RestoreSleepTab({ sounds, mixer }: Props) {
           onOpenChange={setPlayerOpen}
           story={selectedStory}
           sounds={sounds}
+          isPremium={isPremium}
         />
       )}
     </div>

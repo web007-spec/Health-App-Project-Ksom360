@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { GuidedSessionPlayer } from "./GuidedSessionPlayer";
+import { useIsPremium } from "@/hooks/useIsPremium";
+import { PremiumBadge } from "./PremiumOverlay";
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   breathwork: Wind,
@@ -19,6 +21,13 @@ const CATEGORY_LABELS: Record<string, string> = {
   sleep: "Sleep",
 };
 
+/** Sessions with these names are free for all users */
+const FREE_SESSION_NAMES = ["morning boost"];
+
+function isSessionFree(session: any): boolean {
+  return FREE_SESSION_NAMES.includes(session.name?.toLowerCase?.() ?? "");
+}
+
 interface Props {
   sounds?: any[];
 }
@@ -26,6 +35,7 @@ interface Props {
 export function RestoreGuidedTab({ sounds = [] }: Props) {
   const [selectedSession, setSelectedSession] = useState<any>(null);
   const [playerOpen, setPlayerOpen] = useState(false);
+  const { isPremium } = useIsPremium();
 
   const { data: sessions = [], isLoading } = useQuery({
     queryKey: ["restore-guided-sessions-client"],
@@ -80,17 +90,21 @@ export function RestoreGuidedTab({ sounds = [] }: Props) {
               {catSessions.map((session: any) => {
                 const bp = session.breathing_pattern as any;
                 const durationMin = Math.round(session.duration_seconds / 60);
+                const isFree = isSessionFree(session);
+                const isLocked = !isPremium && !isFree && session.is_premium;
+
                 return (
                   <button
                     key={session.id}
                     onClick={() => openSession(session)}
                     className={cn(
-                      "w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-200",
+                      "relative w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-200",
                       "bg-gradient-to-br from-[hsl(260,25%,14%)] to-[hsl(260,20%,10%)]",
                       "border border-white/[0.06] hover:border-[hsl(260,40%,40%)]/40",
                       "active:scale-[0.98]"
                     )}
                   >
+                    {isLocked && <PremiumBadge />}
                     <div className="shrink-0 w-12 h-12 rounded-xl bg-[hsl(260,45%,38%)]/20 flex items-center justify-center">
                       <Icon className="h-5 w-5 text-[hsl(260,60%,70%)]" />
                     </div>
@@ -123,6 +137,8 @@ export function RestoreGuidedTab({ sounds = [] }: Props) {
           onOpenChange={setPlayerOpen}
           session={selectedSession}
           sounds={sounds}
+          isPremium={isPremium}
+          isFree={isSessionFree(selectedSession)}
         />
       )}
     </div>

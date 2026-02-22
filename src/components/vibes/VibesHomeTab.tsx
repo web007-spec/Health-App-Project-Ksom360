@@ -4,7 +4,9 @@ import { SessionCard } from "./SessionCard";
 import { cn } from "@/lib/utils";
 import { BRAINWAVE_DEFS, BrainwaveType } from "@/lib/syntheticSounds";
 import { GUIDED_SESSIONS } from "@/lib/guidedSessions";
-import { Check } from "lucide-react";
+import { Check, Crown } from "lucide-react";
+import { useIsPremium } from "@/hooks/useIsPremium";
+import { useNavigate } from "react-router-dom";
 
 const MODES = [
   { label: "Morning", value: "morning" },
@@ -50,6 +52,8 @@ interface Props {
 }
 
 export function VibesHomeTab({ sounds, mixer }: Props) {
+  const { isPremium } = useIsPremium();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>(loadMode);
   const [activeCategory, setActiveCategory] = useState("featured");
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -168,14 +172,23 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
             {(Object.entries(BRAINWAVE_DEFS) as [BrainwaveType, typeof BRAINWAVE_DEFS[BrainwaveType]][]).map(([type, def]) => {
               const isActive = activeBw === type;
               const isRecommended = recommended === type;
+              const isBwFree = type === "alpha";
+              const isBwLocked = !isPremium && !isBwFree;
               return (
                 <button
                   key={type}
-                  onClick={() => isActive ? mixer.removeBrainwave() : mixer.setBrainwave(type)}
+                  onClick={() => {
+                    if (isBwLocked) {
+                      navigate("/client/settings?tab=subscription");
+                      return;
+                    }
+                    isActive ? mixer.removeBrainwave() : mixer.setBrainwave(type);
+                  }}
                   className={cn(
                     "relative flex flex-col items-center gap-2 py-5 px-3 rounded-2xl transition-all duration-[180ms] border",
                     "bg-gradient-to-br from-[hsl(260,25%,16%)] to-[hsl(260,20%,12%)]",
                     "active:scale-[0.97]",
+                    isBwLocked && "opacity-60",
                     isActive
                       ? "ring-[1.5px] ring-amber-400/70 border-amber-400/30 shadow-[0_0_14px_rgba(251,191,36,0.2)]"
                       : isRecommended
@@ -183,7 +196,12 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
                         : "border-border/50"
                   )}
                 >
-                  {isRecommended && !isActive && (
+                  {isBwLocked && (
+                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-amber-500/20 border border-amber-400/30 flex items-center justify-center">
+                      <Crown className="h-2.5 w-2.5 text-amber-400" />
+                    </div>
+                  )}
+                  {isRecommended && !isActive && !isBwLocked && (
                     <span className="absolute top-2 right-2 text-[9px] font-semibold uppercase tracking-wider text-[hsl(260,60%,70%)]">
                       Rec
                     </span>

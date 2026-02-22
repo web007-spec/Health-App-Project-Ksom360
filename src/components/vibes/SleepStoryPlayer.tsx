@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, X, Volume2, Moon, Timer } from "lucide-react";
+import { Play, Pause, X, Volume2, Moon, Timer, Lock, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 interface Voice {
   id: string;
@@ -18,6 +19,7 @@ interface StoryData {
   description?: string;
   story_type: string;
   duration_seconds: number;
+  is_premium?: boolean;
   ambient_sound_id?: string;
   ambient_blend_volume?: number;
   restore_story_voices?: Voice[];
@@ -28,11 +30,14 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   story: StoryData;
   sounds: any[];
+  isPremium?: boolean;
 }
 
 const TIMER_PRESETS = [15, 30, 45, 60];
+const FREE_PREVIEW_SECONDS = 30;
 
-export function SleepStoryPlayer({ open, onOpenChange, story, sounds }: Props) {
+export function SleepStoryPlayer({ open, onOpenChange, story, sounds, isPremium = false }: Props) {
+  const navigate = useNavigate();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(story.duration_seconds || 0);
@@ -41,6 +46,9 @@ export function SleepStoryPlayer({ open, onOpenChange, story, sounds }: Props) {
   const [ambientVolume, setAmbientVolume] = useState(story.ambient_blend_volume || 0.3);
   const [sleepTimer, setSleepTimer] = useState<number | null>(null);
   const [timerRemaining, setTimerRemaining] = useState<number | null>(null);
+  const [previewExpired, setPreviewExpired] = useState(false);
+
+  const isLocked = !isPremium && story.is_premium;
 
   const voiceAudioRef = useRef<HTMLAudioElement | null>(null);
   const ambientAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -125,12 +133,24 @@ export function SleepStoryPlayer({ open, onOpenChange, story, sounds }: Props) {
       ambientAudioRef.current?.pause();
       setIsPlaying(false);
       setCurrentTime(0);
+      setPreviewExpired(false);
       if (voiceAudioRef.current) voiceAudioRef.current.currentTime = 0;
       if (timerRef.current) clearInterval(timerRef.current);
       setSleepTimer(null);
       setTimerRemaining(null);
     }
   }, [open]);
+
+  // 30-second preview enforcement for locked stories
+  useEffect(() => {
+    if (!isLocked || !isPlaying) return;
+    if (currentTime >= FREE_PREVIEW_SECONDS) {
+      voiceAudioRef.current?.pause();
+      ambientAudioRef.current?.pause();
+      setIsPlaying(false);
+      setPreviewExpired(true);
+    }
+  }, [currentTime, isLocked, isPlaying]);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -187,11 +207,39 @@ export function SleepStoryPlayer({ open, onOpenChange, story, sounds }: Props) {
           )}
         </div>
 
+        {/* Premium preview expired banner */}
+        {previewExpired && (
+          <div className="mx-4 mb-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-400/20 text-center">
+            <Lock className="h-5 w-5 text-amber-400/70 mx-auto mb-2" />
+            <p className="text-xs text-white/70 mb-1">Preview ended</p>
+            <p className="text-[10px] text-white/40 mb-3">Upgrade to listen to the full story</p>
+            <button
+              onClick={() => {
+                onOpenChange(false);
+                navigate("/client/settings?tab=subscription");
+              }}
+              className="flex items-center gap-1.5 mx-auto px-4 py-2 rounded-full text-[11px] font-semibold bg-gradient-to-r from-amber-500 to-amber-600 text-black hover:from-amber-400 hover:to-amber-500 transition-all"
+            >
+              <Crown className="h-3 w-3" />
+              Upgrade to Premium
+            </button>
+          </div>
+        )}
+
+        {/* Locked preview indicator */}
+        {isLocked && !previewExpired && (
+          <div className="mx-4 mb-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/5 border border-amber-400/10">
+            <Lock className="h-3 w-3 text-amber-400/50 shrink-0" />
+            <p className="text-[10px] text-white/40">30-second preview • Upgrade for full access</p>
+          </div>
+        )}
+
         {/* Controls */}
         <div className="flex items-center justify-center gap-4 pb-4">
           <Button
             className="h-14 w-14 rounded-full bg-indigo-600 hover:bg-indigo-500"
-            onClick={togglePlay}
+            onClick={previewExpired ? undefined : togglePlay}
+            disabled={previewExpired}
           >
             {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-0.5" />}
           </Button>
