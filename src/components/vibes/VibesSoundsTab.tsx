@@ -1,5 +1,5 @@
-import { useState, useCallback, memo, useMemo } from "react";
-import { VibesTile } from "./VibesTile";
+import { useState, useCallback, useMemo } from "react";
+import { StaggeredTileGrid } from "./StaggeredTileGrid";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,49 +24,11 @@ interface Props {
   isLoading?: boolean;
 }
 
-/** Memoized tile list — only re-renders when sounds/active set/favorites change, NOT on slider moves */
-const TileGrid = memo(function TileGrid({
-  sounds,
-  activeSoundIds,
-  onToggle,
-}: {
-  sounds: any[];
-  activeSoundIds: Set<string>;
-  onToggle: (s: any) => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-x-2 gap-y-3 justify-start">
-      {sounds.map((s, index) => {
-        const cols = 4;
-        const row = Math.floor(index / cols);
-        const isOddRow = row % 2 === 1;
-        return (
-          <div
-            key={s.id}
-            className="flex-shrink-0"
-            style={{
-              width: "calc(25% - 6px)",
-              marginLeft: isOddRow && (index % cols === 0) ? "calc(12.5% - 3px)" : undefined,
-            }}
-          >
-            <VibesTile
-              name={s.name}
-              iconUrl={s.icon_url}
-              isActive={activeSoundIds.has(s.id)}
-              onToggle={() => onToggle(s)}
-            />
-          </div>
-        );
-      })}
-    </div>
-  );
-});
-
 function SkeletonGrid() {
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2.5">
+    <div className="grid grid-cols-4 gap-2">
       {Array.from({ length: 8 }).map((_, i) => (
-        <Skeleton key={i} className="aspect-square rounded-[14px] bg-muted/40" />
+        <Skeleton key={i} className="aspect-square rounded-[14px] bg-muted/40 max-w-[80px] mx-auto w-full" />
       ))}
     </div>
   );
@@ -164,11 +126,11 @@ export function VibesSoundsTab({ sounds, categories, mixer, isLoading }: Props) 
         </div>
       )}
 
-      {/* Tile grid — memoized */}
+      {/* Tile grid */}
       {isLoading ? (
         <SkeletonGrid />
       ) : filtered.length > 0 ? (
-        <TileGrid
+        <StaggeredTileGrid
           sounds={filtered}
           activeSoundIds={activeSoundIds}
           onToggle={handleToggle}
