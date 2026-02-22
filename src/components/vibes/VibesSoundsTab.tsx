@@ -91,7 +91,7 @@ export function VibesSoundsTab({ sounds, categories, mixer, isLoading }: Props) 
 
   return (
     <div className="space-y-3 mt-4">
-      {/* Category pills — horizontal scroll */}
+      {/* Category pills — purple accent */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
         {CATEGORIES.map((cat) => (
           <button
@@ -100,8 +100,8 @@ export function VibesSoundsTab({ sounds, categories, mixer, isLoading }: Props) 
             className={cn(
               "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap shrink-0 transition-all duration-200 border",
               activeCategory === cat.value
-                ? "bg-gradient-to-r from-[hsl(30,32%,40%)] to-[hsl(24,26%,32%)] text-white/90 border-[hsl(30,22%,48%)] shadow-sm"
-                : "bg-transparent text-muted-foreground border-border hover:border-[hsl(30,18%,38%)] hover:text-foreground"
+                ? "bg-[hsl(260,45%,38%)] text-white/90 border-[hsl(260,40%,50%)] shadow-[inset_0_1px_2px_rgba(255,255,255,0.1)]"
+                : "bg-transparent text-muted-foreground border-border hover:border-[hsl(260,30%,45%)] hover:text-foreground"
             )}
           >
             {cat.label}
@@ -130,11 +130,13 @@ export function VibesSoundsTab({ sounds, categories, mixer, isLoading }: Props) 
       {isLoading ? (
         <SkeletonGrid />
       ) : filtered.length > 0 ? (
-        <StaggeredTileGrid
-          sounds={filtered}
-          activeSoundIds={activeSoundIds}
-          onToggle={handleToggle}
-        />
+        <div className="animate-fade-in" key={activeCategory}>
+          <StaggeredTileGrid
+            sounds={filtered}
+            activeSoundIds={activeSoundIds}
+            onToggle={handleToggle}
+          />
+        </div>
       ) : (
         <p className="text-center text-muted-foreground py-8 text-sm">No sounds match this filter</p>
       )}

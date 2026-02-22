@@ -28,11 +28,11 @@ export const VibesTile = memo(function VibesTile({
       <button
         onClick={handleTap}
         className={cn(
-          "group relative flex flex-col items-center justify-center rounded-[14px] aspect-square w-full transition-all duration-200 select-none",
+          "group relative flex flex-col items-center justify-center rounded-[14px] aspect-square w-full transition-all duration-[180ms] select-none",
           "bg-gradient-to-br from-[hsl(30,32%,42%)] via-[hsl(28,28%,36%)] to-[hsl(24,24%,28%)]",
           "shadow-[inset_0_2px_3px_rgba(255,255,255,0.1),inset_0_-2px_4px_rgba(0,0,0,0.25),0_1px_4px_rgba(0,0,0,0.25)]",
           "hover:translate-y-[-2px] hover:shadow-[inset_0_2px_3px_rgba(255,255,255,0.12),inset_0_-2px_4px_rgba(0,0,0,0.25),0_4px_12px_rgba(0,0,0,0.35)]",
-          "active:scale-[0.96] active:translate-y-0",
+          "active:scale-[0.97] active:translate-y-0",
           isActive && [
             "ring-[1.5px] ring-amber-400/70",
             "shadow-[inset_0_2px_3px_rgba(255,255,255,0.1),inset_0_-2px_4px_rgba(0,0,0,0.25),0_0_14px_rgba(251,191,36,0.3),0_0_4px_rgba(251,191,36,0.15)]",
