@@ -3819,6 +3819,202 @@ export type Database = {
           },
         ]
       }
+      vibes_categories: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          slug: string
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      vibes_favorites: {
+        Row: {
+          created_at: string | null
+          id: string
+          sound_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          sound_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          sound_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vibes_favorites_sound_id_fkey"
+            columns: ["sound_id"]
+            isOneToOne: false
+            referencedRelation: "vibes_sounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vibes_favorites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vibes_mix_items: {
+        Row: {
+          id: string
+          mix_id: string
+          sort_order: number | null
+          sound_id: string
+          volume: number | null
+        }
+        Insert: {
+          id?: string
+          mix_id: string
+          sort_order?: number | null
+          sound_id: string
+          volume?: number | null
+        }
+        Update: {
+          id?: string
+          mix_id?: string
+          sort_order?: number | null
+          sound_id?: string
+          volume?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vibes_mix_items_mix_id_fkey"
+            columns: ["mix_id"]
+            isOneToOne: false
+            referencedRelation: "vibes_mixes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vibes_mix_items_sound_id_fkey"
+            columns: ["sound_id"]
+            isOneToOne: false
+            referencedRelation: "vibes_sounds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vibes_mixes: {
+        Row: {
+          cover_url: string | null
+          created_at: string | null
+          id: string
+          is_public: boolean | null
+          name: string
+          share_slug: string | null
+          user_id: string
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          name: string
+          share_slug?: string | null
+          user_id: string
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          name?: string
+          share_slug?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vibes_mixes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vibes_sounds: {
+        Row: {
+          audio_url: string
+          category_id: string | null
+          created_at: string | null
+          description: string | null
+          duration_seconds: number | null
+          icon_url: string | null
+          id: string
+          is_featured: boolean | null
+          is_premium: boolean | null
+          name: string
+          sort_order: number | null
+          tags: string[] | null
+          thumbnail_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          audio_url: string
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          icon_url?: string | null
+          id?: string
+          is_featured?: boolean | null
+          is_premium?: boolean | null
+          name: string
+          sort_order?: number | null
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          audio_url?: string
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          icon_url?: string | null
+          id?: string
+          is_featured?: boolean | null
+          is_premium?: boolean | null
+          name?: string
+          sort_order?: number | null
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vibes_sounds_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "vibes_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workout_collection_categories: {
         Row: {
           collection_id: string
@@ -4294,6 +4490,7 @@ export type Database = {
         Args: { _conversation_id: string; _user_id: string }
         Returns: boolean
       }
+      is_trainer: { Args: { _user_id: string }; Returns: boolean }
       is_trainer_of_collection: {
         Args: { p_collection_id: string }
         Returns: boolean
