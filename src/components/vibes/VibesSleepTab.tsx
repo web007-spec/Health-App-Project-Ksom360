@@ -59,9 +59,7 @@ export function VibesSleepTab({ sounds, mixer }: Props) {
                   name={s.name}
                   iconUrl={s.icon_url}
                   isActive={mixer.isSoundActive(s.id)}
-                  isFavorite={favorites.includes(s.id)}
                   onToggle={() => mixer.toggleSound({ id: s.id, name: s.name, audioUrl: s.audio_url, iconUrl: s.icon_url })}
-                  onFavorite={() => toggleFav.mutate(s.id)}
                 />
               </div>
             );

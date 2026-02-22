@@ -28,15 +28,11 @@ interface Props {
 const TileGrid = memo(function TileGrid({
   sounds,
   activeSoundIds,
-  favorites,
   onToggle,
-  onFavorite,
 }: {
   sounds: any[];
   activeSoundIds: Set<string>;
-  favorites: string[];
   onToggle: (s: any) => void;
-  onFavorite: (id: string) => void;
 }) {
   return (
     <div className="flex flex-wrap gap-x-2 gap-y-3 justify-start">
@@ -57,9 +53,7 @@ const TileGrid = memo(function TileGrid({
               name={s.name}
               iconUrl={s.icon_url}
               isActive={activeSoundIds.has(s.id)}
-              isFavorite={favorites.includes(s.id)}
               onToggle={() => onToggle(s)}
-              onFavorite={() => onFavorite(s.id)}
             />
           </div>
         );
@@ -177,9 +171,7 @@ export function VibesSoundsTab({ sounds, categories, mixer, isLoading }: Props) 
         <TileGrid
           sounds={filtered}
           activeSoundIds={activeSoundIds}
-          favorites={favorites}
           onToggle={handleToggle}
-          onFavorite={handleFavorite}
         />
       ) : (
         <p className="text-center text-muted-foreground py-8 text-sm">No sounds match this filter</p>
