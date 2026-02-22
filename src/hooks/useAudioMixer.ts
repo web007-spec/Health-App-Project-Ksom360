@@ -37,13 +37,18 @@ export function useAudioMixer() {
         volume: 0.7,
         iconUrl: sound.iconUrl,
       };
-      if (isPlaying) {
-        item.howl = createHowl(item.url, item.volume);
-        item.howl.play();
-      }
+      // Always create howl and play immediately when adding a sound
+      item.howl = createHowl(item.url, item.volume);
+      item.howl.play();
+      // Also start playing any existing items that aren't playing yet
+      prev.forEach((existing) => {
+        if (!existing.howl) existing.howl = createHowl(existing.url, existing.volume);
+        if (!existing.howl.playing()) existing.howl.play();
+      });
       return [...prev, item];
     });
-  }, [isPlaying]);
+    setIsPlaying(true);
+  }, []);
 
   const removeSound = useCallback((soundId: string) => {
     setMixItems((prev) => removeFromMix(prev, soundId));
