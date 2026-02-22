@@ -313,3 +313,75 @@ These use publicly available royalty-free audio sample URLs so the mixer is imme
 - The Profile tab mentioned in the spec is deferred -- client already has `/client/profile` and `/client/settings` which cover those needs
 - Premium lock (`is_premium`) is stored but not enforced yet -- the toggle exists in admin for future use
 - Share links route to `/client/vibes?mix=<slug>` which the ClientVibes page parses on mount to load a shared mix
+
+---
+
+## H. Restore — Structured Recovery Layer
+
+Sound Lab becomes part of a larger "Restore" section inside KSOM 360. The existing Vibes tab is renamed to "Restore." Sound Lab is preserved exactly as built inside the Restore shell.
+
+### Restore Includes
+
+1. **Immersive entry screen** (dark premium aesthetic)
+2. **Time-of-day adaptive mode** (Morning / Midday / Evening / Night)
+3. **Optional mood check-in** (1 tap)
+4. **Guided sessions** (breathwork, wind-down, focus reset) — Hybrid: structured timer with visual breathing cues + optional uploaded narration (male/female) + optional ambient layer with independent volume controls. Voice ON/OFF toggle. Sessions must function fully without audio.
+5. **Sleep section** (sleep stories + long loops) — Primary: trainer-uploaded audio files. Architecture future-ready for AI narration. Supports multiple voice versions, optional ambient blending, timer + fade-out, background playback.
+6. **Sound Lab** (existing mix builder preserved exactly as-is)
+7. **Bottom mini-player** persistent across app
+8. **Save Mix + Share Mix** functionality
+
+### Admin Dashboard Additions
+
+- Upload sounds, icons, thumbnails
+- Create categories
+- Create starter mixes
+- Mark content as premium/free
+- Assign content to time-of-day priority
+- **Must support multiple voice versions per session (male/female) selectable by user preference in settings**
+
+### Parent Recovery Summary
+
+- Read-only weekly recovery summary for Athletic engine (no mood visibility)
+- Deferred to Sprint 4
+
+### Navigation
+
+- Rename existing Vibes tab → "Restore"
+- Route remains `/client/vibes` (or migrate to `/client/restore`)
+- Sound Lab lives inside Restore as a creative section
+- Restore is NOT a separate app — integrated into KSOM 360 navigation
+
+---
+
+## I. Restore Sprint Plan
+
+### Sprint 1 — Foundation (Don't Break Current)
+
+- Rename/position Vibes as Restore (or keep Vibes label temporarily but route into Restore shell)
+- Keep existing Sound Lab working exactly as-is
+- **Do NOT refactor existing audio engine during Sprint 1. Wrap current engine inside Restore shell to prevent regression.**
+- Add global mini-player persistence + "Current Mix" drawer behavior
+
+### Sprint 2 — Content Systems
+
+- Admin dashboard: upload/manage sounds, icons, categories, premium gating
+- **Must support multiple voice versions per session (male/female) selectable by user preference in settings.**
+- Saved mixes + Share Mix links
+
+### Sprint 3 — Guided + Sleep
+
+- Guided sessions + Sleep Stories fed by admin uploads
+- Timer/fade/offline rules (20–25 download cap)
+
+### Sprint 4 — Intelligence Layers
+
+- Time-of-day modes + subtle "Mode Activated" banner
+- Optional mood check-ins
+- Parent weekly recovery summary (Athletic only)
+
+---
+
+## J. Strategic Guardrail
+
+**Preserve current UI tone (BetterSleep-style immersive dark aesthetic with wooden tiles). Evolution, not redesign.**
