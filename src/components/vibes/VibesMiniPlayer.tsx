@@ -42,14 +42,15 @@ export function VibesMiniPlayer({ mixer, onMixSaved }: Props) {
           <div className="flex items-center gap-3 p-3">
             <ChevronUp className="h-5 w-5 text-white/60 shrink-0" />
 
-            <div className="relative flex items-center shrink-0" style={{ width: 52, height: 40 }}>
+            <div className="relative flex items-center shrink-0" style={{ width: 64, height: 44 }}>
               {iconItems.map((item: any, i: number) => (
                 <div
                   key={item.soundId}
-                  className="absolute rounded-lg overflow-hidden border border-white/20 shadow-md"
+                  className="absolute rounded-xl overflow-hidden shadow-lg"
                   style={{
-                    width: 32, height: 32, left: i * 10, zIndex: 10 - i,
-                    background: "linear-gradient(135deg, hsl(30,32%,45%), hsl(28,28%,35%))",
+                    width: 40, height: 40, left: i * 12, zIndex: 10 - i,
+                    background: "linear-gradient(145deg, hsl(38,30%,55%), hsl(30,28%,40%))",
+                    border: "2px solid hsl(40,35%,50%)",
                   }}
                 >
                   {item.iconUrl ? (
