@@ -1,4 +1,4 @@
-import { ClipboardList, Dumbbell, User, Play, Target, Music2 } from "lucide-react";
+import { ClipboardList, Dumbbell, User, Play, Target, Sparkles } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useClientFeatureSettings } from "@/hooks/useClientFeatureSettings";
@@ -20,7 +20,7 @@ const navItems: NavItem[] = [
   { label: "Coaching", to: "/client/coaching", icon: Dumbbell, badgeKey: "coaching" },
   { label: "Goals", to: "/client/goals", icon: Target, featureKey: "goals_enabled", badgeKey: "goals" },
   { label: "On-demand", to: "/client/on-demand", icon: Play, badgeKey: "ondemand" },
-  { label: "Vibes", to: "/client/vibes", icon: Music2 },
+  { label: "Restore", to: "/client/vibes", icon: Sparkles },
   { label: "You", to: "/client/profile", icon: User },
 ];
 
