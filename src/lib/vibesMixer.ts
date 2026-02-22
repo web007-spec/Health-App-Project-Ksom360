@@ -40,6 +40,13 @@ export function getAudioContext(): AudioContext {
 export async function prepareItem(item: MixItem): Promise<MixItem> {
   const ctx = getAudioContext();
   
+  // Skip fetch for empty URLs — go straight to synthetic
+  if (!item.url || item.url.trim() === "") {
+    const synth = getSyntheticBuffer(ctx, item.name);
+    if (synth) return { ...item, buffer: synth };
+    throw new Error(`No audio source for "${item.name}"`);
+  }
+
   try {
     const fetchUrl = getProxiedUrl(item.url);
     const res = await fetch(fetchUrl);
@@ -95,25 +102,32 @@ export function stopItem(item: MixItem): void {
   const source = item.source;
   
   // Fade out over FADE_DURATION
+  const endTime = ctx.currentTime + FADE_DURATION;
   gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
-  gain.gain.linearRampToValueAtTime(0, ctx.currentTime + FADE_DURATION);
+  gain.gain.linearRampToValueAtTime(0, endTime);
   
-  // Schedule cleanup after fade
+  // Use source.stop(endTime) for precise AudioContext-timed cleanup
+  // This is reliable even under background tab throttling
+  try { source.stop(endTime + 0.01); } catch {}
+  
+  // Disconnect after a safety margin (handles edge cases)
   setTimeout(() => {
-    try { source.stop(); } catch {}
     try { source.disconnect(); } catch {}
     try { gain.disconnect(); } catch {}
-  }, FADE_DURATION * 1000 + 20);
+  }, FADE_DURATION * 1000 + 100);
   
   // Clear refs immediately so we don't double-stop
   item.source = undefined;
   item.gain = undefined;
 }
 
-/** Set volume via GainNode directly — no React re-render needed */
+/** Set volume via GainNode with 30ms ramp to prevent zipper noise */
 export function setItemVolume(item: MixItem, volume: number): void {
   if (item.gain) {
-    item.gain.gain.value = volume;
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+    item.gain.gain.setValueAtTime(item.gain.gain.value, now);
+    item.gain.gain.linearRampToValueAtTime(volume, now + 0.03);
   }
   item.volume = volume;
 }
@@ -147,21 +161,26 @@ export function removeFromMix(items: MixItem[], soundId: string): MixItem[] {
 /** Smooth fade out all sounds, then clear */
 export function fadeOutAndClearMix(items: MixItem[]): Promise<void> {
   const ctx = getAudioContext();
+  const fadeDuration = 0.5;
+  const endTime = ctx.currentTime + fadeDuration;
+  
   items.forEach((item) => {
     if (item.gain && item.source) {
       item.gain.gain.setValueAtTime(item.gain.gain.value, ctx.currentTime);
-      item.gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
+      item.gain.gain.linearRampToValueAtTime(0, endTime);
+      // Schedule precise stop via AudioContext clock
+      try { item.source.stop(endTime + 0.01); } catch {}
     }
   });
+  
   return new Promise((resolve) => {
     setTimeout(() => {
       items.forEach((item) => {
-        try { item.source?.stop(); } catch {}
         try { item.source?.disconnect(); } catch {}
         try { item.gain?.disconnect(); } catch {}
       });
       resolve();
-    }, 550);
+    }, fadeDuration * 1000 + 100);
   });
 }
 
