@@ -72,10 +72,48 @@ export const VibesTile = memo(function VibesTile({
           }}
         />
 
-        {/* Icon */}
+        {/* Icon — carved/engraved into wood effect */}
         <div className="relative z-[1] flex items-center justify-center w-12 h-12">
           {iconUrl ? (
-            <img src={iconUrl} alt={name} className="w-10 h-10 object-contain drop-shadow-sm" loading="lazy" />
+            <div className="relative w-10 h-10">
+              {/* Shadow layer — dark inset to simulate carving depth */}
+              <img
+                src={iconUrl}
+                alt=""
+                className="absolute inset-0 w-10 h-10 object-contain opacity-40"
+                style={{
+                  filter: "brightness(0) blur(0.5px)",
+                  transform: "translate(0.5px, 1px)",
+                }}
+                loading="lazy"
+                aria-hidden
+              />
+              {/* Main icon — darkened & blended to look carved */}
+              <img
+                src={iconUrl}
+                alt={name}
+                className="relative w-10 h-10 object-contain"
+                style={{
+                  filter: "brightness(0.25) sepia(0.5) saturate(0.6)",
+                  mixBlendMode: "luminosity",
+                  opacity: 0.7,
+                }}
+                loading="lazy"
+              />
+              {/* Highlight edge — subtle light catch on top edge */}
+              <img
+                src={iconUrl}
+                alt=""
+                className="absolute inset-0 w-10 h-10 object-contain opacity-15"
+                style={{
+                  filter: "brightness(2) contrast(0.5) blur(0.3px)",
+                  transform: "translate(-0.3px, -0.5px)",
+                  mixBlendMode: "overlay",
+                }}
+                loading="lazy"
+                aria-hidden
+              />
+            </div>
           ) : (
             <div className="w-10 h-10 rounded-lg bg-white/[0.07] flex items-center justify-center text-lg text-white/50">🎵</div>
           )}
