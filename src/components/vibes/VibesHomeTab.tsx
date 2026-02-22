@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { StaggeredTileGrid } from "./StaggeredTileGrid";
+import { SessionCard } from "./SessionCard";
 import { cn } from "@/lib/utils";
 import { BRAINWAVE_DEFS, BrainwaveType } from "@/lib/syntheticSounds";
+import { GUIDED_SESSIONS } from "@/lib/guidedSessions";
 import { Check } from "lucide-react";
 
 const MODES = [
@@ -50,6 +52,7 @@ interface Props {
 export function VibesHomeTab({ sounds, mixer }: Props) {
   const [mode, setMode] = useState<Mode>(loadMode);
   const [activeCategory, setActiveCategory] = useState("featured");
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, mode);
@@ -94,8 +97,25 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
   const recommended = MODE_RECOMMENDED_BW[mode];
   const activeBw = mixer.brainwave?.type as BrainwaveType | undefined;
 
+  const handleApplySession = async (session: typeof GUIDED_SESSIONS[number]) => {
+    setActiveSessionId(session.id);
+    await mixer.applySession(session, sounds);
+  };
+
   return (
     <div className={cn("space-y-4 mt-4 rounded-xl px-1 transition-colors duration-300", modeBg[mode])}>
+      {/* Sessions row */}
+      <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
+        {GUIDED_SESSIONS.map((session) => (
+          <SessionCard
+            key={session.id}
+            session={session}
+            isActive={activeSessionId === session.id}
+            onTap={() => handleApplySession(session)}
+          />
+        ))}
+      </div>
+
       <div>
         <p className="text-lg font-semibold mb-1">{timeLabel}</p>
         <p className="text-sm text-muted-foreground">

@@ -12,6 +12,7 @@ import {
   getAudioContext,
 } from "@/lib/vibesMixer";
 import { BrainwaveType, getBrainwaveBuffer } from "@/lib/syntheticSounds";
+import { GuidedSession } from "@/lib/guidedSessions";
 
 const STORAGE_KEY = "ksom-vibes-state";
 const CROSSFADE_MS = 200;
@@ -323,6 +324,98 @@ export function useAudioMixer() {
     [isSoundActive, removeSound, addSound]
   );
 
+  // Apply a guided session preset
+  const applySession = useCallback(
+    async (
+      session: GuidedSession,
+      allSounds: { id: string; name: string; audio_url: string; icon_url?: string }[]
+    ) => {
+      // 1) Fade out current mix (300ms)
+      const items = [...mixItems];
+      if (items.some((i) => i.source)) {
+        await fadeOutAndClearMix(items);
+      }
+      setMixItems([]);
+
+      // 2) Remove current brainwave
+      setBrainwaveState((prev) => {
+        if (prev) stopBrainwaveAudio(prev, CROSSFADE_MS);
+        return null;
+      });
+
+      // 3) Apply session sounds
+      setMixName(session.name);
+      const loaded: MixItem[] = [];
+      for (const ss of session.sounds) {
+        const match = allSounds.find((s) => s.id === ss.soundId);
+        if (!match) continue;
+        try {
+          const raw: MixItem = {
+            soundId: match.id,
+            name: match.name,
+            url: match.audio_url,
+            volume: ss.volume,
+            iconUrl: match.icon_url,
+          };
+          const prepared = await prepareItem(raw);
+          const started = startItem(prepared);
+          loaded.push(started);
+        } catch {
+          // skip failed sounds
+        }
+      }
+      setMixItems(loaded);
+      setIsPlaying(true);
+
+      // 4) Apply brainwave
+      if (session.brainwave) {
+        const bw = startBrainwaveAudio(session.brainwave.type, session.brainwave.volume);
+        setBrainwaveState(bw);
+      }
+
+      // 5) Start timer with fade-out
+      const fadeOut = session.fadeOutSec > 0;
+      cancelTimer();
+      fadeOutRef.current = fadeOut;
+      if (fadeOut) {
+        originalVolumesRef.current = {};
+        loaded.forEach((item) => {
+          originalVolumesRef.current[item.soundId] = item.volume;
+        });
+      }
+      let remaining = session.durationSec;
+      setTimerRemaining(remaining);
+
+      timerRef.current = setInterval(() => {
+        remaining -= 1;
+        setTimerRemaining(remaining);
+
+        if (fadeOutRef.current && remaining <= session.fadeOutSec && remaining > 0) {
+          const fraction = remaining / session.fadeOutSec;
+          setMixItems((prev) =>
+            prev.map((item) => {
+              const orig = originalVolumesRef.current[item.soundId] ?? item.volume;
+              const newVol = orig * fraction;
+              setItemVolume(item, newVol);
+              return { ...item, volume: newVol };
+            })
+          );
+        }
+
+        if (remaining <= 0) {
+          setMixItems((prev) => pauseMix(prev));
+          setIsPlaying(false);
+          setTimerRemaining(null);
+          if (timerRef.current) clearInterval(timerRef.current);
+          timerRef.current = null;
+          fadeOutRef.current = false;
+          originalVolumesRef.current = {};
+        }
+      }, 1000);
+    },
+    [mixItems, cancelTimer, stopBrainwaveAudio, startBrainwaveAudio]
+  );
+
   return {
     mixItems,
     isPlaying,
@@ -348,5 +441,7 @@ export function useAudioMixer() {
     setBrainwave,
     removeBrainwave,
     setBrainwaveVolume,
+    // Sessions
+    applySession,
   };
 }
