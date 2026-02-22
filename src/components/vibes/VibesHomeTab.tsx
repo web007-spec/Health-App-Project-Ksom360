@@ -49,18 +49,30 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
       {featured.length > 0 && (
         <div>
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Featured</h3>
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2.5">
-            {featured.map((s) => (
-              <VibesTile
-                key={s.id}
-                name={s.name}
-                iconUrl={s.icon_url}
-                isActive={mixer.isSoundActive(s.id)}
-                isFavorite={favorites.includes(s.id)}
-                onToggle={() => mixer.toggleSound({ id: s.id, name: s.name, audioUrl: s.audio_url, iconUrl: s.icon_url })}
-                onFavorite={() => toggleFav.mutate(s.id)}
-              />
-            ))}
+          <div className="flex flex-wrap gap-x-2 gap-y-3 justify-start">
+            {featured.map((s, index) => {
+              const row = Math.floor(index / 4);
+              const isOddRow = row % 2 === 1;
+              return (
+                <div
+                  key={s.id}
+                  className="flex-shrink-0"
+                  style={{
+                    width: "calc(25% - 6px)",
+                    marginLeft: isOddRow && (index % 4 === 0) ? "calc(12.5% - 3px)" : undefined,
+                  }}
+                >
+                  <VibesTile
+                    name={s.name}
+                    iconUrl={s.icon_url}
+                    isActive={mixer.isSoundActive(s.id)}
+                    isFavorite={favorites.includes(s.id)}
+                    onToggle={() => mixer.toggleSound({ id: s.id, name: s.name, audioUrl: s.audio_url, iconUrl: s.icon_url })}
+                    onFavorite={() => toggleFav.mutate(s.id)}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -68,18 +80,30 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
       {sounds.length > 0 && (
         <div>
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">All Sounds</h3>
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2.5">
-            {sounds.map((s) => (
-              <VibesTile
-                key={s.id}
-                name={s.name}
-                iconUrl={s.icon_url}
-                isActive={mixer.isSoundActive(s.id)}
-                isFavorite={favorites.includes(s.id)}
-                onToggle={() => mixer.toggleSound({ id: s.id, name: s.name, audioUrl: s.audio_url, iconUrl: s.icon_url })}
-                onFavorite={() => toggleFav.mutate(s.id)}
-              />
-            ))}
+          <div className="flex flex-wrap gap-x-2 gap-y-3 justify-start">
+            {sounds.map((s, index) => {
+              const row = Math.floor(index / 4);
+              const isOddRow = row % 2 === 1;
+              return (
+                <div
+                  key={s.id}
+                  className="flex-shrink-0"
+                  style={{
+                    width: "calc(25% - 6px)",
+                    marginLeft: isOddRow && (index % 4 === 0) ? "calc(12.5% - 3px)" : undefined,
+                  }}
+                >
+                  <VibesTile
+                    name={s.name}
+                    iconUrl={s.icon_url}
+                    isActive={mixer.isSoundActive(s.id)}
+                    isFavorite={favorites.includes(s.id)}
+                    onToggle={() => mixer.toggleSound({ id: s.id, name: s.name, audioUrl: s.audio_url, iconUrl: s.icon_url })}
+                    onFavorite={() => toggleFav.mutate(s.id)}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

@@ -42,18 +42,30 @@ export function VibesSleepTab({ sounds, mixer }: Props) {
     <div className="space-y-4 mt-4">
       <p className="text-sm text-muted-foreground">Sounds tagged for sleep & meditation</p>
       {sleepSounds.length > 0 ? (
-        <div className="grid grid-cols-3 gap-3">
-          {sleepSounds.map((s) => (
-            <VibesTile
-              key={s.id}
-              name={s.name}
-              iconUrl={s.icon_url}
-              isActive={mixer.isSoundActive(s.id)}
-              isFavorite={favorites.includes(s.id)}
-              onToggle={() => mixer.toggleSound({ id: s.id, name: s.name, audioUrl: s.audio_url, iconUrl: s.icon_url })}
-              onFavorite={() => toggleFav.mutate(s.id)}
-            />
-          ))}
+        <div className="flex flex-wrap gap-x-2 gap-y-3 justify-start">
+          {sleepSounds.map((s, index) => {
+            const row = Math.floor(index / 4);
+            const isOddRow = row % 2 === 1;
+            return (
+              <div
+                key={s.id}
+                className="flex-shrink-0"
+                style={{
+                  width: "calc(25% - 6px)",
+                  marginLeft: isOddRow && (index % 4 === 0) ? "calc(12.5% - 3px)" : undefined,
+                }}
+              >
+                <VibesTile
+                  name={s.name}
+                  iconUrl={s.icon_url}
+                  isActive={mixer.isSoundActive(s.id)}
+                  isFavorite={favorites.includes(s.id)}
+                  onToggle={() => mixer.toggleSound({ id: s.id, name: s.name, audioUrl: s.audio_url, iconUrl: s.icon_url })}
+                  onFavorite={() => toggleFav.mutate(s.id)}
+                />
+              </div>
+            );
+          })}
         </div>
       ) : (
         <p className="text-center text-muted-foreground py-8">No sleep sounds available yet</p>
