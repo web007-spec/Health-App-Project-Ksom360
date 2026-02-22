@@ -1,4 +1,4 @@
-import { memo, useState, useCallback } from "react";
+import { memo, useState, useCallback, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 
@@ -9,6 +9,48 @@ interface Props {
   onToggle: () => void;
 }
 
+/** Strips white/light backgrounds from an image, returning a data URL with transparency */
+function useTransparentIcon(src?: string) {
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const cacheRef = useRef<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    if (!src) { setDataUrl(null); return; }
+    if (cacheRef.current.has(src)) { setDataUrl(cacheRef.current.get(src)!); return; }
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const d = imageData.data;
+      // Make near-white pixels transparent
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+        const brightness = (r + g + b) / 3;
+        if (brightness > 220) {
+          d[i + 3] = 0; // fully transparent
+        } else if (brightness > 200) {
+          d[i + 3] = Math.round((220 - brightness) / 20 * 255); // fade out
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+      const url = canvas.toDataURL("image/png");
+      cacheRef.current.set(src, url);
+      setDataUrl(url);
+    };
+    img.onerror = () => setDataUrl(src); // fallback to original
+    img.src = src;
+  }, [src]);
+
+  return dataUrl;
+}
+
 export const VibesTile = memo(function VibesTile({
   name,
   iconUrl,
@@ -16,6 +58,7 @@ export const VibesTile = memo(function VibesTile({
   onToggle,
 }: Props) {
   const [pulse, setPulse] = useState(false);
+  const transparentIcon = useTransparentIcon(iconUrl);
 
   const handleTap = useCallback(() => {
     setPulse(true);
@@ -74,44 +117,39 @@ export const VibesTile = memo(function VibesTile({
 
         {/* Icon — carved/engraved into wood effect */}
         <div className="relative z-[1] flex items-center justify-center w-12 h-12">
-          {iconUrl ? (
+          {transparentIcon ? (
             <div className="relative w-10 h-10">
-              {/* Shadow layer — dark inset to simulate carving depth */}
+              {/* Shadow layer — carving depth */}
               <img
-                src={iconUrl}
+                src={transparentIcon}
                 alt=""
-                className="absolute inset-0 w-10 h-10 object-contain opacity-30"
+                className="absolute inset-0 w-10 h-10 object-contain opacity-35"
                 style={{
                   filter: "brightness(0) blur(0.5px)",
                   transform: "translate(0.5px, 1px)",
-                  mixBlendMode: "multiply",
                 }}
-                loading="lazy"
                 aria-hidden
               />
-              {/* Main icon — darkened & blended to look carved */}
+              {/* Main icon — darkened to look carved into wood */}
               <img
-                src={iconUrl}
+                src={transparentIcon}
                 alt={name}
                 className="relative w-10 h-10 object-contain"
                 style={{
-                  filter: "brightness(0.35) sepia(0.4) saturate(0.5)",
-                  mixBlendMode: "multiply",
-                  opacity: 0.8,
+                  filter: "brightness(0.3) sepia(0.3) saturate(0.4)",
+                  opacity: 0.75,
                 }}
-                loading="lazy"
               />
-              {/* Highlight edge — subtle light catch on top edge */}
+              {/* Highlight edge */}
               <img
-                src={iconUrl}
+                src={transparentIcon}
                 alt=""
-                className="absolute inset-0 w-10 h-10 object-contain opacity-15"
+                className="absolute inset-0 w-10 h-10 object-contain opacity-20"
                 style={{
-                  filter: "brightness(2) contrast(0.5) blur(0.3px)",
+                  filter: "brightness(1.8) contrast(0.5) blur(0.3px)",
                   transform: "translate(-0.3px, -0.5px)",
                   mixBlendMode: "overlay",
                 }}
-                loading="lazy"
                 aria-hidden
               />
             </div>
