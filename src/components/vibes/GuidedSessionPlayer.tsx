@@ -2,9 +2,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Play, Pause, X, Volume2, VolumeX, RotateCcw } from "lucide-react";
+import { Play, Pause, X, Volume2, VolumeX, RotateCcw, Lock, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 interface BreathingPattern {
   inhale: number;
@@ -25,6 +26,7 @@ interface SessionData {
   description?: string;
   category: string;
   duration_seconds: number;
+  is_premium?: boolean;
   breathing_pattern: BreathingPattern;
   ambient_sound_id?: string;
   restore_session_voices?: Voice[];
@@ -35,11 +37,16 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   session: SessionData;
   sounds: any[];
+  isPremium?: boolean;
+  isFree?: boolean;
 }
 
 type BreathPhase = "inhale" | "hold" | "exhale" | "idle";
 
-export function GuidedSessionPlayer({ open, onOpenChange, session, sounds }: Props) {
+export function GuidedSessionPlayer({ open, onOpenChange, session, sounds, isPremium = false, isFree = false }: Props) {
+  const navigate = useNavigate();
+  const isLocked = !isPremium && !isFree && session.is_premium;
+
   const [isRunning, setIsRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [phase, setPhase] = useState<BreathPhase>("idle");
@@ -236,22 +243,43 @@ export function GuidedSessionPlayer({ open, onOpenChange, session, sounds }: Pro
           </div>
         </div>
 
+        {/* Premium lock overlay */}
+        {isLocked && (
+          <div className="mx-4 mb-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-400/20 text-center">
+            <Lock className="h-5 w-5 text-amber-400/70 mx-auto mb-2" />
+            <p className="text-xs text-white/70 mb-1">Premium Session</p>
+            <p className="text-[10px] text-white/40 mb-3">Upgrade to access this guided session</p>
+            <button
+              onClick={() => {
+                onOpenChange(false);
+                navigate("/client/settings?tab=subscription");
+              }}
+              className="flex items-center gap-1.5 mx-auto px-4 py-2 rounded-full text-[11px] font-semibold bg-gradient-to-r from-amber-500 to-amber-600 text-black hover:from-amber-400 hover:to-amber-500 transition-all"
+            >
+              <Crown className="h-3 w-3" />
+              Upgrade to Premium
+            </button>
+          </div>
+        )}
+
         {/* Controls */}
         <div className="flex items-center justify-center gap-4 pb-4">
-          <Button variant="ghost" size="icon" className="text-white/50 hover:text-white" onClick={reset}>
+          <Button variant="ghost" size="icon" className="text-white/50 hover:text-white" onClick={reset} disabled={isLocked}>
             <RotateCcw className="h-5 w-5" />
           </Button>
           <Button
             className="h-14 w-14 rounded-full bg-[hsl(260,50%,50%)] hover:bg-[hsl(260,50%,60%)]"
-            onClick={togglePlay}
+            onClick={isLocked ? undefined : togglePlay}
+            disabled={isLocked}
           >
-            {isRunning ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-0.5" />}
+            {isLocked ? <Lock className="h-6 w-6" /> : isRunning ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-0.5" />}
           </Button>
           <Button
             variant="ghost"
             size="icon"
             className={cn("text-white/50 hover:text-white", !voiceEnabled && "text-white/20")}
             onClick={() => setVoiceEnabled(!voiceEnabled)}
+            disabled={isLocked}
           >
             {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
           </Button>

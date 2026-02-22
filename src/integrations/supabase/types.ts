@@ -436,6 +436,7 @@ export type Database = {
           greeting_emoji: string
           greeting_subtitle: string
           id: string
+          is_premium: boolean
           last_fast_completed_at: string | null
           last_fast_ended_at: string | null
           lock_start_weight_after_set: boolean
@@ -487,6 +488,7 @@ export type Database = {
           greeting_emoji?: string
           greeting_subtitle?: string
           id?: string
+          is_premium?: boolean
           last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
           lock_start_weight_after_set?: boolean
@@ -538,6 +540,7 @@ export type Database = {
           greeting_emoji?: string
           greeting_subtitle?: string
           id?: string
+          is_premium?: boolean
           last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
           lock_start_weight_after_set?: boolean
