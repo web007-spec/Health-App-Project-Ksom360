@@ -32,6 +32,8 @@ export function VibesMiniPlayer({ mixer }: Props) {
     } catch {}
   };
 
+  const displayName = mixer.mixName || "Custom Mix";
+
   return (
     <>
       <div className="fixed bottom-16 left-0 right-0 z-40 safe-area-bottom">
@@ -52,12 +54,11 @@ export function VibesMiniPlayer({ mixer }: Props) {
           </Button>
 
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">
-              {mixer.mixItems.length} sound{mixer.mixItems.length > 1 ? "s" : ""} in mix
+            <p className="text-sm font-medium truncate">{displayName}</p>
+            <p className="text-xs text-muted-foreground">
+              {mixer.mixItems.length} layer{mixer.mixItems.length !== 1 ? "s" : ""}
+              {mixer.timerRemaining !== null && ` · ${formatTime(mixer.timerRemaining)}`}
             </p>
-            {mixer.timerRemaining !== null && (
-              <p className="text-xs text-muted-foreground">{formatTime(mixer.timerRemaining)} remaining</p>
-            )}
           </div>
 
           <div className="flex items-center gap-1">

@@ -3,47 +3,52 @@ import {
   MixItem,
   prepareItem,
   startItem,
-  stopItem,
   setItemVolume,
   playMix,
   pauseMix,
   removeFromMix,
+  fadeOutAndClearMix,
   clearMix,
   getAudioContext,
 } from "@/lib/vibesMixer";
 
-const STORAGE_KEY = "ksom-vibes-last-mix";
+const STORAGE_KEY = "ksom-vibes-state";
 
-interface StoredMixItem {
-  soundId: string;
-  name: string;
-  url: string;
-  volume: number;
-  iconUrl?: string;
+interface PersistedState {
+  items: { soundId: string; name: string; url: string; volume: number; iconUrl?: string }[];
+  mode: string | null;
+  timerMinutes: number | null;
+  timerFadeOut: boolean;
+  mixName: string | null;
 }
 
 export function useAudioMixer() {
   const [mixItems, setMixItems] = useState<MixItem[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [timerRemaining, setTimerRemaining] = useState<number | null>(null);
+  const [activeMode, setActiveMode] = useState<string | null>(null);
+  const [mixName, setMixName] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fadeOutRef = useRef(false);
   const originalVolumesRef = useRef<Record<string, number>>({});
 
-  // Persist to localStorage on mix change
+  // Persist to localStorage on state change
   useEffect(() => {
-    const stored: StoredMixItem[] = mixItems.map(({ soundId, name, url, volume, iconUrl }) => ({
-      soundId, name, url, volume, iconUrl,
-    }));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
-  }, [mixItems]);
+    const state: PersistedState = {
+      items: mixItems.map(({ soundId, name, url, volume, iconUrl }) => ({
+        soundId, name, url, volume, iconUrl,
+      })),
+      mode: activeMode,
+      timerMinutes: timerRemaining !== null ? Math.ceil(timerRemaining / 60) : null,
+      timerFadeOut: fadeOutRef.current,
+      mixName,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [mixItems, activeMode, timerRemaining, mixName]);
 
   const addSound = useCallback(
     async (sound: { id: string; name: string; audioUrl: string; iconUrl?: string }) => {
-      // Ensure AudioContext is resumed (iOS needs user gesture)
       getAudioContext();
-
-      // Don't add duplicates
       if (mixItems.some((x) => x.soundId === sound.id)) return;
 
       try {
@@ -59,7 +64,6 @@ export function useAudioMixer() {
         const started = startItem(prepared);
 
         setMixItems((prev) => {
-          // Also restart any paused items
           const restarted = prev.map((existing) => {
             if (!existing.source && existing.buffer) {
               return startItem(existing);
@@ -80,6 +84,7 @@ export function useAudioMixer() {
     setMixItems((prev) => removeFromMix(prev, soundId));
   }, []);
 
+  // Volume updates GainNode directly — no component re-render needed for audio
   const setVolume = useCallback((soundId: string, vol: number) => {
     setMixItems((prev) =>
       prev.map((item) => {
@@ -109,7 +114,6 @@ export function useAudioMixer() {
     }
     setTimerRemaining(null);
     fadeOutRef.current = false;
-    // Restore volumes if fading
     setMixItems((prev) =>
       prev.map((item) => {
         const orig = originalVolumesRef.current[item.soundId];
@@ -123,11 +127,17 @@ export function useAudioMixer() {
     originalVolumesRef.current = {};
   }, []);
 
-  const clearAll = useCallback(() => {
-    setMixItems((prev) => clearMix(prev));
+  // Smooth fade out all then clear
+  const clearAll = useCallback(async () => {
+    const items = [...mixItems];
+    if (items.some((i) => i.source)) {
+      await fadeOutAndClearMix(items);
+    }
+    setMixItems([]);
     setIsPlaying(false);
+    setMixName(null);
     cancelTimer();
-  }, [cancelTimer]);
+  }, [mixItems, cancelTimer]);
 
   const startTimer = useCallback(
     (minutes: number, fadeOut: boolean) => {
@@ -172,12 +182,11 @@ export function useAudioMixer() {
     [mixItems, cancelTimer]
   );
 
-  const loadMix = useCallback(async (items: StoredMixItem[]) => {
-    // Clear existing
+  const loadMix = useCallback(async (items: PersistedState["items"], name?: string) => {
     setMixItems((prev) => clearMix(prev));
     setIsPlaying(false);
+    if (name) setMixName(name);
 
-    // Prepare all items (don't autoplay on restore)
     const loaded: MixItem[] = [];
     for (const s of items) {
       try {
@@ -205,11 +214,13 @@ export function useAudioMixer() {
 
   const restoreFromStorage = useCallback(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const items: StoredMixItem[] = JSON.parse(stored);
-        if (items.length > 0) loadMix(items);
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const state: PersistedState = JSON.parse(raw);
+      if (state.items?.length > 0) {
+        loadMix(state.items, state.mixName ?? undefined);
       }
+      if (state.mode) setActiveMode(state.mode);
     } catch {}
   }, [loadMix]);
 
@@ -232,6 +243,10 @@ export function useAudioMixer() {
   return {
     mixItems,
     isPlaying,
+    mixName,
+    setMixName,
+    activeMode,
+    setActiveMode,
     addSound,
     removeSound,
     setVolume,
