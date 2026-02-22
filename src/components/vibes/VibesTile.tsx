@@ -120,35 +120,46 @@ export const VibesTile = memo(function VibesTile({
         <div className="relative z-[1] flex items-center justify-center w-12 h-12">
           {transparentIcon ? (
             <div className="relative w-10 h-10">
-              {/* Shadow layer — carving depth */}
+              {/* Deep shadow — bottom-right for carved depth */}
               <img
                 src={transparentIcon}
                 alt=""
-                className="absolute inset-0 w-10 h-10 object-contain opacity-35"
+                className="absolute inset-0 w-10 h-10 object-contain opacity-50"
                 style={{
-                  filter: "brightness(0) blur(0.5px)",
-                  transform: "translate(0.5px, 1px)",
+                  filter: "brightness(0) blur(1px)",
+                  transform: "translate(1px, 1.5px)",
                 }}
                 aria-hidden
               />
-              {/* Main icon — darkened to look carved into wood */}
+              {/* Inner shadow — tighter groove */}
+              <img
+                src={transparentIcon}
+                alt=""
+                className="absolute inset-0 w-10 h-10 object-contain opacity-40"
+                style={{
+                  filter: "brightness(0) blur(0.3px)",
+                  transform: "translate(0.3px, 0.5px)",
+                }}
+                aria-hidden
+              />
+              {/* Main icon — very dark for deep engrave */}
               <img
                 src={transparentIcon}
                 alt={name}
                 className="relative w-10 h-10 object-contain"
                 style={{
-                  filter: "brightness(0.3) sepia(0.3) saturate(0.4)",
-                  opacity: 0.75,
+                  filter: "brightness(0.15) sepia(0.2) saturate(0.3) contrast(1.4)",
+                  opacity: 0.85,
                 }}
               />
-              {/* Highlight edge */}
+              {/* Top-left highlight — light catch for 3D feel */}
               <img
                 src={transparentIcon}
                 alt=""
-                className="absolute inset-0 w-10 h-10 object-contain opacity-20"
+                className="absolute inset-0 w-10 h-10 object-contain opacity-30"
                 style={{
-                  filter: "brightness(1.8) contrast(0.5) blur(0.3px)",
-                  transform: "translate(-0.3px, -0.5px)",
+                  filter: "brightness(2.5) contrast(0.4) blur(0.3px)",
+                  transform: "translate(-0.5px, -0.8px)",
                   mixBlendMode: "overlay",
                 }}
                 aria-hidden
