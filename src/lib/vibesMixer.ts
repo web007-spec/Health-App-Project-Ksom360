@@ -14,6 +14,8 @@ export function createHowl(url: string, volume: number) {
     src: [url],
     loop: true,
     volume,
+    html5: true,
+    preload: true,
   });
 }
 
