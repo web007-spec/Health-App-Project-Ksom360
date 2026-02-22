@@ -1,6 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { StaggeredTileGrid } from "./StaggeredTileGrid";
 import { cn } from "@/lib/utils";
+
+const MODES = [
+  { label: "Morning", value: "morning" },
+  { label: "Focus", value: "focus" },
+  { label: "Night", value: "night" },
+] as const;
+
+type Mode = (typeof MODES)[number]["value"];
 
 const CATEGORIES = [
   { label: "Featured", value: "featured" },
@@ -10,21 +18,55 @@ const CATEGORIES = [
   { label: "Brainwaves", value: "brainwaves" },
 ];
 
+// Featured sort weight per mode — placeholder for future tuning
+const MODE_SORT_TAGS: Record<Mode, string[]> = {
+  morning: ["nature", "musical"],
+  focus: ["brainwaves", "colored-noise"],
+  night: ["nature", "brainwaves"],
+};
+
+const STORAGE_KEY = "vibes-mode";
+
+function loadMode(): Mode {
+  try {
+    const v = localStorage.getItem(STORAGE_KEY);
+    if (v && MODES.some((m) => m.value === v)) return v as Mode;
+  } catch {}
+  return "focus";
+}
+
 interface Props {
   sounds: any[];
   mixer: any;
 }
 
 export function VibesHomeTab({ sounds, mixer }: Props) {
+  const [mode, setMode] = useState<Mode>(loadMode);
   const [activeCategory, setActiveCategory] = useState("featured");
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, mode);
+  }, [mode]);
 
   const hour = new Date().getHours();
   const timeLabel = hour < 12 ? "🌅 Good Morning" : hour < 17 ? "☀️ Good Afternoon" : "🌙 Good Evening";
 
   const filtered = useMemo(() => {
-    if (activeCategory === "featured") return sounds.filter((s) => s.is_featured);
-    return sounds.filter((s) => (s.tags || []).includes(activeCategory));
-  }, [sounds, activeCategory]);
+    let list: any[];
+    if (activeCategory === "featured") {
+      list = sounds.filter((s) => s.is_featured);
+      // Sort featured by mode-relevant tags first
+      const preferred = MODE_SORT_TAGS[mode];
+      list.sort((a, b) => {
+        const aScore = (a.tags || []).some((t: string) => preferred.includes(t)) ? 0 : 1;
+        const bScore = (b.tags || []).some((t: string) => preferred.includes(t)) ? 0 : 1;
+        return aScore - bScore;
+      });
+    } else {
+      list = sounds.filter((s) => (s.tags || []).includes(activeCategory));
+    }
+    return list;
+  }, [sounds, activeCategory, mode]);
 
   const activeLayers = mixer.mixItems?.length || 0;
 
@@ -42,7 +84,25 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
         </p>
       </div>
 
-      {/* Category chips — purple accent */}
+      {/* Mode segmented control */}
+      <div className="flex rounded-full bg-muted/60 p-1 gap-0.5">
+        {MODES.map((m) => (
+          <button
+            key={m.value}
+            onClick={() => setMode(m.value)}
+            className={cn(
+              "flex-1 text-xs font-medium py-1.5 rounded-full transition-all duration-[180ms]",
+              mode === m.value
+                ? "bg-[hsl(260,45%,38%)] text-white shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Category chips */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
         {CATEGORIES.map((cat) => (
           <button
@@ -60,8 +120,8 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
         ))}
       </div>
 
-      {/* Filtered grid with fade transition */}
-      <div className="animate-fade-in" key={activeCategory}>
+      {/* Filtered grid */}
+      <div className="animate-fade-in" key={`${mode}-${activeCategory}`}>
         {filtered.length > 0 ? (
           <StaggeredTileGrid
             sounds={filtered}
