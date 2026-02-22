@@ -42,10 +42,10 @@ export function VibesMixerSheet({ open, onOpenChange, mixer }: Props) {
                   max={100}
                   step={1}
                   onValueChange={([v]) => mixer.setVolume(item.soundId, v / 100)}
-                  className="mt-1"
+                  className="mt-1 [&_[role=slider]]:bg-[hsl(260,45%,50%)] [&_[data-orientation=horizontal]>span:first-child>span]:bg-[hsl(260,45%,50%)]"
                 />
               </div>
-              <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => mixer.removeSound(item.soundId)}>
+              <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => mixer.removeSound(item.soundId)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>

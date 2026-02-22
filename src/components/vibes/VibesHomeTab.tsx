@@ -26,6 +26,8 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
     return sounds.filter((s) => (s.tags || []).includes(activeCategory));
   }, [sounds, activeCategory]);
 
+  const activeLayers = mixer.mixItems?.length || 0;
+
   const handleToggle = (s: any) =>
     mixer.toggleSound({ id: s.id, name: s.name, audioUrl: s.audio_url, iconUrl: s.icon_url });
 
@@ -33,10 +35,14 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
     <div className="space-y-4 mt-4">
       <div>
         <p className="text-lg font-semibold mb-1">{timeLabel}</p>
-        <p className="text-sm text-muted-foreground">Pick sounds to build your perfect mix</p>
+        <p className="text-sm text-muted-foreground">
+          {activeLayers > 0
+            ? `${activeLayers} sound${activeLayers !== 1 ? "s" : ""} in your mix`
+            : "Pick sounds to build your perfect mix"}
+        </p>
       </div>
 
-      {/* Category chips */}
+      {/* Category chips — purple accent */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
         {CATEGORIES.map((cat) => (
           <button
@@ -45,8 +51,8 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
             className={cn(
               "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap shrink-0 transition-all duration-200 border",
               activeCategory === cat.value
-                ? "bg-gradient-to-r from-[hsl(30,32%,40%)] to-[hsl(24,26%,32%)] text-white/90 border-[hsl(30,22%,48%)] shadow-sm"
-                : "bg-transparent text-muted-foreground border-border hover:border-[hsl(30,18%,38%)] hover:text-foreground"
+                ? "bg-[hsl(260,45%,38%)] text-white/90 border-[hsl(260,40%,50%)] shadow-[inset_0_1px_2px_rgba(255,255,255,0.1)]"
+                : "bg-transparent text-muted-foreground border-border hover:border-[hsl(260,30%,45%)] hover:text-foreground"
             )}
           >
             {cat.label}
@@ -55,7 +61,7 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
       </div>
 
       {/* Filtered grid with fade transition */}
-      <div className="transition-opacity duration-150" key={activeCategory}>
+      <div className="animate-fade-in" key={activeCategory}>
         {filtered.length > 0 ? (
           <StaggeredTileGrid
             sounds={filtered}
