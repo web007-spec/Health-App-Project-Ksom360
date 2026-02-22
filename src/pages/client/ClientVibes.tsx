@@ -90,7 +90,7 @@ export default function ClientVibes() {
           )}
 
           {section === "guided" && (
-            <RestoreGuidedTab />
+            <RestoreGuidedTab sounds={sounds} />
           )}
 
           {section === "sleep" && (
