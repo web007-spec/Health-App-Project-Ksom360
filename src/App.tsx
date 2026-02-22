@@ -70,7 +70,9 @@ import ClientPrograms from "./pages/client/ClientPrograms";
 import ClientChooseProtocol from "./pages/client/ClientChooseProtocol";
 import ClientQuickPlans from "./pages/client/ClientQuickPlans";
 import ClientProtocolDetail from "./pages/client/ClientProtocolDetail";
+import ClientVibes from "./pages/client/ClientVibes";
 import ClientWorkoutHistory from "./pages/ClientWorkoutHistory";
+import VibesAdmin from "./pages/VibesAdmin";
 import ClientCommandCenter from "./pages/ClientCommandCenter";
 import Scheduling from "./pages/Scheduling";
 import TrainerSettings from "./pages/TrainerSettings";
@@ -163,6 +165,10 @@ const App = () => (
           <Route path="/client/choose-protocol" element={<ProtectedRoute allowedRoles={["client"]}><ClientChooseProtocol /></ProtectedRoute>} />
           <Route path="/client/quick-plans" element={<ProtectedRoute allowedRoles={["client"]}><ClientQuickPlans /></ProtectedRoute>} />
           <Route path="/client/protocol/:id" element={<ProtectedRoute allowedRoles={["client"]}><ClientProtocolDetail /></ProtectedRoute>} />
+          <Route path="/client/vibes" element={<ProtectedRoute allowedRoles={["client"]}><ClientVibes /></ProtectedRoute>} />
+          
+          {/* Trainer: Vibes Admin */}
+          <Route path="/vibes-admin" element={<ProtectedRoute allowedRoles={["trainer"]}><VibesAdmin /></ProtectedRoute>} />
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
