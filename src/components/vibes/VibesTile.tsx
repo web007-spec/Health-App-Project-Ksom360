@@ -1,4 +1,4 @@
-import { memo, useState, useCallback } from "react";
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 import { useTransparentIcon } from "@/hooks/useTransparentIcon";
@@ -16,19 +16,12 @@ export const VibesTile = memo(function VibesTile({
   isActive,
   onToggle,
 }: Props) {
-  const [pulse, setPulse] = useState(false);
   const transparentIcon = useTransparentIcon(iconUrl);
-
-  const handleTap = useCallback(() => {
-    setPulse(true);
-    setTimeout(() => setPulse(false), 500);
-    onToggle();
-  }, [onToggle]);
 
   return (
     <div className="flex flex-col items-center gap-1.5">
       <button
-        onClick={handleTap}
+        onClick={onToggle}
         className={cn(
           "group relative flex flex-col items-center justify-center rounded-[14px] aspect-square w-full transition-all duration-[180ms] select-none",
           "bg-gradient-to-br from-[hsl(30,32%,42%)] via-[hsl(28,28%,36%)] to-[hsl(24,24%,28%)]",
@@ -38,8 +31,8 @@ export const VibesTile = memo(function VibesTile({
           isActive && [
             "ring-[1.5px] ring-amber-400/70",
             "shadow-[inset_0_2px_3px_rgba(255,255,255,0.1),inset_0_-2px_4px_rgba(0,0,0,0.25),0_0_14px_rgba(251,191,36,0.3),0_0_4px_rgba(251,191,36,0.15)]",
+            "animate-vibes-sway origin-top",
           ],
-          pulse && "animate-vibes-sway origin-top"
         )}
         style={{ minHeight: 44, minWidth: 44 }}
       >
