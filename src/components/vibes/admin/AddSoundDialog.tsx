@@ -8,11 +8,9 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { X, Upload } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-const TAG_OPTIONS = ["nature", "rain", "asmr", "colored-noise", "brainwaves", "musical", "sleep", "meditation", "ambient"];
 
 interface Props {
   open: boolean;
@@ -33,6 +31,15 @@ export function AddSoundDialog({ open, onOpenChange, sound, categories }: Props)
   const audioRef = useRef<HTMLInputElement>(null);
   const iconRef = useRef<HTMLInputElement>(null);
   const qc = useQueryClient();
+
+  const { data: dbTags = [] } = useQuery({
+    queryKey: ["vibes-tags"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vibes_tags").select("*").order("sort_order");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   useEffect(() => {
     if (sound) {
@@ -132,14 +139,14 @@ export function AddSoundDialog({ open, onOpenChange, sound, categories }: Props)
           <div>
             <Label>Tags</Label>
             <div className="flex flex-wrap gap-2 mt-1">
-              {TAG_OPTIONS.map((tag) => (
+              {dbTags.map((tag: any) => (
                 <Badge
-                  key={tag}
-                  variant={tags.includes(tag) ? "default" : "outline"}
+                  key={tag.slug}
+                  variant={tags.includes(tag.slug) ? "default" : "outline"}
                   className="cursor-pointer"
-                  onClick={() => toggleTag(tag)}
+                  onClick={() => toggleTag(tag.slug)}
                 >
-                  {tag} {tags.includes(tag) && <X className="h-3 w-3 ml-1" />}
+                  {tag.name} {tags.includes(tag.slug) && <X className="h-3 w-3 ml-1" />}
                 </Badge>
               ))}
             </div>
