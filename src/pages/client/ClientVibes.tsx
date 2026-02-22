@@ -112,12 +112,12 @@ export default function ClientVibes() {
 
           {section === "soundlab" && (
             <Tabs defaultValue="home">
-              <TabsList className="w-full grid grid-cols-5">
-                <TabsTrigger value="home">Home</TabsTrigger>
-                <TabsTrigger value="sounds">Sounds</TabsTrigger>
-                <TabsTrigger value="my-mixes">My Mixes</TabsTrigger>
-                <TabsTrigger value="mixes">Mixes</TabsTrigger>
-                <TabsTrigger value="sleep">Sleep</TabsTrigger>
+              <TabsList className="w-full grid grid-cols-5 bg-white/10 dark:bg-white/10">
+                <TabsTrigger value="home" className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/20 hover:text-white">Home</TabsTrigger>
+                <TabsTrigger value="sounds" className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/20 hover:text-white">Sounds</TabsTrigger>
+                <TabsTrigger value="my-mixes" className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/20 hover:text-white">My Mixes</TabsTrigger>
+                <TabsTrigger value="mixes" className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/20 hover:text-white">Mixes</TabsTrigger>
+                <TabsTrigger value="sleep" className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/20 hover:text-white">Sleep</TabsTrigger>
               </TabsList>
 
               <TabsContent value="home">
