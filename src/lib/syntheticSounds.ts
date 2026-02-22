@@ -188,13 +188,17 @@ export function generateBinauralBeat(
   const buffer = ctx.createBuffer(2, length, sampleRate);
   const freqL = baseFreq;
   const freqR = baseFreq + beatFreq;
+  const fadeSamples = Math.round(sampleRate * 0.02); // 20ms edge fade
+
   for (let ch = 0; ch < 2; ch++) {
     const data = buffer.getChannelData(ch);
     const freq = ch === 0 ? freqL : freqR;
     for (let i = 0; i < length; i++) {
       const t = i / sampleRate;
-      // Gentle amplitude modulation for warmth
-      const env = 0.85 + 0.15 * Math.sin(t * 0.3);
+      // Edge fade envelope only — no tremolo
+      let env = 1;
+      if (i < fadeSamples) env = i / fadeSamples;
+      else if (i > length - fadeSamples) env = (length - i) / fadeSamples;
       data[i] = Math.sin(t * freq * 2 * Math.PI) * 0.25 * env;
     }
   }
