@@ -80,10 +80,11 @@ export const VibesTile = memo(function VibesTile({
               <img
                 src={iconUrl}
                 alt=""
-                className="absolute inset-0 w-10 h-10 object-contain opacity-40"
+                className="absolute inset-0 w-10 h-10 object-contain opacity-30"
                 style={{
                   filter: "brightness(0) blur(0.5px)",
                   transform: "translate(0.5px, 1px)",
+                  mixBlendMode: "multiply",
                 }}
                 loading="lazy"
                 aria-hidden
@@ -94,9 +95,9 @@ export const VibesTile = memo(function VibesTile({
                 alt={name}
                 className="relative w-10 h-10 object-contain"
                 style={{
-                  filter: "brightness(0.25) sepia(0.5) saturate(0.6)",
-                  mixBlendMode: "luminosity",
-                  opacity: 0.7,
+                  filter: "brightness(0.35) sepia(0.4) saturate(0.5)",
+                  mixBlendMode: "multiply",
+                  opacity: 0.8,
                 }}
                 loading="lazy"
               />
