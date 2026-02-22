@@ -48,8 +48,13 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
     localStorage.setItem(STORAGE_KEY, mode);
   }, [mode]);
 
-  const hour = new Date().getHours();
-  const timeLabel = hour < 12 ? "🌅 Good Morning" : hour < 17 ? "☀️ Good Afternoon" : "🌙 Good Evening";
+  const modeHeader: Record<Mode, { title: string; sub: string }> = {
+    morning: { title: "🌅 Good Morning", sub: "Start your day with uplifting sounds" },
+    focus: { title: "🎯 Focus Session", sub: "Lock in with deep concentration" },
+    night: { title: "🌙 Wind Down", sub: "Ease into restful calm" },
+  };
+
+  const { title: timeLabel, sub: modeSub } = modeHeader[mode];
 
   const filtered = useMemo(() => {
     let list: any[];
@@ -73,14 +78,20 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
   const handleToggle = (s: any) =>
     mixer.toggleSound({ id: s.id, name: s.name, audioUrl: s.audio_url, iconUrl: s.icon_url });
 
+  const modeBg: Record<Mode, string> = {
+    morning: "bg-[hsl(30,30%,6%)]",
+    focus: "",
+    night: "bg-[hsl(240,20%,5%)]",
+  };
+
   return (
-    <div className="space-y-4 mt-4">
+    <div className={cn("space-y-4 mt-4 rounded-xl px-1 transition-colors duration-300", modeBg[mode])}>
       <div>
         <p className="text-lg font-semibold mb-1">{timeLabel}</p>
         <p className="text-sm text-muted-foreground">
           {activeLayers > 0
             ? `${activeLayers} sound${activeLayers !== 1 ? "s" : ""} in your mix`
-            : "Pick sounds to build your perfect mix"}
+            : modeSub}
         </p>
       </div>
 
