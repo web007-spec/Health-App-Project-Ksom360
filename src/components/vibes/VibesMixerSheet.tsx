@@ -1,7 +1,7 @@
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { X, Trash2 } from "lucide-react";
+import { X, Trash2, Waves } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -15,7 +15,12 @@ export function VibesMixerSheet({ open, onOpenChange, mixer }: Props) {
       <DrawerContent className="max-h-[70vh]">
         <DrawerHeader className="flex items-center justify-between">
           <DrawerTitle>Current Mix</DrawerTitle>
-          <Button variant="ghost" size="sm" onClick={mixer.clearAll} className="text-destructive">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { mixer.clearAll(); onOpenChange(false); }}
+            className="text-destructive"
+          >
             <Trash2 className="h-4 w-4 mr-1" /> Clear All
           </Button>
         </DrawerHeader>
@@ -47,6 +52,14 @@ export function VibesMixerSheet({ open, onOpenChange, mixer }: Props) {
           ))}
           {mixer.mixItems.length === 0 && (
             <p className="text-center text-muted-foreground py-8">No sounds in mix</p>
+          )}
+
+          {mixer.mixItems.length > 0 && (
+            <div className="pt-2 border-t border-border">
+              <Button variant="outline" className="w-full gap-2" disabled>
+                <Waves className="h-4 w-4" /> Add Brainwave (Coming Soon)
+              </Button>
+            </div>
           )}
         </div>
       </DrawerContent>
