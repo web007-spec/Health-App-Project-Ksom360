@@ -47,7 +47,7 @@ const studioItems = [
   { title: "On-Demand Workouts", url: "/ondemand-workouts", icon: Play },
   { title: "Workout Collections", url: "/workout-collections", icon: Play },
   { title: "Studio Programs", url: "/studio-programs", icon: GraduationCap },
-  { title: "KSOM Vibes", url: "/vibes-admin", icon: Activity },
+  { title: "Restore Manager", url: "/vibes-admin", icon: Activity },
 ];
 
 const bottomItems = [

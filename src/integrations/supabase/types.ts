@@ -3424,6 +3424,214 @@ export type Database = {
           },
         ]
       }
+      restore_guided_sessions: {
+        Row: {
+          ambient_sound_id: string | null
+          breathing_pattern: Json | null
+          category: string
+          created_at: string
+          description: string | null
+          duration_seconds: number
+          icon_name: string | null
+          id: string
+          is_premium: boolean
+          is_published: boolean
+          name: string
+          sort_order: number
+          subtitle: string | null
+          thumbnail_url: string | null
+          time_of_day_priority: string[] | null
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          ambient_sound_id?: string | null
+          breathing_pattern?: Json | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number
+          icon_name?: string | null
+          id?: string
+          is_premium?: boolean
+          is_published?: boolean
+          name: string
+          sort_order?: number
+          subtitle?: string | null
+          thumbnail_url?: string | null
+          time_of_day_priority?: string[] | null
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          ambient_sound_id?: string | null
+          breathing_pattern?: Json | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number
+          icon_name?: string | null
+          id?: string
+          is_premium?: boolean
+          is_published?: boolean
+          name?: string
+          sort_order?: number
+          subtitle?: string | null
+          thumbnail_url?: string | null
+          time_of_day_priority?: string[] | null
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restore_guided_sessions_ambient_sound_id_fkey"
+            columns: ["ambient_sound_id"]
+            isOneToOne: false
+            referencedRelation: "vibes_sounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restore_guided_sessions_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restore_session_voices: {
+        Row: {
+          audio_url: string
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          session_id: string
+          voice_label: string
+        }
+        Insert: {
+          audio_url: string
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          session_id: string
+          voice_label?: string
+        }
+        Update: {
+          audio_url?: string
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          session_id?: string
+          voice_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restore_session_voices_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "restore_guided_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restore_sleep_stories: {
+        Row: {
+          ambient_sound_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_premium: boolean
+          is_published: boolean
+          name: string
+          sort_order: number
+          story_type: string
+          subtitle: string | null
+          thumbnail_url: string | null
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          ambient_sound_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_premium?: boolean
+          is_published?: boolean
+          name: string
+          sort_order?: number
+          story_type?: string
+          subtitle?: string | null
+          thumbnail_url?: string | null
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          ambient_sound_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_premium?: boolean
+          is_published?: boolean
+          name?: string
+          sort_order?: number
+          story_type?: string
+          subtitle?: string | null
+          thumbnail_url?: string | null
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restore_sleep_stories_ambient_sound_id_fkey"
+            columns: ["ambient_sound_id"]
+            isOneToOne: false
+            referencedRelation: "vibes_sounds"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restore_sleep_stories_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restore_story_voices: {
+        Row: {
+          audio_url: string
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          story_id: string
+          voice_label: string
+        }
+        Insert: {
+          audio_url: string
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          story_id: string
+          voice_label?: string
+        }
+        Update: {
+          audio_url?: string
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          story_id?: string
+          voice_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restore_story_voices_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "restore_sleep_stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       section_resources: {
         Row: {
           id: string
