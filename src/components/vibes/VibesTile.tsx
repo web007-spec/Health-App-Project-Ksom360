@@ -21,7 +21,7 @@ export const VibesTile = memo(function VibesTile({
 
   const handleTap = useCallback(() => {
     setPulse(true);
-    setTimeout(() => setPulse(false), 250);
+    setTimeout(() => setPulse(false), 500);
     onToggle();
   }, [onToggle]);
 
@@ -39,7 +39,7 @@ export const VibesTile = memo(function VibesTile({
             "ring-[1.5px] ring-amber-400/70",
             "shadow-[inset_0_2px_3px_rgba(255,255,255,0.1),inset_0_-2px_4px_rgba(0,0,0,0.25),0_0_14px_rgba(251,191,36,0.3),0_0_4px_rgba(251,191,36,0.15)]",
           ],
-          pulse && "animate-[vibes-pulse_250ms_ease-out]"
+          pulse && "animate-vibes-sway origin-top"
         )}
         style={{ minHeight: 44, minWidth: 44 }}
       >
