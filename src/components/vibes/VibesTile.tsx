@@ -84,12 +84,13 @@ export const VibesTile = memo(function VibesTile({
         )}
         style={{ minHeight: 44, minWidth: 44 }}
       >
-        {/* Nail dot */}
+        {/* Nail hole — transparent cut-out */}
         <div
-          className="absolute top-[5px] left-1/2 -translate-x-1/2 w-[4px] h-[4px] rounded-full"
+          className="absolute top-[5px] left-1/2 -translate-x-1/2 w-[5px] h-[5px] rounded-full"
           style={{
-            background: "radial-gradient(circle at 40% 35%, hsl(40,18%,65%), hsl(30,12%,32%))",
-            boxShadow: "inset 0 0.5px 0.5px rgba(255,255,255,0.35), 0 0.5px 1px rgba(0,0,0,0.5)",
+            background: "transparent",
+            boxShadow: "inset 0 1px 2px rgba(0,0,0,0.8), inset 0 -0.5px 0.5px rgba(255,255,255,0.15), 0 0.5px 1px rgba(0,0,0,0.4)",
+            border: "0.5px solid rgba(0,0,0,0.3)",
           }}
         />
 
