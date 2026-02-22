@@ -266,9 +266,11 @@ export default function VibesAdmin() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Icon</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Tags</TableHead>
+                    <TableHead>Audio</TableHead>
                     <TableHead>Featured</TableHead>
                     <TableHead className="w-[100px]">Actions</TableHead>
                   </TableRow>
@@ -276,12 +278,30 @@ export default function VibesAdmin() {
                 <TableBody>
                   {sounds.map((s: any) => (
                     <TableRow key={s.id}>
+                      <TableCell>
+                        {s.icon_url ? (
+                          <img src={s.icon_url} alt={s.name} className="w-10 h-10 rounded-lg object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                            <Music className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium">{s.name}</TableCell>
                       <TableCell>{(s as any).vibes_categories?.name || "—"}</TableCell>
                       <TableCell>
                         <div className="flex gap-1 flex-wrap">
                           {(s.tags || []).map((t: string) => <Badge key={t} variant="secondary" className="text-xs">{t}</Badge>)}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {s.audio_url ? (
+                          <audio controls preload="none" className="h-8 w-32">
+                            <source src={s.audio_url} />
+                          </audio>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell>{s.is_featured && <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />}</TableCell>
                       <TableCell>
@@ -309,7 +329,7 @@ export default function VibesAdmin() {
                     </TableRow>
                   ))}
                   {sounds.length === 0 && (
-                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No sounds yet</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No sounds yet</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
