@@ -8,6 +8,8 @@ import { Check, Crown } from "lucide-react";
 import { useIsPremium } from "@/hooks/useIsPremium";
 import { useRestoreProfile } from "@/hooks/useRestoreProfile";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const MODES = [
   { label: "Morning", value: "morning" },
@@ -17,12 +19,8 @@ const MODES = [
 
 type Mode = (typeof MODES)[number]["value"];
 
-const CATEGORIES = [
+const STATIC_HOME_CATEGORIES = [
   { label: "Featured", value: "featured" },
-  { label: "Nature", value: "nature" },
-  { label: "Noise", value: "colored-noise" },
-  { label: "Music", value: "musical" },
-  { label: "Brainwaves", value: "brainwaves" },
 ];
 
 const MODE_SORT_TAGS: Record<Mode, string[]> = {
@@ -59,6 +57,20 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
   const [mode, setMode] = useState<Mode>(loadMode);
   const [activeCategory, setActiveCategory] = useState("featured");
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+
+  const { data: dbTags = [] } = useQuery({
+    queryKey: ["vibes-tags"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vibes_tags").select("*").order("sort_order");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const CATEGORIES = useMemo(() => [
+    ...STATIC_HOME_CATEGORIES,
+    ...dbTags.map((t: any) => ({ label: t.name, value: t.slug })),
+  ], [dbTags]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, mode);

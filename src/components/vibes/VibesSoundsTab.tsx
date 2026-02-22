@@ -6,15 +6,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const CATEGORIES = [
+const STATIC_CATEGORIES = [
   { label: "All", value: "all" },
   { label: "My ❤️", value: "favorites" },
-  { label: "Nature", value: "nature" },
-  { label: "ASMR", value: "asmr" },
-  { label: "Colored Noise", value: "colored-noise" },
-  { label: "Brainwaves", value: "brainwaves" },
-  { label: "Music Layers", value: "musical" },
-  { label: "Sleep", value: "sleep" },
 ];
 
 interface Props {
@@ -38,6 +32,20 @@ export function VibesSoundsTab({ sounds, categories, mixer, isLoading }: Props) 
   const [activeCategory, setActiveCategory] = useState("all");
   const { user } = useAuth();
   const qc = useQueryClient();
+
+  const { data: dbTags = [] } = useQuery({
+    queryKey: ["vibes-tags"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vibes_tags").select("*").order("sort_order");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const CATEGORIES = useMemo(() => [
+    ...STATIC_CATEGORIES,
+    ...dbTags.map((t: any) => ({ label: t.name, value: t.slug })),
+  ], [dbTags]);
 
   const { data: favorites = [] } = useQuery({
     queryKey: ["vibes-favorites", user?.id],

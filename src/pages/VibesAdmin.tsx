@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, Music, GripVertical, Star, Headphones, Moon } from "lucide-react";
+import { Plus, Pencil, Trash2, Music, GripVertical, Star, Headphones, Moon, Tag } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -71,6 +74,49 @@ export default function VibesAdmin() {
     },
   });
 
+  const { data: tags = [] } = useQuery({
+    queryKey: ["vibes-tags"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vibes_tags").select("*").order("sort_order");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const [tagDialogOpen, setTagDialogOpen] = useState(false);
+  const [editTag, setEditTag] = useState<any>(null);
+  const [tagName, setTagName] = useState("");
+
+  const saveTag = useMutation({
+    mutationFn: async () => {
+      const slug = tagName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      if (editTag) {
+        const { error } = await supabase.from("vibes_tags").update({ name: tagName, slug }).eq("id", editTag.id);
+        if (error) throw error;
+      } else {
+        const maxOrder = tags.length > 0 ? Math.max(...tags.map((t: any) => t.sort_order)) + 1 : 0;
+        const { error } = await supabase.from("vibes_tags").insert({ name: tagName, slug, sort_order: maxOrder });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vibes-tags"] });
+      toast.success(editTag ? "Tag updated" : "Tag added");
+      setTagDialogOpen(false);
+      setEditTag(null);
+      setTagName("");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const deleteTag = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("vibes_tags").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["vibes-tags"] }); toast.success("Tag deleted"); },
+  });
+
   const deleteCat = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("vibes_categories").delete().eq("id", id);
@@ -116,6 +162,7 @@ export default function VibesAdmin() {
         <Tabs defaultValue="categories">
           <TabsList>
             <TabsTrigger value="categories">Categories</TabsTrigger>
+            <TabsTrigger value="tags">Tags</TabsTrigger>
             <TabsTrigger value="sounds">Sounds</TabsTrigger>
             <TabsTrigger value="sessions">Guided Sessions</TabsTrigger>
             <TabsTrigger value="stories">Sleep Stories</TabsTrigger>
@@ -162,6 +209,50 @@ export default function VibesAdmin() {
                 </Card>
               ))}
               {categories.length === 0 && <p className="text-muted-foreground text-center py-8">No categories yet</p>}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="tags" className="space-y-4">
+            <div className="flex justify-end">
+              <Button onClick={() => { setEditTag(null); setTagName(""); setTagDialogOpen(true); }}>
+                <Plus className="h-4 w-4 mr-2" /> Add Tag
+              </Button>
+            </div>
+            <div className="grid gap-3">
+              {tags.map((tag: any) => (
+                <Card key={tag.id}>
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-3">
+                      <Tag className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">{tag.name}</p>
+                        <p className="text-xs text-muted-foreground">/{tag.slug}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => { setEditTag(tag); setTagName(tag.name); setTagDialogOpen(true); }}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete tag?</AlertDialogTitle>
+                            <AlertDialogDescription>Sounds with this tag will no longer be filtered by it.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => deleteTag.mutate(tag.id)}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {tags.length === 0 && <p className="text-muted-foreground text-center py-8">No tags yet</p>}
             </div>
           </TabsContent>
 
@@ -377,6 +468,27 @@ export default function VibesAdmin() {
       <AddSoundDialog open={soundDialogOpen} onOpenChange={setSoundDialogOpen} sound={editSound} categories={categories} />
       <ManageGuidedSessionDialog open={sessionDialogOpen} onOpenChange={setSessionDialogOpen} session={editSession} sounds={sounds} />
       <ManageSleepStoryDialog open={storyDialogOpen} onOpenChange={setStoryDialogOpen} story={editStory} sounds={sounds} />
+
+      {/* Tag edit dialog */}
+      <Dialog open={tagDialogOpen} onOpenChange={(v) => { setTagDialogOpen(v); if (!v) { setEditTag(null); setTagName(""); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{editTag ? "Edit Tag" : "Add Tag"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Tag Name</Label>
+              <Input value={tagName} onChange={(e) => setTagName(e.target.value)} placeholder="e.g. Ambient" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTagDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => saveTag.mutate()} disabled={!tagName.trim() || saveTag.isPending}>
+              {saveTag.isPending ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
