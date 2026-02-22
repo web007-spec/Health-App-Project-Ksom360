@@ -1,20 +1,23 @@
 import { useState } from "react";
-import { Play, Pause, ChevronUp } from "lucide-react";
+import { Play, Pause, ChevronUp, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VibesMixerSheet } from "@/components/vibes/VibesMixerSheet";
 import { VibesTimerDialog } from "@/components/vibes/VibesTimerDialog";
 import { SaveMixDialog } from "@/components/vibes/SaveMixDialog";
+import { SaveLocalMixDialog } from "@/components/vibes/SaveLocalMixDialog";
 
 interface Props {
   mixer: any;
+  onMixSaved?: () => void;
 }
 
-export function VibesMiniPlayer({ mixer }: Props) {
+export function VibesMiniPlayer({ mixer, onMixSaved }: Props) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [timerOpen, setTimerOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
+  const [saveLocalOpen, setSaveLocalOpen] = useState(false);
 
-  if (mixer.mixItems.length === 0) return null;
+  if (mixer.mixItems.length === 0 && !mixer.brainwave) return null;
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -23,9 +26,7 @@ export function VibesMiniPlayer({ mixer }: Props) {
   };
 
   const displayName = mixer.mixName || "Current Mix";
-  const itemCount = mixer.mixItems.length;
-
-  // Show up to 3 stacked icon thumbnails
+  const itemCount = (mixer.mixItems?.length || 0) + (mixer.brainwave ? 1 : 0);
   const iconItems = mixer.mixItems.slice(0, 3);
 
   return (
@@ -39,20 +40,15 @@ export function VibesMiniPlayer({ mixer }: Props) {
           }}
         >
           <div className="flex items-center gap-3 p-3">
-            {/* Chevron up */}
             <ChevronUp className="h-5 w-5 text-white/60 shrink-0" />
 
-            {/* Stacked icon thumbnails */}
             <div className="relative flex items-center shrink-0" style={{ width: 52, height: 40 }}>
               {iconItems.map((item: any, i: number) => (
                 <div
                   key={item.soundId}
                   className="absolute rounded-lg overflow-hidden border border-white/20 shadow-md"
                   style={{
-                    width: 32,
-                    height: 32,
-                    left: i * 10,
-                    zIndex: 10 - i,
+                    width: 32, height: 32, left: i * 10, zIndex: 10 - i,
                     background: "linear-gradient(135deg, hsl(30,32%,45%), hsl(28,28%,35%))",
                   }}
                 >
@@ -65,7 +61,6 @@ export function VibesMiniPlayer({ mixer }: Props) {
               ))}
             </div>
 
-            {/* Title + count */}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white truncate">{displayName}</p>
               <p className="text-xs text-white/60">
@@ -73,6 +68,19 @@ export function VibesMiniPlayer({ mixer }: Props) {
                 {mixer.timerRemaining !== null && ` · ${formatTime(mixer.timerRemaining)}`}
               </p>
             </div>
+
+            {/* Save button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0 text-white hover:bg-white/10 h-10 w-10"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSaveLocalOpen(true);
+              }}
+            >
+              <Bookmark className="h-5 w-5" />
+            </Button>
 
             {/* Play/Pause */}
             <Button
@@ -93,6 +101,12 @@ export function VibesMiniPlayer({ mixer }: Props) {
       <VibesMixerSheet open={sheetOpen} onOpenChange={setSheetOpen} mixer={mixer} />
       <VibesTimerDialog open={timerOpen} onOpenChange={setTimerOpen} mixer={mixer} />
       <SaveMixDialog open={saveOpen} onOpenChange={setSaveOpen} mixer={mixer} />
+      <SaveLocalMixDialog
+        open={saveLocalOpen}
+        onOpenChange={setSaveLocalOpen}
+        mixer={mixer}
+        onSaved={onMixSaved}
+      />
     </>
   );
 }
