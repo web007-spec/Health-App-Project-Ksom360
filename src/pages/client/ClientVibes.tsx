@@ -10,12 +10,16 @@ import { VibesMixesTab } from "@/components/vibes/VibesMixesTab";
 import { VibesMyMixesTab } from "@/components/vibes/VibesMyMixesTab";
 import { VibesSleepTab } from "@/components/vibes/VibesSleepTab";
 import { VibesMiniPlayer } from "@/components/vibes/VibesMiniPlayer";
+import { RestoreEntryScreen, RestoreSection } from "@/components/vibes/RestoreEntryScreen";
+import { RestoreGuidedTab } from "@/components/vibes/RestoreGuidedTab";
+import { RestoreSleepTab } from "@/components/vibes/RestoreSleepTab";
 import { useSearchParams } from "react-router-dom";
 
 export default function ClientVibes() {
   const mixer = useAudioMixer();
   const [searchParams] = useSearchParams();
   const [mixRefreshKey, setMixRefreshKey] = useState(0);
+  const [section, setSection] = useState<RestoreSection>("home");
 
   const { data: sounds = [] } = useQuery({
     queryKey: ["vibes-sounds-client"],
@@ -65,6 +69,7 @@ export default function ClientVibes() {
         iconUrl: it.vibes_sounds?.icon_url,
       }));
       mixer.loadMix(loaded);
+      setSection("soundlab");
     })();
   }, [searchParams]);
 
@@ -74,35 +79,51 @@ export default function ClientVibes() {
 
   return (
     <ClientLayout>
-      <div className="min-h-screen bg-[hsl(var(--background))] pb-40">
+      <div className="min-h-screen bg-[hsl(260,20%,5%)] pb-40">
         <div className="p-4 space-y-4">
-          <h1 className="text-2xl font-bold">Vibes</h1>
+          {/* Restore entry screen — always visible */}
+          <RestoreEntryScreen activeSection={section} onSectionChange={setSection} />
 
-          <Tabs defaultValue="home">
-            <TabsList className="w-full grid grid-cols-5">
-              <TabsTrigger value="home">Home</TabsTrigger>
-              <TabsTrigger value="sounds">Sounds</TabsTrigger>
-              <TabsTrigger value="my-mixes">My Mixes</TabsTrigger>
-              <TabsTrigger value="mixes">Mixes</TabsTrigger>
-              <TabsTrigger value="sleep">Sleep</TabsTrigger>
-            </TabsList>
+          {/* Section content */}
+          {section === "home" && (
+            <VibesHomeTab sounds={sounds} mixer={mixer} />
+          )}
 
-            <TabsContent value="home">
-              <VibesHomeTab sounds={sounds} mixer={mixer} />
-            </TabsContent>
-            <TabsContent value="sounds">
-              <VibesSoundsTab sounds={sounds} categories={categories} mixer={mixer} />
-            </TabsContent>
-            <TabsContent value="my-mixes">
-              <VibesMyMixesTab mixer={mixer} sounds={sounds} refreshKey={mixRefreshKey} />
-            </TabsContent>
-            <TabsContent value="mixes">
-              <VibesMixesTab mixer={mixer} />
-            </TabsContent>
-            <TabsContent value="sleep">
-              <VibesSleepTab sounds={sounds} mixer={mixer} />
-            </TabsContent>
-          </Tabs>
+          {section === "guided" && (
+            <RestoreGuidedTab />
+          )}
+
+          {section === "sleep" && (
+            <RestoreSleepTab sounds={sounds} mixer={mixer} />
+          )}
+
+          {section === "soundlab" && (
+            <Tabs defaultValue="home">
+              <TabsList className="w-full grid grid-cols-5">
+                <TabsTrigger value="home">Home</TabsTrigger>
+                <TabsTrigger value="sounds">Sounds</TabsTrigger>
+                <TabsTrigger value="my-mixes">My Mixes</TabsTrigger>
+                <TabsTrigger value="mixes">Mixes</TabsTrigger>
+                <TabsTrigger value="sleep">Sleep</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="home">
+                <VibesHomeTab sounds={sounds} mixer={mixer} />
+              </TabsContent>
+              <TabsContent value="sounds">
+                <VibesSoundsTab sounds={sounds} categories={categories} mixer={mixer} />
+              </TabsContent>
+              <TabsContent value="my-mixes">
+                <VibesMyMixesTab mixer={mixer} sounds={sounds} refreshKey={mixRefreshKey} />
+              </TabsContent>
+              <TabsContent value="mixes">
+                <VibesMixesTab mixer={mixer} />
+              </TabsContent>
+              <TabsContent value="sleep">
+                <VibesSleepTab sounds={sounds} mixer={mixer} />
+              </TabsContent>
+            </Tabs>
+          )}
         </div>
 
         <VibesMiniPlayer mixer={mixer} onMixSaved={handleMixSaved} />
