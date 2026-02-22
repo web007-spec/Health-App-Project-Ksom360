@@ -22,12 +22,13 @@ export function VibesTile({ name, iconUrl, isActive, isFavorite, onToggle, onFav
       )}
     >
       {onFavorite && (
-        <button
+        <span
+          role="button"
           onClick={(e) => { e.stopPropagation(); onFavorite(); }}
           className="absolute top-2 right-2 z-10"
         >
           <Heart className={cn("h-4 w-4", isFavorite ? "fill-red-500 text-red-500" : "text-white/40")} />
-        </button>
+        </span>
       )}
       <div className="h-10 w-10 flex items-center justify-center">
         {iconUrl ? (
