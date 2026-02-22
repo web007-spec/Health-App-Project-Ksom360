@@ -39,18 +39,31 @@ const TileGrid = memo(function TileGrid({
   onFavorite: (id: string) => void;
 }) {
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2.5">
-      {sounds.map((s) => (
-        <VibesTile
-          key={s.id}
-          name={s.name}
-          iconUrl={s.icon_url}
-          isActive={activeSoundIds.has(s.id)}
-          isFavorite={favorites.includes(s.id)}
-          onToggle={() => onToggle(s)}
-          onFavorite={() => onFavorite(s.id)}
-        />
-      ))}
+    <div className="flex flex-wrap gap-x-2 gap-y-3 justify-start">
+      {sounds.map((s, index) => {
+        const cols = 4;
+        const row = Math.floor(index / cols);
+        const isOddRow = row % 2 === 1;
+        return (
+          <div
+            key={s.id}
+            className="flex-shrink-0"
+            style={{
+              width: "calc(25% - 6px)",
+              marginLeft: isOddRow && (index % cols === 0) ? "calc(12.5% - 3px)" : undefined,
+            }}
+          >
+            <VibesTile
+              name={s.name}
+              iconUrl={s.icon_url}
+              isActive={activeSoundIds.has(s.id)}
+              isFavorite={favorites.includes(s.id)}
+              onToggle={() => onToggle(s)}
+              onFavorite={() => onFavorite(s.id)}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 });

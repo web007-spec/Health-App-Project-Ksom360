@@ -1,11 +1,9 @@
 import { useState } from "react";
-import { Play, Pause, Timer, Save, Share2, ChevronUp } from "lucide-react";
+import { Play, Pause, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VibesMixerSheet } from "@/components/vibes/VibesMixerSheet";
 import { VibesTimerDialog } from "@/components/vibes/VibesTimerDialog";
 import { SaveMixDialog } from "@/components/vibes/SaveMixDialog";
-import { shareMixLink } from "@/lib/vibesShare";
-import { toast } from "sonner";
 
 interface Props {
   mixer: any;
@@ -24,54 +22,70 @@ export function VibesMiniPlayer({ mixer }: Props) {
     return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
-  const handleShare = async () => {
-    const url = window.location.origin + "/client/vibes";
-    try {
-      await shareMixLink(url);
-      toast.success("Link copied!");
-    } catch {}
-  };
+  const displayName = mixer.mixName || "Current Mix";
+  const itemCount = mixer.mixItems.length;
 
-  const displayName = mixer.mixName || "Custom Mix";
+  // Show up to 3 stacked icon thumbnails
+  const iconItems = mixer.mixItems.slice(0, 3);
 
   return (
     <>
-      <div className="fixed bottom-16 left-0 right-0 z-40 safe-area-bottom">
+      <div className="fixed bottom-16 left-0 right-0 z-40 safe-area-bottom px-2">
         <div
           onClick={() => setSheetOpen(true)}
-          className="mx-2 rounded-2xl bg-card/95 backdrop-blur border border-border shadow-lg p-3 flex items-center gap-3 cursor-pointer"
+          className="rounded-2xl overflow-hidden shadow-[0_-2px_20px_rgba(120,80,200,0.3)] cursor-pointer"
+          style={{
+            background: "linear-gradient(135deg, hsl(260,45%,38%) 0%, hsl(270,50%,30%) 50%, hsl(255,40%,25%) 100%)",
+          }}
         >
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              mixer.isPlaying ? mixer.pause() : mixer.play();
-            }}
-          >
-            {mixer.isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-          </Button>
+          <div className="flex items-center gap-3 p-3">
+            {/* Chevron up */}
+            <ChevronUp className="h-5 w-5 text-white/60 shrink-0" />
 
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{displayName}</p>
-            <p className="text-xs text-muted-foreground">
-              {mixer.mixItems.length} layer{mixer.mixItems.length !== 1 ? "s" : ""}
-              {mixer.timerRemaining !== null && ` · ${formatTime(mixer.timerRemaining)}`}
-            </p>
-          </div>
+            {/* Stacked icon thumbnails */}
+            <div className="relative flex items-center shrink-0" style={{ width: 52, height: 40 }}>
+              {iconItems.map((item: any, i: number) => (
+                <div
+                  key={item.soundId}
+                  className="absolute rounded-lg overflow-hidden border border-white/20 shadow-md"
+                  style={{
+                    width: 32,
+                    height: 32,
+                    left: i * 10,
+                    zIndex: 10 - i,
+                    background: "linear-gradient(135deg, hsl(30,32%,45%), hsl(28,28%,35%))",
+                  }}
+                >
+                  {item.iconUrl ? (
+                    <img src={item.iconUrl} alt="" className="w-full h-full object-contain p-0.5" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs text-white/50">🎵</div>
+                  )}
+                </div>
+              ))}
+            </div>
 
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setTimerOpen(true); }}>
-              <Timer className="h-4 w-4" />
+            {/* Title + count */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white truncate">{displayName}</p>
+              <p className="text-xs text-white/60">
+                {itemCount} item{itemCount !== 1 ? "s" : ""}
+                {mixer.timerRemaining !== null && ` · ${formatTime(mixer.timerRemaining)}`}
+              </p>
+            </div>
+
+            {/* Play/Pause */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0 text-white hover:bg-white/10 h-10 w-10"
+              onClick={(e) => {
+                e.stopPropagation();
+                mixer.isPlaying ? mixer.pause() : mixer.play();
+              }}
+            >
+              {mixer.isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setSaveOpen(true); }}>
-              <Save className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleShare(); }}>
-              <Share2 className="h-4 w-4" />
-            </Button>
-            <ChevronUp className="h-4 w-4 text-muted-foreground" />
           </div>
         </div>
       </div>
