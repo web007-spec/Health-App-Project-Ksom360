@@ -49,7 +49,7 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
       {featured.length > 0 && (
         <div>
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Featured</h3>
-          <div className="grid grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2.5">
             {featured.map((s) => (
               <VibesTile
                 key={s.id}
@@ -68,7 +68,7 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
       {sounds.length > 0 && (
         <div>
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">All Sounds</h3>
-          <div className="grid grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2.5">
             {sounds.map((s) => (
               <VibesTile
                 key={s.id}
