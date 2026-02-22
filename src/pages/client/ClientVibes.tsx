@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { ClientLayout } from "@/components/ClientLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
@@ -7,6 +7,7 @@ import { useAudioMixer } from "@/hooks/useAudioMixer";
 import { VibesHomeTab } from "@/components/vibes/VibesHomeTab";
 import { VibesSoundsTab } from "@/components/vibes/VibesSoundsTab";
 import { VibesMixesTab } from "@/components/vibes/VibesMixesTab";
+import { VibesMyMixesTab } from "@/components/vibes/VibesMyMixesTab";
 import { VibesSleepTab } from "@/components/vibes/VibesSleepTab";
 import { VibesMiniPlayer } from "@/components/vibes/VibesMiniPlayer";
 import { useSearchParams } from "react-router-dom";
@@ -14,6 +15,7 @@ import { useSearchParams } from "react-router-dom";
 export default function ClientVibes() {
   const mixer = useAudioMixer();
   const [searchParams] = useSearchParams();
+  const [mixRefreshKey, setMixRefreshKey] = useState(0);
 
   const { data: sounds = [] } = useQuery({
     queryKey: ["vibes-sounds-client"],
@@ -36,12 +38,10 @@ export default function ClientVibes() {
     },
   });
 
-  // Restore from localStorage on mount
   useEffect(() => {
     mixer.restoreFromStorage();
   }, []);
 
-  // Load shared mix from URL
   useEffect(() => {
     const slug = searchParams.get("mix");
     if (!slug) return;
@@ -68,6 +68,10 @@ export default function ClientVibes() {
     })();
   }, [searchParams]);
 
+  const handleMixSaved = useCallback(() => {
+    setMixRefreshKey((k) => k + 1);
+  }, []);
+
   return (
     <ClientLayout>
       <div className="min-h-screen bg-[hsl(var(--background))] pb-40">
@@ -75,9 +79,10 @@ export default function ClientVibes() {
           <h1 className="text-2xl font-bold">Vibes</h1>
 
           <Tabs defaultValue="home">
-            <TabsList className="w-full grid grid-cols-4">
+            <TabsList className="w-full grid grid-cols-5">
               <TabsTrigger value="home">Home</TabsTrigger>
               <TabsTrigger value="sounds">Sounds</TabsTrigger>
+              <TabsTrigger value="my-mixes">My Mixes</TabsTrigger>
               <TabsTrigger value="mixes">Mixes</TabsTrigger>
               <TabsTrigger value="sleep">Sleep</TabsTrigger>
             </TabsList>
@@ -88,6 +93,9 @@ export default function ClientVibes() {
             <TabsContent value="sounds">
               <VibesSoundsTab sounds={sounds} categories={categories} mixer={mixer} />
             </TabsContent>
+            <TabsContent value="my-mixes">
+              <VibesMyMixesTab mixer={mixer} sounds={sounds} refreshKey={mixRefreshKey} />
+            </TabsContent>
             <TabsContent value="mixes">
               <VibesMixesTab mixer={mixer} />
             </TabsContent>
@@ -97,7 +105,7 @@ export default function ClientVibes() {
           </Tabs>
         </div>
 
-        <VibesMiniPlayer mixer={mixer} />
+        <VibesMiniPlayer mixer={mixer} onMixSaved={handleMixSaved} />
       </div>
     </ClientLayout>
   );
