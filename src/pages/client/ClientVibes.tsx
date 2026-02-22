@@ -10,7 +10,8 @@ import { VibesMixesTab } from "@/components/vibes/VibesMixesTab";
 import { VibesMyMixesTab } from "@/components/vibes/VibesMyMixesTab";
 import { VibesSleepTab } from "@/components/vibes/VibesSleepTab";
 import { VibesMiniPlayer } from "@/components/vibes/VibesMiniPlayer";
-import { RestoreEntryScreen, RestoreSection } from "@/components/vibes/RestoreEntryScreen";
+import { RestoreEntryScreen, RestoreSection, Mood } from "@/components/vibes/RestoreEntryScreen";
+import { RestoreForYouTab } from "@/components/vibes/RestoreForYouTab";
 import { RestoreGuidedTab } from "@/components/vibes/RestoreGuidedTab";
 import { RestoreSleepTab } from "@/components/vibes/RestoreSleepTab";
 import { useSearchParams } from "react-router-dom";
@@ -20,6 +21,7 @@ export default function ClientVibes() {
   const [searchParams] = useSearchParams();
   const [mixRefreshKey, setMixRefreshKey] = useState(0);
   const [section, setSection] = useState<RestoreSection>("home");
+  const [mood, setMood] = useState<Mood>(null);
 
   const { data: sounds = [] } = useQuery({
     queryKey: ["vibes-sounds-client"],
@@ -82,11 +84,22 @@ export default function ClientVibes() {
       <div className="min-h-screen bg-[hsl(260,20%,5%)] pb-40">
         <div className="p-4 space-y-4">
           {/* Restore entry screen — always visible */}
-          <RestoreEntryScreen activeSection={section} onSectionChange={setSection} />
+          <RestoreEntryScreen
+            activeSection={section}
+            onSectionChange={setSection}
+            mood={mood}
+            onMoodChange={setMood}
+          />
 
           {/* Section content */}
           {section === "home" && (
-            <VibesHomeTab sounds={sounds} mixer={mixer} />
+            <RestoreForYouTab
+              mood={mood}
+              sounds={sounds}
+              mixer={mixer}
+              onNavigateGuided={() => setSection("guided")}
+              onNavigateSleep={() => setSection("sleep")}
+            />
           )}
 
           {section === "guided" && (

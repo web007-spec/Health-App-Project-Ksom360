@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { Moon, Sun, Sunrise, CloudSun, Sparkles, Music2, Headphones, BookOpen } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Moon, Sun, Sunrise, CloudSun, Sparkles, Music2, Headphones } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type TimeOfDay = "morning" | "midday" | "evening" | "night";
@@ -40,6 +40,14 @@ const TIME_CONFIG: Record<TimeOfDay, { icon: React.ElementType; greeting: string
 };
 
 export type RestoreSection = "home" | "guided" | "sleep" | "soundlab";
+export type Mood = "energized" | "calm" | "stressed" | "tired" | null;
+
+const MOOD_OPTIONS: { value: Exclude<Mood, null>; emoji: string; label: string }[] = [
+  { value: "energized", emoji: "⚡", label: "Energized" },
+  { value: "calm", emoji: "😌", label: "Calm" },
+  { value: "stressed", emoji: "😰", label: "Stressed" },
+  { value: "tired", emoji: "😴", label: "Tired" },
+];
 
 interface SectionDef {
   id: RestoreSection;
@@ -58,9 +66,11 @@ const SECTIONS: SectionDef[] = [
 interface Props {
   activeSection: RestoreSection;
   onSectionChange: (section: RestoreSection) => void;
+  mood: Mood;
+  onMoodChange: (mood: Mood) => void;
 }
 
-export function RestoreEntryScreen({ activeSection, onSectionChange }: Props) {
+export function RestoreEntryScreen({ activeSection, onSectionChange, mood, onMoodChange }: Props) {
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>(getTimeOfDay);
 
   useEffect(() => {
@@ -81,6 +91,32 @@ export function RestoreEntryScreen({ activeSection, onSectionChange }: Props) {
           <h2 className="text-xl font-bold text-white/95 tracking-tight">{config.greeting}</h2>
         </div>
         <p className="text-sm text-white/50 ml-9">{config.sub}</p>
+
+        {/* Mood check-in */}
+        <div className="mt-4 ml-9">
+          <p className="text-[10px] uppercase tracking-widest text-white/30 mb-2">How are you feeling?</p>
+          <div className="flex gap-2">
+            {MOOD_OPTIONS.map((m) => {
+              const isActive = mood === m.value;
+              return (
+                <button
+                  key={m.value}
+                  onClick={() => onMoodChange(isActive ? null : m.value)}
+                  className={cn(
+                    "flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-medium transition-all duration-200",
+                    "active:scale-[0.95]",
+                    isActive
+                      ? "bg-white/15 text-white/90 ring-1 ring-white/20"
+                      : "bg-white/[0.04] text-white/40 hover:bg-white/[0.08]"
+                  )}
+                >
+                  <span className="text-sm">{m.emoji}</span>
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Section navigation */}
