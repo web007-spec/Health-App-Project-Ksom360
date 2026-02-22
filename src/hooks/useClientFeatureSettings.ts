@@ -30,6 +30,7 @@ export interface ClientFeatureSettings {
   fasting_card_image_url: string | null;
   maintenance_mode: boolean;
   maintenance_schedule_type: string | null;
+  restore_profile_type: string;
 }
 
 const DEFAULT_SETTINGS: ClientFeatureSettings = {
@@ -60,6 +61,7 @@ const DEFAULT_SETTINGS: ClientFeatureSettings = {
   fasting_card_image_url: null,
   maintenance_mode: false,
   maintenance_schedule_type: null,
+  restore_profile_type: "performance",
 };
 
 export function useClientFeatureSettings() {

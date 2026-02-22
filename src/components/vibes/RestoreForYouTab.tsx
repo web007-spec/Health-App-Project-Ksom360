@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Clock, Headphones, Moon, BookOpen, Wind, Brain, Sparkles, TrendingUp } from "lucide-react";
+import { useRestoreProfile } from "@/hooks/useRestoreProfile";
 import type { Mood } from "./RestoreEntryScreen";
 
 type TimeOfDay = "morning" | "midday" | "evening" | "night";
@@ -15,19 +16,12 @@ function getTimeOfDay(): TimeOfDay {
   return "night";
 }
 
-/** Map mood + time-of-day to recommended guided session categories */
+/** Mood → session category mapping (used as fallback; profile priority is primary) */
 const MOOD_SESSION_MAP: Record<Exclude<Mood, null>, string[]> = {
   energized: ["focus", "breathwork"],
   calm: ["breathwork", "wind_down"],
   stressed: ["breathwork", "wind_down"],
   tired: ["wind_down", "sleep"],
-};
-
-const TIME_SESSION_MAP: Record<TimeOfDay, string[]> = {
-  morning: ["breathwork", "focus"],
-  midday: ["focus", "breathwork"],
-  evening: ["wind_down", "sleep"],
-  night: ["sleep", "wind_down"],
 };
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
@@ -46,6 +40,7 @@ interface Props {
 }
 
 export function RestoreForYouTab({ mood, sounds, mixer, onNavigateGuided, onNavigateSleep }: Props) {
+  const { config } = useRestoreProfile();
   const timeOfDay = getTimeOfDay();
 
   const { data: sessions = [] } = useQuery({
@@ -75,7 +70,7 @@ export function RestoreForYouTab({ mood, sounds, mixer, onNavigateGuided, onNavi
   });
 
   const recommendedSessions = useMemo(() => {
-    const preferredCats = mood ? MOOD_SESSION_MAP[mood] : TIME_SESSION_MAP[timeOfDay];
+    const preferredCats = mood ? MOOD_SESSION_MAP[mood] : config.sessionPriority;
     const sorted = [...sessions].sort((a: any, b: any) => {
       const aIdx = preferredCats.indexOf(a.category);
       const bIdx = preferredCats.indexOf(b.category);
@@ -96,14 +91,8 @@ export function RestoreForYouTab({ mood, sounds, mixer, onNavigateGuided, onNavi
 
   const moodTip = useMemo(() => {
     if (!mood) return null;
-    const tips: Record<Exclude<Mood, null>, string> = {
-      energized: "Channel that energy — try a focus session or build an upbeat mix.",
-      calm: "Perfect state for breathwork or a gentle wind-down session.",
-      stressed: "Take a breath — we recommend a guided breathwork session.",
-      tired: "Rest up — a sleep story or long loop might be just what you need.",
-    };
-    return tips[mood];
-  }, [mood]);
+    return config.moodTips[mood];
+  }, [mood, config]);
 
   const showSleepSection = timeOfDay === "evening" || timeOfDay === "night" || mood === "tired";
 
