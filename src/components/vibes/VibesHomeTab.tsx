@@ -6,6 +6,7 @@ import { BRAINWAVE_DEFS, BrainwaveType } from "@/lib/syntheticSounds";
 import { GUIDED_SESSIONS } from "@/lib/guidedSessions";
 import { Check, Crown } from "lucide-react";
 import { useIsPremium } from "@/hooks/useIsPremium";
+import { useRestoreProfile } from "@/hooks/useRestoreProfile";
 import { useNavigate } from "react-router-dom";
 
 const MODES = [
@@ -53,6 +54,7 @@ interface Props {
 
 export function VibesHomeTab({ sounds, mixer }: Props) {
   const { isPremium } = useIsPremium();
+  const { config: profileConfig } = useRestoreProfile();
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>(loadMode);
   const [activeCategory, setActiveCategory] = useState("featured");
@@ -98,7 +100,8 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
     night: "bg-[hsl(240,20%,5%)]",
   };
 
-  const recommended = MODE_RECOMMENDED_BW[mode];
+  // Use profile-driven brainwave priority: first in list = recommended
+  const recommended = (profileConfig.brainwavePriority[0] || "alpha") as BrainwaveType;
   const activeBw = mixer.brainwave?.type as BrainwaveType | undefined;
 
   const handleApplySession = async (session: typeof GUIDED_SESSIONS[number]) => {
@@ -169,7 +172,13 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
       <div className="animate-fade-in" key={`${mode}-${activeCategory}`}>
         {activeCategory === "brainwaves" ? (
           <div className="grid grid-cols-2 gap-3 px-2">
-            {(Object.entries(BRAINWAVE_DEFS) as [BrainwaveType, typeof BRAINWAVE_DEFS[BrainwaveType]][]).map(([type, def]) => {
+            {(Object.entries(BRAINWAVE_DEFS) as [BrainwaveType, typeof BRAINWAVE_DEFS[BrainwaveType]][])
+              .sort(([a], [b]) => {
+                const aIdx = profileConfig.brainwavePriority.indexOf(a);
+                const bIdx = profileConfig.brainwavePriority.indexOf(b);
+                return (aIdx < 0 ? 99 : aIdx) - (bIdx < 0 ? 99 : bIdx);
+              })
+              .map(([type, def]) => {
               const isActive = activeBw === type;
               const isRecommended = recommended === type;
               const isBwFree = type === "alpha";

@@ -453,6 +453,7 @@ export type Database = {
           protocol_assigned_by: string | null
           protocol_completed: boolean
           protocol_start_date: string | null
+          restore_profile_type: string
           selected_protocol_id: string | null
           selected_quick_plan_id: string | null
           sport_schedule_enabled: boolean
@@ -505,6 +506,7 @@ export type Database = {
           protocol_assigned_by?: string | null
           protocol_completed?: boolean
           protocol_start_date?: string | null
+          restore_profile_type?: string
           selected_protocol_id?: string | null
           selected_quick_plan_id?: string | null
           sport_schedule_enabled?: boolean
@@ -557,6 +559,7 @@ export type Database = {
           protocol_assigned_by?: string | null
           protocol_completed?: boolean
           protocol_start_date?: string | null
+          restore_profile_type?: string
           selected_protocol_id?: string | null
           selected_quick_plan_id?: string | null
           sport_schedule_enabled?: boolean
