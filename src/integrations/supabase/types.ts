@@ -1530,51 +1530,66 @@ export type Database = {
       }
       client_weekly_summaries: {
         Row: {
+          adherence_score: number | null
           avg_score_7d: number | null
+          bodyweight_delta: number | null
           client_id: string
           completion_7d: number | null
           current_level: number
           engine_mode: string
           has_pending_suggestion: boolean
           id: string
+          injury_flag: boolean | null
           level_up_eligible: boolean
           lowest_factor_mode: string | null
           needs_support_days_14d: number
           pending_suggestion_type: string | null
+          performance_delta: number | null
+          recovery_delta: number | null
           score_status: string
           trainer_id: string
           trend_direction: string
           updated_at: string
         }
         Insert: {
+          adherence_score?: number | null
           avg_score_7d?: number | null
+          bodyweight_delta?: number | null
           client_id: string
           completion_7d?: number | null
           current_level?: number
           engine_mode?: string
           has_pending_suggestion?: boolean
           id?: string
+          injury_flag?: boolean | null
           level_up_eligible?: boolean
           lowest_factor_mode?: string | null
           needs_support_days_14d?: number
           pending_suggestion_type?: string | null
+          performance_delta?: number | null
+          recovery_delta?: number | null
           score_status?: string
           trainer_id: string
           trend_direction?: string
           updated_at?: string
         }
         Update: {
+          adherence_score?: number | null
           avg_score_7d?: number | null
+          bodyweight_delta?: number | null
           client_id?: string
           completion_7d?: number | null
           current_level?: number
           engine_mode?: string
           has_pending_suggestion?: boolean
           id?: string
+          injury_flag?: boolean | null
           level_up_eligible?: boolean
           lowest_factor_mode?: string | null
           needs_support_days_14d?: number
           pending_suggestion_type?: string | null
+          performance_delta?: number | null
+          recovery_delta?: number | null
           score_status?: string
           trainer_id?: string
           trend_direction?: string
@@ -2303,6 +2318,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      factor_impact_history: {
+        Row: {
+          avg_score: number
+          created_at: string
+          engine_mode: string
+          factor_name: string
+          id: string
+          outcome_correlation: number | null
+          sample_size: number | null
+          trainer_id: string
+          trend_direction: string | null
+          week_number: number
+        }
+        Insert: {
+          avg_score?: number
+          created_at?: string
+          engine_mode: string
+          factor_name: string
+          id?: string
+          outcome_correlation?: number | null
+          sample_size?: number | null
+          trainer_id: string
+          trend_direction?: string | null
+          week_number: number
+        }
+        Update: {
+          avg_score?: number
+          created_at?: string
+          engine_mode?: string
+          factor_name?: string
+          id?: string
+          outcome_correlation?: number | null
+          sample_size?: number | null
+          trainer_id?: string
+          trend_direction?: string | null
+          week_number?: number
+        }
+        Relationships: []
       }
       fasting_protocols: {
         Row: {
