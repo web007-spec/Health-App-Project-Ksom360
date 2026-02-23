@@ -230,3 +230,26 @@ export const TIER_COMPARISON: TierComparisonRow[] = [
   { feature: "Multi-Coach", starter: false, pro: false, elite: false, enterprise: true },
   { feature: "White-Label", starter: false, pro: false, elite: false, enterprise: true },
 ];
+
+// ─── Authority gate check ───────────────────────────────
+
+export type AuthorityToggle =
+  | "ai_suggestions_enabled"
+  | "auto_level_advance_enabled"
+  | "auto_plan_adjust_enabled"
+  | "auto_nudge_optimization_enabled";
+
+/**
+ * Returns true only if the toggle is allowed given tier, engine, and toggle state.
+ * Athletic engine hard-locks all toggles to false.
+ */
+export function checkAuthorityGate(
+  tier: SubscriptionTier,
+  engine: EngineMode,
+  toggleValue: boolean,
+): boolean {
+  if (engine === "athletic") return false;
+  if (tier === "starter") return false;
+  if (tier === "pro" && engine !== "performance") return false;
+  return toggleValue;
+}

@@ -447,11 +447,15 @@ export type Database = {
           active_fast_start_at: string | null
           active_fast_target_hours: number | null
           activity_logging_enabled: boolean
+          ai_suggestions_enabled: boolean
           allow_custom_goal_text: boolean
           allow_level_auto_advance: boolean
           allow_plan_suggestions: boolean
           athletic_safety_lock: boolean
           auto_advance_levels: boolean
+          auto_level_advance_enabled: boolean
+          auto_nudge_optimization_enabled: boolean
+          auto_plan_adjust_enabled: boolean
           back_on_pace_enabled: boolean
           body_metrics_enabled: boolean
           calendar_days_ahead: number
@@ -528,11 +532,15 @@ export type Database = {
           active_fast_start_at?: string | null
           active_fast_target_hours?: number | null
           activity_logging_enabled?: boolean
+          ai_suggestions_enabled?: boolean
           allow_custom_goal_text?: boolean
           allow_level_auto_advance?: boolean
           allow_plan_suggestions?: boolean
           athletic_safety_lock?: boolean
           auto_advance_levels?: boolean
+          auto_level_advance_enabled?: boolean
+          auto_nudge_optimization_enabled?: boolean
+          auto_plan_adjust_enabled?: boolean
           back_on_pace_enabled?: boolean
           body_metrics_enabled?: boolean
           calendar_days_ahead?: number
@@ -609,11 +617,15 @@ export type Database = {
           active_fast_start_at?: string | null
           active_fast_target_hours?: number | null
           activity_logging_enabled?: boolean
+          ai_suggestions_enabled?: boolean
           allow_custom_goal_text?: boolean
           allow_level_auto_advance?: boolean
           allow_plan_suggestions?: boolean
           athletic_safety_lock?: boolean
           auto_advance_levels?: boolean
+          auto_level_advance_enabled?: boolean
+          auto_nudge_optimization_enabled?: boolean
+          auto_plan_adjust_enabled?: boolean
           back_on_pace_enabled?: boolean
           body_metrics_enabled?: boolean
           calendar_days_ahead?: number

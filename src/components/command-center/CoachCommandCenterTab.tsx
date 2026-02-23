@@ -3,6 +3,7 @@ import { PendingApprovals } from "./PendingApprovals";
 import { ManualOverrides } from "./ManualOverrides";
 import { InsightCoachControls } from "./InsightCoachControls";
 import { SafetyControls } from "./SafetyControls";
+import { AuthorityControls } from "./AuthorityControls";
 import { ActivityLog } from "./ActivityLog";
 import { ParentLinkSection } from "./ParentLinkSection";
 import { CopilotAssistPanel } from "./CopilotAssistPanel";
@@ -80,6 +81,9 @@ export function CoachCommandCenterTab({ clientId, trainerId }: CoachCommandCente
 
       {/* E) Safety Controls */}
       <SafetyControls clientId={clientId} trainerId={trainerId} />
+
+      {/* E2) Authority Controls */}
+      <AuthorityControls clientId={clientId} trainerId={trainerId} />
 
       {/* F) Parent / Guardian Link (Athletic minors only) */}
       {showParentLink && (
