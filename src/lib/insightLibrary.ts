@@ -137,45 +137,48 @@ export const INSIGHT_LIBRARY: InsightEntry[] = [
   // ATHLETIC ENGINE (30 insights)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // Sleep
-  i("athletic", "1-3", "sleep", "strong", "Great sleep! Your body recovers and grows stronger while you rest. Keep it up!", "Stick to your bedtime tonight."),
-  i("athletic", "1-3", "sleep", "moderate", "Sleep is your competitive edge. Try to get to bed 30 minutes earlier tonight."),
-  i("athletic", "1-3", "sleep", "needs_support", "Your sleep has been low. Game performance starts with last night's rest.", "Lights out by 10pm tonight."),
-  i("athletic", "4-6", "sleep", "strong", "You're sleeping like a champion. This fuels everything — training, games, recovery."),
-  i("athletic", "4-6", "sleep", "needs_support", "Low sleep is holding back your game readiness. Make tonight a priority.", "Set a phone curfew 1 hour before bed."),
-  i("athletic", "7", "sleep", "any", "At your level, sleep optimization separates good athletes from great ones."),
+  i("athletic", "1-3", "sleep", "needs_support", "Sleep is your secret performance weapon.", "Aim for 8+ hours tonight."),
+  i("athletic", "1-3", "sleep", "moderate", "Better sleep equals sharper reactions.", "Protect your bedtime."),
+  i("athletic", "4-6", "sleep", "strong", "Recovery habits are fueling your development."),
+  i("athletic", "4-6", "sleep", "needs_support", "Fatigue slows growth and reaction time.", "Reset your sleep routine."),
+  i("athletic", "7", "sleep", "any", "Elite athletes protect their recovery."),
 
-  // Training load
-  i("athletic", "1-3", "training_load", "strong", "Solid training! You're building the athletic base that makes game day easier.", "Give 100% effort at practice today."),
-  i("athletic", "1-3", "training_load", "moderate", "Training consistency builds confidence. Show up strong today."),
-  i("athletic", "1-3", "training_load", "needs_support", "Your training load has dropped. Even a light session keeps your body in rhythm.", "Complete at least a warm-up and skills session."),
-  i("athletic", "4-6", "training_load", "strong", "Your training consistency is translating to game performance. Keep grinding!"),
-  i("athletic", "4-6", "training_load", "moderate", "Balance your training load — too much or too little both hurt game readiness."),
-  i("athletic", "4-6", "training_load", "needs_support", "Training gaps affect game day confidence. Get back to your routine."),
-  i("athletic", "7", "training_load", "any", "Game-adaptive training is your edge. Your body knows the rhythm now."),
+  // Training Load
+  i("athletic", "1-3", "training_load", "needs_support", "Consistent reps build long-term skill.", "Complete today's full session."),
+  i("athletic", "1-3", "training_load", "moderate", "You're building strong fundamentals.", "Stay consistent."),
+  i("athletic", "4-6", "training_load", "strong", "Your workload supports real progress."),
+  i("athletic", "4-6", "training_load", "needs_support", "Missed reps slow skill development.", "Finish what you start."),
+  i("athletic", "7", "training_load", "any", "High-level athletes train with intention."),
 
   // Recovery
-  i("athletic", "1-3", "recovery", "strong", "Awesome recovery habits! Your body is thanking you with better performance."),
-  i("athletic", "1-3", "recovery", "needs_support", "Recovery makes you faster and stronger. Don't skip it!", "Do 10 minutes of stretching after practice."),
-  i("athletic", "4-6", "recovery", "strong", "Recovery discipline separates athletes who peak from those who plateau."),
-  i("athletic", "4-6", "recovery", "needs_support", "Your recovery is lagging. Add mobility and active recovery before it impacts your game.", "Foam roll for 10 minutes today."),
-  i("athletic", "7", "recovery", "any", "At mastery level, you understand recovery is performance. Keep investing."),
+  i("athletic", "1-3", "recovery", "needs_support", "Stretching and hydration protect your body.", "Add recovery work today."),
+  i("athletic", "1-3", "recovery", "moderate", "Recovery keeps you game-ready.", "Stay consistent with mobility."),
+  i("athletic", "4-6", "recovery", "strong", "Balanced recovery supports stronger performance."),
+  i("athletic", "4-6", "recovery", "needs_support", "Fatigue increases injury risk.", "Slow down and recover properly."),
+  i("athletic", "7", "recovery", "any", "Recovery separates good from great."),
 
   // Nutrition
-  i("athletic", "1-3", "nutrition", "strong", "Good fueling! Proper nutrition powers your training and game performance."),
-  i("athletic", "1-3", "nutrition", "needs_support", "Your body is your equipment — fuel it right. Focus on protein and hydration today.", "Drink water with every meal today."),
-  i("athletic", "4-6", "nutrition", "any", "Nutrition is fuel strategy for your sport. Eat to perform, not just to eat."),
-  i("athletic", "7", "nutrition", "any", "Mastery fueling: you know what your body needs. Trust your routine."),
+  i("athletic", "1-3", "nutrition", "needs_support", "Fueling affects speed and focus.", "Eat balanced meals today."),
+  i("athletic", "1-3", "nutrition", "moderate", "Strong fueling builds stronger muscles.", "Prioritize protein."),
+  i("athletic", "4-6", "nutrition", "strong", "Your nutrition supports recovery and power."),
+  i("athletic", "4-6", "nutrition", "needs_support", "Low-quality fuel limits growth.", "Improve meal quality."),
+  i("athletic", "7", "nutrition", "any", "Elite performance starts with smart fueling."),
 
-  // Weekly completion
-  i("athletic", "any", "weekly_completion", "strong", "Full commitment this week! Consistency separates good athletes from great ones."),
-  i("athletic", "any", "weekly_completion", "moderate", "Your weekly check-ins help track your readiness. Complete today's.", "Log your check-in before practice."),
-  i("athletic", "any", "weekly_completion", "needs_support", "Missing check-ins means missing data. Your Game Readiness Score needs your input."),
+  // Completion
+  i("athletic", "1-3", "weekly_completion", "needs_support", "Consistency beats talent long-term.", "Complete all assigned work."),
+  i("athletic", "1-3", "weekly_completion", "moderate", "Finish strong this week.", "Don't skip recovery."),
+  i("athletic", "4-6", "weekly_completion", "strong", "Your discipline is showing."),
+  i("athletic", "4-6", "weekly_completion", "needs_support", "Partial effort slows progress.", "Stay committed."),
+  i("athletic", "7", "weekly_completion", "any", "Champions execute daily."),
 
-  // General athletic
-  i("athletic", "any", "any", "strong", "You're game ready! Keep this energy and discipline going."),
-  i("athletic", "any", "any", "moderate", "Champions are built in the off-moments — recovery, sleep, and nutrition all count."),
-  i("athletic", "any", "any", "needs_support", "Every athlete has tough stretches. Focus on the basics: sleep, eat, recover."),
-  i("athletic", "1-3", "any", "any", "Building your athletic foundation. Every practice, every recovery session counts!"),
-  i("athletic", "4-6", "any", "any", "You're developing serious game readiness. Stay locked in."),
-  i("athletic", "7", "any", "any", "Mastery mode: you set the standard for your teammates. Lead by example."),
+  // General
+  i("athletic", "1-3", "any", "strong", "You're building a strong foundation."),
+  i("athletic", "1-3", "any", "moderate", "Small improvements add up fast.", "Focus on your weakest area."),
+  i("athletic", "1-3", "any", "needs_support", "Stability first. Growth follows.", "Lock in the basics."),
+  i("athletic", "4-6", "any", "strong", "You're progressing at the right pace."),
+  i("athletic", "4-6", "any", "moderate", "Focus sharpens performance.", "Target your lowest metric."),
+  i("athletic", "4-6", "any", "needs_support", "Fix weaknesses before adding intensity.", "Reinforce fundamentals."),
+  i("athletic", "7", "any", "strong", "Game readiness is visible in your discipline."),
+  i("athletic", "7", "any", "moderate", "Refinement builds competitive edge.", "Polish small details."),
+  i("athletic", "7", "any", "needs_support", "Advanced athletes correct quickly.", "Address the weakest metric."),
 ];
