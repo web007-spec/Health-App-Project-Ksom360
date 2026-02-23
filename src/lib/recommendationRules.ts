@@ -61,170 +61,101 @@ export function getTrendDirection(
 
 // ─── Today templates by factor + status ─────────────────
 
-const TODAY_TEMPLATES: Record<
-  EngineMode,
-  Record<string, Record<StatusLabel, string>>
-> = {
+// Status-level templates (used when no factor-specific override exists)
+const TODAY_STATUS_TEMPLATES: Record<EngineMode, Record<StatusLabel, string[]>> = {
   metabolic: {
-    fasting: {
-      strong: "Maintain your fasting window — your metabolic rhythm is stable.",
-      moderate: "Tighten your fasting window today to restore metabolic consistency.",
-      needs_support: "Complete your full fasting window today to reset metabolic signaling.",
-    },
-    sleep: {
-      strong: "Protect tonight's sleep to sustain metabolic balance.",
-      moderate: "Prioritize sleep consistency — aim for 7+ hours tonight.",
-      needs_support: "Sleep is your top priority today. Target at least 7 hours.",
-    },
-    nutrition: {
-      strong: "Continue eating within structure — your nutrition is well-regulated.",
-      moderate: "Focus on balanced meals within your eating window today.",
-      needs_support: "Eat intentionally within your window — avoid unregulated intake.",
-    },
-    weekly_completion: {
-      strong: "Keep your daily check-ins complete — consistency compounds.",
-      moderate: "Complete today's full plan to maintain your weekly rhythm.",
-      needs_support: "Recommit to today's plan — missed days disrupt momentum.",
-    },
-    recovery: {
-      strong: "Recovery is supporting your metabolic stability. Maintain it.",
-      moderate: "Add structured recovery time today.",
-      needs_support: "Prioritize active rest today — your body needs recovery.",
-    },
-    workout: {
-      strong: "Training is supporting your metabolic gains.",
-      moderate: "Complete today's scheduled workout.",
-      needs_support: "Even a light session maintains metabolic rhythm.",
-    },
-    training_load: {
-      strong: "Training balance is supporting metabolic regulation.",
-      moderate: "Balance training with recovery today.",
-      needs_support: "Reduce training intensity and focus on regulation.",
-    },
+    strong: [
+      "Metabolic regulation is stable. Maintain your current structure.",
+      "Stability is reinforced through consistency. Continue as planned.",
+    ],
+    moderate: [
+      "Small adjustments today will improve metabolic stability.",
+      "Refine your lowest input to strengthen regulation.",
+    ],
+    needs_support: [
+      "Stability requires correction. Focus on restoring structure today.",
+      "Reestablish consistency before increasing intensity.",
+    ],
   },
   performance: {
-    workout: {
-      strong: "Execute today's session with full intensity — you're ready.",
-      moderate: "Complete your scheduled workout to maintain training momentum.",
-      needs_support: "Prioritize showing up — even a reduced session beats skipping.",
-    },
-    sleep: {
-      strong: "Sleep is fueling your performance gains. Protect this rhythm.",
-      moderate: "Improve tonight's sleep to boost tomorrow's output.",
-      needs_support: "Recovery starts with sleep — make tonight non-negotiable.",
-    },
-    recovery: {
-      strong: "Recovery balance is supporting your training capacity.",
-      moderate: "Add mobility or light movement today for active recovery.",
-      needs_support: "Pause intensity. Add a full recovery session today.",
-    },
-    fasting: {
-      strong: "Fasting is supporting your performance toolkit.",
-      moderate: "Stabilize your eating window around training today.",
-      needs_support: "Adjust fasting timing to protect training energy.",
-    },
-    weekly_completion: {
-      strong: "Strong weekly execution — keep the momentum.",
-      moderate: "Close the gap on this week's remaining sessions.",
-      needs_support: "Complete all remaining sessions to get back on track.",
-    },
-    nutrition: {
-      strong: "Nutrition is fueling your training adaptations.",
-      moderate: "Hit your protein target today.",
-      needs_support: "Under-fueling limits performance. Prioritize nutrition today.",
-    },
-    training_load: {
-      strong: "Training load is well-balanced for performance.",
-      moderate: "Adjust volume to maintain quality of execution.",
-      needs_support: "Reduce load to prevent overtraining.",
-    },
+    strong: [
+      "Performance readiness is high. Execute fully.",
+      "Training capacity is strong. Push with control.",
+    ],
+    moderate: [
+      "Refine recovery and execution to increase output.",
+      "Tighten structure to maximize today's session.",
+    ],
+    needs_support: [
+      "Recovery and structure need attention before intensity.",
+      "Stabilize fundamentals before increasing workload.",
+    ],
   },
   athletic: {
-    sleep: {
-      strong: "Your sleep is game-ready. Keep this pattern.",
-      moderate: "Better sleep means sharper reactions — aim for 8 hours tonight.",
-      needs_support: "Sleep is your secret weapon. Make tonight a priority.",
-    },
-    training_load: {
-      strong: "Training load is building real progress.",
-      moderate: "Stay consistent with today's practice.",
-      needs_support: "Complete today's full session — missed reps slow development.",
-    },
-    recovery: {
-      strong: "Recovery discipline is powering your performance.",
-      moderate: "Add stretching and hydration to today's routine.",
-      needs_support: "Fatigue increases injury risk — slow down and recover properly.",
-    },
-    nutrition: {
-      strong: "Your fueling supports recovery and power.",
-      moderate: "Prioritize protein and hydration today.",
-      needs_support: "Fuel quality impacts speed and focus. Eat balanced today.",
-    },
-    weekly_completion: {
-      strong: "Your discipline is showing — keep it up!",
-      moderate: "Finish strong this week — complete all assigned work.",
-      needs_support: "Consistency beats talent. Complete all tasks today.",
-    },
-    fasting: {
-      strong: "Nutritional timing supports athletic performance.",
-      moderate: "Maintain regular eating patterns around training.",
-      needs_support: "Focus on consistent nutrition for athletic development.",
-    },
-    workout: {
-      strong: "Training execution is supporting game readiness.",
-      moderate: "Complete today's workout fully.",
-      needs_support: "Show up and execute — every session counts.",
-    },
+    strong: [
+      "Game readiness is strong. Train with confidence.",
+      "Recovery supports full performance today.",
+    ],
+    moderate: [
+      "Sharpen recovery habits to boost readiness.",
+      "Focus on sleep and hydration.",
+    ],
+    needs_support: [
+      "Recovery must improve before high intensity.",
+      "Protect your body first, then perform.",
+    ],
+  },
+};
+
+// Factor-specific overrides (take priority over status templates)
+const TODAY_FACTOR_OVERRIDES: Record<EngineMode, Partial<Record<ScoreFactor, string>>> = {
+  metabolic: {
+    sleep: "Sleep quality directly affects metabolic response. Prioritize 7+ hours tonight.",
+    fasting: "Maintain your fasting window precisely to reinforce stability.",
+    nutrition: "Prioritize whole foods and reduce excess intake within your window.",
+    weekly_completion: "Consistency compounds. Complete today's full protocol.",
+  },
+  performance: {
+    workout: "Complete your scheduled session to reinforce adaptation.",
+    sleep: "Recovery quality determines performance output.",
+    recovery: "Add light mobility or lower load if fatigue is elevated.",
+    fasting: "Nutritional timing should support training energy.",
+    weekly_completion: "Full weekly execution accelerates results.",
+  },
+  athletic: {
+    sleep: "Sleep fuels speed and reaction time.",
+    training_load: "Finish today's reps with focus.",
+    recovery: "Stretch, hydrate, and protect your body.",
+    nutrition: "Fuel properly to support power and endurance.",
+    weekly_completion: "Consistency builds competitive advantage.",
   },
 };
 
 // ─── Week templates by trend + completion ───────────────
 
+const WEEK_TEMPLATES: Record<EngineMode, Record<TrendDirection, string>> = {
+  metabolic: {
+    up: "Your metabolic trend is improving. Maintain current plan.",
+    flat: "Progress is steady. Tighten execution for greater gains.",
+    down: "Recent trends show instability. Reduce variability and reinforce sleep.",
+  },
+  performance: {
+    up: "Performance trajectory is improving. Maintain volume.",
+    flat: "Consistency is present. Improve recovery quality.",
+    down: "Reduce load slightly and prioritize recovery.",
+  },
+  athletic: {
+    up: "Preparation is trending upward. Stay disciplined.",
+    flat: "Build sharper recovery habits.",
+    down: "Prioritize sleep and recovery before adding intensity.",
+  },
+};
+
 function getWeekText(
   engine: EngineMode,
   trend: TrendDirection,
-  weeklyPct: number,
 ): string {
-  const highCompletion = weeklyPct >= 85;
-  const lowCompletion = weeklyPct < 60;
-
-  const templates: Record<EngineMode, Record<TrendDirection, string>> = {
-    metabolic: {
-      up: highCompletion
-        ? "Your metabolic stability is trending upward. Maintain this rhythm."
-        : "Trend is improving — increase daily completion to lock in gains.",
-      flat: highCompletion
-        ? "Steady regulation. Continue current habits to build further."
-        : "Consistency needs reinforcement. Complete all daily targets this week.",
-      down: lowCompletion
-        ? "Metabolic regression detected. Reset with consistent daily structure."
-        : "Trend is declining. Focus on your weakest factor to stabilize.",
-    },
-    performance: {
-      up: highCompletion
-        ? "Performance is trending up with strong execution. Keep pushing."
-        : "Gains are building — close the gap on weekly completion.",
-      flat: highCompletion
-        ? "Holding steady. Precision in execution will drive the next breakthrough."
-        : "Training consistency needs work. Complete all scheduled sessions.",
-      down: lowCompletion
-        ? "Output has dropped. Prioritize recovery and reduce volume if needed."
-        : "Readiness is dipping. Address your lowest scoring factor this week.",
-    },
-    athletic: {
-      up: highCompletion
-        ? "You're trending toward peak game readiness. Stay locked in!"
-        : "Progress is building — finish all assigned work to accelerate.",
-      flat: highCompletion
-        ? "Holding steady. Small refinements will sharpen your edge."
-        : "Stay consistent with all assignments to maintain development.",
-      down: lowCompletion
-        ? "Development has slowed. Recommit to basics: sleep, eat, recover."
-        : "Readiness is dipping. Focus on recovery and fundamentals.",
-    },
-  };
-
-  return templates[engine][trend];
+  return WEEK_TEMPLATES[engine][trend];
 }
 
 // ─── Plan suggestion gating ─────────────────────────────
@@ -342,18 +273,18 @@ export function generateRecommendation(
     input.prior7DayAvgScore,
   );
 
-  // Today text
-  const factorTemplates = TODAY_TEMPLATES[input.engineMode][input.lowestFactor];
-  const todayText = factorTemplates
-    ? factorTemplates[input.scoreStatus]
-    : TODAY_TEMPLATES[input.engineMode].sleep[input.scoreStatus];
+  // Today text: factor override takes priority, then status template
+  const factorOverride = TODAY_FACTOR_OVERRIDES[input.engineMode][input.lowestFactor];
+  let todayText: string;
+  if (factorOverride) {
+    todayText = factorOverride;
+  } else {
+    const statusOptions = TODAY_STATUS_TEMPLATES[input.engineMode][input.scoreStatus];
+    todayText = statusOptions[Math.floor(Math.random() * statusOptions.length)];
+  }
 
   // Week text
-  const weekText = getWeekText(
-    input.engineMode,
-    trend,
-    input.weeklyCompletionPct,
-  );
+  const weekText = getWeekText(input.engineMode, trend);
 
   // Plan suggestion (gated)
   const planSuggestion = evaluatePlanSuggestion(input);
