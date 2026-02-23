@@ -9,7 +9,7 @@
  * Each produces a 0–100 score → status label → recommendation.
  */
 
-export type EngineType = "metabolic_stability" | "performance_readiness" | "game_readiness";
+export type EngineType = "metabolic_stability" | "performance_readiness" | "game_readiness" | "metabolic" | "performance" | "athletic";
 export type StatusLabel = "strong" | "moderate" | "needs_support";
 export type Recommendation = "advance" | "maintain" | "reduce";
 
@@ -39,8 +39,16 @@ interface Weights {
   recovery: number;
 }
 
-const ENGINE_WEIGHTS: Record<EngineType, Weights> = {
+const ENGINE_WEIGHTS: Record<string, Weights> = {
   metabolic_stability: {
+    streak: 0.25,
+    weeklyCompletion: 0.25,
+    sleepHours: 0.10,
+    sleepQuality: 0.05,
+    nutrition: 0.25,
+    recovery: 0.10,
+  },
+  metabolic: {
     streak: 0.25,
     weeklyCompletion: 0.25,
     sleepHours: 0.10,
@@ -56,7 +64,23 @@ const ENGINE_WEIGHTS: Record<EngineType, Weights> = {
     nutrition: 0.10,
     recovery: 0.25,
   },
+  performance: {
+    streak: 0.15,
+    weeklyCompletion: 0.15,
+    sleepHours: 0.20,
+    sleepQuality: 0.15,
+    nutrition: 0.10,
+    recovery: 0.25,
+  },
   game_readiness: {
+    streak: 0.20,
+    weeklyCompletion: 0.15,
+    sleepHours: 0.15,
+    sleepQuality: 0.15,
+    nutrition: 0.15,
+    recovery: 0.20,
+  },
+  athletic: {
     streak: 0.20,
     weeklyCompletion: 0.15,
     sleepHours: 0.15,
@@ -177,10 +201,13 @@ export function computeAllEngines(recentDays: CheckinDay[]): EngineResult[] {
   ];
 }
 
-export const ENGINE_LABELS: Record<EngineType, string> = {
+export const ENGINE_LABELS: Record<string, string> = {
   metabolic_stability: "Metabolic Stability",
   performance_readiness: "Performance Readiness",
   game_readiness: "Game Readiness",
+  metabolic: "Metabolic Stability Index",
+  performance: "Performance Readiness Score",
+  athletic: "Game Readiness Score",
 };
 
 export const STATUS_LABELS: Record<StatusLabel, string> = {

@@ -1,16 +1,32 @@
 /**
  * Engine Mode Configuration
- * 
- * Defines how each engine mode shapes the entire app experience:
- * - Dashboard card order & emphasis
- * - Scoring weight profiles
- * - Insight messaging tone
- * - Feature visibility priorities
- * - Onboarding flow customization
- * - Progress metrics display order
+ *
+ * Three engine modes, coach-controlled:
+ * 1. Metabolic (45+ fasting-first)
+ * 2. Performance (40+ fitness-first with fasting integrated)
+ * 3. Athletic (13–18 recovery + training, NO fasting)
+ *
+ * Each engine drives: dashboard card order, scoring weights,
+ * insight tone, feature emphasis, and safety rules.
  */
 
-export type EngineMode = "metabolic_stability" | "performance_readiness" | "game_readiness";
+export type EngineMode = "metabolic" | "performance" | "athletic";
+
+export type DashboardCardKey =
+  | "header"
+  | "calendar"
+  | "fasting_card"
+  | "workout_card"
+  | "sport_schedule"
+  | "score_panel"
+  | "checkin"
+  | "insight"
+  | "break_fast"
+  | "coach_tip"
+  | "nutrition"
+  | "recovery"
+  | "fueling"
+  | "focus_selector";
 
 export interface EngineConfig {
   id: EngineMode;
@@ -18,14 +34,17 @@ export interface EngineConfig {
   shortLabel: string;
   tagline: string;
   ageRange: string;
-  
-  /** Which features are dominant in this engine */
+
+  /** Primary score displayed on dashboard */
+  scoreLabel: string;
+
+  /** Feature emphasis */
   emphasis: "fasting" | "training" | "recovery";
 
-  /** Dashboard card order (array of card keys, top to bottom) */
+  /** Dashboard card order (rendered top to bottom, only matching cards show) */
   dashboardOrder: DashboardCardKey[];
 
-  /** Scoring weight overrides for the recommendation engine */
+  /** Scoring weights for the recommendation engine */
   scoringWeights: {
     streak: number;
     weeklyCompletion: number;
@@ -35,58 +54,49 @@ export interface EngineConfig {
     recovery: number;
   };
 
-  /** Insight messaging — tone + sample messages */
+  /** Insight messaging tone */
   insightTone: "clinical" | "athletic" | "motivational";
   insights: string[];
 
-  /** Progress metrics shown first */
-  primaryMetrics: string[];
+  /** Safety: disables all fasting features when true */
+  fastingDisabled: boolean;
 
-  /** Onboarding steps emphasis */
-  onboardingFocus: string;
-  onboardingDescription: string;
-
-  /** Feature emphasis flags */
+  /** Feature flags */
   features: {
-    fastingDominant: boolean;
+    showFastingUI: boolean;
+    showFastingProtocols: boolean;
     trainingDominant: boolean;
     recoveryDominant: boolean;
     showGameStats: boolean;
     showSportProfile: boolean;
+    showFuelingGuidance: boolean;
   };
+
+  /** Plans page emphasis description */
+  plansEmphasis: string;
 }
 
-export type DashboardCardKey =
-  | "status_panel"
-  | "fasting_card"
-  | "focus_selector"
-  | "checkin"
-  | "readiness"
-  | "recommendation"
-  | "insight"
-  | "training"
-  | "progress"
-  | "sport_schedule"
-  | "game_stats";
-
 export const ENGINE_CONFIGS: Record<EngineMode, EngineConfig> = {
-  metabolic_stability: {
-    id: "metabolic_stability",
+  metabolic: {
+    id: "metabolic",
     label: "Metabolic Stability Engine",
     shortLabel: "Metabolic",
     tagline: "Build consistent metabolic rhythm",
     ageRange: "45+",
+    scoreLabel: "Metabolic Stability Index",
     emphasis: "fasting",
 
     dashboardOrder: [
-      "status_panel",
+      "header",
+      "calendar",
       "fasting_card",
-      "focus_selector",
+      "score_panel",
       "checkin",
-      "readiness",
-      "recommendation",
-      "progress",
       "insight",
+      "break_fast",
+      "coach_tip",
+      "workout_card",
+      "recovery",
     ],
 
     scoringWeights: {
@@ -109,38 +119,41 @@ export const ENGINE_CONFIGS: Record<EngineMode, EngineConfig> = {
       "Choose the level that supports your life — not one that disrupts it.",
     ],
 
-    primaryMetrics: ["weight", "body_fat", "sleep", "caloric_intake"],
-
-    onboardingFocus: "Metabolic Health",
-    onboardingDescription: "Build consistent fasting habits and metabolic stability for long-term health.",
+    fastingDisabled: false,
 
     features: {
-      fastingDominant: true,
+      showFastingUI: true,
+      showFastingProtocols: true,
       trainingDominant: false,
       recoveryDominant: false,
       showGameStats: false,
       showSportProfile: false,
+      showFuelingGuidance: false,
     },
+
+    plansEmphasis: "Fasting protocols shown first. Training supplements metabolic stability.",
   },
 
-  performance_readiness: {
-    id: "performance_readiness",
+  performance: {
+    id: "performance",
     label: "Performance Readiness Engine",
     shortLabel: "Performance",
     tagline: "Optimize training and recovery cycles",
-    ageRange: "Fitness-First",
+    ageRange: "40+",
+    scoreLabel: "Performance Readiness Score",
     emphasis: "training",
 
     dashboardOrder: [
-      "status_panel",
-      "training",
-      "readiness",
+      "header",
+      "calendar",
+      "workout_card",
+      "score_panel",
       "checkin",
       "fasting_card",
-      "focus_selector",
-      "progress",
-      "recommendation",
       "insight",
+      "nutrition",
+      "coach_tip",
+      "recovery",
     ],
 
     scoringWeights: {
@@ -163,40 +176,40 @@ export const ENGINE_CONFIGS: Record<EngineMode, EngineConfig> = {
       "Consistency in recovery produces consistency in output.",
     ],
 
-    primaryMetrics: ["resting_hr", "sleep", "steps", "caloric_burn"],
-
-    onboardingFocus: "Training Performance",
-    onboardingDescription: "Optimize your training output through sleep, recovery, and structured nutrition.",
+    fastingDisabled: false,
 
     features: {
-      fastingDominant: false,
+      showFastingUI: true,
+      showFastingProtocols: true,
       trainingDominant: true,
       recoveryDominant: false,
       showGameStats: false,
       showSportProfile: false,
+      showFuelingGuidance: false,
     },
+
+    plansEmphasis: "Training and nutrition shown first. Fasting available as a supplementary tool.",
   },
 
-  game_readiness: {
-    id: "game_readiness",
+  athletic: {
+    id: "athletic",
     label: "Game Readiness Engine",
     shortLabel: "Game Ready",
     tagline: "Peak readiness for competition",
-    ageRange: "13–18 Athletes",
+    ageRange: "13–18",
+    scoreLabel: "Game Readiness Score",
     emphasis: "recovery",
 
     dashboardOrder: [
-      "status_panel",
+      "header",
+      "calendar",
       "sport_schedule",
-      "readiness",
-      "game_stats",
-      "training",
+      "score_panel",
       "checkin",
-      "fasting_card",
-      "progress",
-      "focus_selector",
-      "recommendation",
-      "insight",
+      "workout_card",
+      "recovery",
+      "fueling",
+      "coach_tip",
     ],
 
     scoringWeights: {
@@ -219,18 +232,19 @@ export const ENGINE_CONFIGS: Record<EngineMode, EngineConfig> = {
       "Consistency separates good athletes from great ones.",
     ],
 
-    primaryMetrics: ["sleep", "resting_hr", "steps", "body_weight"],
-
-    onboardingFocus: "Athletic Performance",
-    onboardingDescription: "Track game readiness, recovery, and sport-specific performance metrics.",
+    fastingDisabled: true,
 
     features: {
-      fastingDominant: false,
+      showFastingUI: false,
+      showFastingProtocols: false,
       trainingDominant: false,
       recoveryDominant: true,
       showGameStats: true,
       showSportProfile: true,
+      showFuelingGuidance: true,
     },
+
+    plansEmphasis: "Training, recovery, and fueling only. No fasting protocols or recommendations.",
   },
 };
 
@@ -240,21 +254,21 @@ export function getEngineConfig(mode: EngineMode): EngineConfig {
 
 export const ENGINE_MODE_OPTIONS: { value: EngineMode; label: string; description: string; ageRange: string }[] = [
   {
-    value: "metabolic_stability",
+    value: "metabolic",
     label: "Metabolic Stability",
-    description: "Fasting-dominant. Build consistent metabolic rhythm.",
+    description: "Fasting-first. Build consistent metabolic rhythm.",
     ageRange: "45+",
   },
   {
-    value: "performance_readiness",
+    value: "performance",
     label: "Performance Readiness",
-    description: "Training-dominant. Optimize recovery and output.",
-    ageRange: "Fitness-First",
+    description: "Training-first with fasting integrated as a tool.",
+    ageRange: "40+",
   },
   {
-    value: "game_readiness",
+    value: "athletic",
     label: "Game Readiness",
-    description: "Recovery-dominant. Peak readiness for competition.",
-    ageRange: "13–18 Athletes",
+    description: "Training + recovery + fueling. No fasting.",
+    ageRange: "13–18",
   },
 ];

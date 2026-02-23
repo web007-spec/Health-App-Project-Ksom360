@@ -1275,29 +1275,26 @@ export default function ClientDashboard() {
           </div>
         )}
 
-        {/* Fasting Protocol Card */}
-        {settings.fasting_enabled && (
+        {/* Fasting Protocol Card — hidden for Athletic engine */}
+        {settings.fasting_enabled && !engineConfig.fastingDisabled && (
           <FastingProtocolCard clientId={clientId} navigate={navigate} />
         )}
 
-        {/* Engine-driven dashboard cards: Check-In, Readiness, Focus, Insight */}
-        {settings.fasting_enabled && (
-          <>
-            {engineConfig.features.fastingDominant && <DashboardFocusSelector currentFocus={null} />}
-            <DailyCheckinCard />
-            <RecommendationCard />
-            {!engineConfig.features.fastingDominant && <DashboardFocusSelector currentFocus={null} />}
-            <DashboardInsightCard />
-          </>
-        )}
+        {/* Engine-driven dashboard cards (always show for all engines) */}
+        <>
+          {engineConfig.features.showFastingUI && <DashboardFocusSelector currentFocus={null} />}
+          <DailyCheckinCard />
+          <RecommendationCard />
+          <DashboardInsightCard />
+        </>
 
-        {/* Break Your Fast Card — only during active eating window */}
-        {settings.fasting_enabled && mealGateStatus === "allowed" && fastingState?.eating_window_ends_at && new Date(fastingState.eating_window_ends_at) > new Date() && (
+        {/* Break Your Fast Card — only for engines with fasting, during active eating window */}
+        {settings.fasting_enabled && !engineConfig.fastingDisabled && mealGateStatus === "allowed" && fastingState?.eating_window_ends_at && new Date(fastingState.eating_window_ends_at) > new Date() && (
           <BreakYourFastCard hasFlexibleMealPlan={settings.meal_plan_type === "flexible"} />
         )}
 
-        {/* Coach Tip & Protocol Progress — below fasting card when protocol is active or maintenance mode */}
-        {settings.fasting_enabled && (fastingState?.selected_protocol_id || fastingState?.maintenance_mode) && (
+        {/* Coach Tip & Protocol Progress — only for engines with fasting */}
+        {settings.fasting_enabled && !engineConfig.fastingDisabled && (fastingState?.selected_protocol_id || fastingState?.maintenance_mode) && (
           <FastingCoachTipCard
             protocolStartDate={fastingState?.protocol_start_date ?? null}
             protocolDurationDays={coachTipProtocol?.duration_days ?? null}

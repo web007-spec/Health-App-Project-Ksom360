@@ -4822,10 +4822,7 @@ export type Database = {
     }
     Enums: {
       client_status: "active" | "paused" | "pending"
-      engine_mode:
-        | "metabolic_stability"
-        | "performance_readiness"
-        | "game_readiness"
+      engine_mode: "metabolic" | "performance" | "athletic"
       label_category:
         | "level"
         | "duration"
@@ -4974,11 +4971,7 @@ export const Constants = {
   public: {
     Enums: {
       client_status: ["active", "paused", "pending"],
-      engine_mode: [
-        "metabolic_stability",
-        "performance_readiness",
-        "game_readiness",
-      ],
+      engine_mode: ["metabolic", "performance", "athletic"],
       label_category: [
         "level",
         "duration",
