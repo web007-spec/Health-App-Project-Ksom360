@@ -32,6 +32,10 @@ export interface ClientFeatureSettings {
   maintenance_schedule_type: string | null;
   restore_profile_type: string;
   subscription_tier: string;
+  ai_suggestions_enabled: boolean;
+  auto_level_advance_enabled: boolean;
+  auto_plan_adjust_enabled: boolean;
+  auto_nudge_optimization_enabled: boolean;
 }
 
 const DEFAULT_SETTINGS: ClientFeatureSettings = {
@@ -64,6 +68,10 @@ const DEFAULT_SETTINGS: ClientFeatureSettings = {
   maintenance_schedule_type: null,
   restore_profile_type: "performance",
   subscription_tier: "starter",
+  ai_suggestions_enabled: false,
+  auto_level_advance_enabled: false,
+  auto_plan_adjust_enabled: false,
+  auto_nudge_optimization_enabled: false,
 };
 
 export function useClientFeatureSettings() {

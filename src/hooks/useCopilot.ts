@@ -24,6 +24,26 @@ export function useCopilot({ clientId, coachId, engineMode }: UseCopilotOptions)
     setLastResponse(null);
 
     try {
+      // ── Authority gate: ai_suggestions_enabled ──
+      const { data: authorityRow } = await supabase
+        .from("client_feature_settings")
+        .select("ai_suggestions_enabled, engine_mode, subscription_tier")
+        .eq("client_id", clientId)
+        .maybeSingle();
+
+      const { checkAuthorityGate } = await import("@/lib/featureAccessGuard");
+      const engine = (authorityRow?.engine_mode || engineMode) as import("@/lib/engineConfig").EngineMode;
+      const tier = (authorityRow?.subscription_tier || "starter") as import("@/lib/featureAccessGuard").SubscriptionTier;
+
+      if (!checkAuthorityGate(tier, engine, !!authorityRow?.ai_suggestions_enabled)) {
+        const { logAuthorityBlocked } = await import("@/lib/systemEvents");
+        await logAuthorityBlocked(clientId, `copilot_${useCase}`, engine, tier, {
+          ai_suggestions_enabled: !!authorityRow?.ai_suggestions_enabled,
+        });
+        toast.error("AI suggestions are not enabled for this client.");
+        return null;
+      }
+
       const { data, error } = await supabase.functions.invoke("ai-coach-copilot", {
         body: {
           use_case: useCase,
