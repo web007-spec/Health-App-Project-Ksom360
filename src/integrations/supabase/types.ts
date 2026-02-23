@@ -415,12 +415,14 @@ export type Database = {
           active_fast_target_hours: number | null
           activity_logging_enabled: boolean
           allow_custom_goal_text: boolean
+          auto_advance_levels: boolean
           back_on_pace_enabled: boolean
           body_metrics_enabled: boolean
           calendar_days_ahead: number
           client_can_edit_goal: boolean
           client_id: string
           created_at: string
+          current_level: number
           dashboard_hero_image_url: string | null
           dashboard_hero_message: string | null
           eating_window_card_image_url: string | null
@@ -440,6 +442,9 @@ export type Database = {
           is_premium: boolean
           last_fast_completed_at: string | null
           last_fast_ended_at: string | null
+          level_completion_pct: number
+          level_start_date: string
+          level_status: string
           lock_start_weight_after_set: boolean
           macros_enabled: boolean
           maintenance_mode: boolean
@@ -469,12 +474,14 @@ export type Database = {
           active_fast_target_hours?: number | null
           activity_logging_enabled?: boolean
           allow_custom_goal_text?: boolean
+          auto_advance_levels?: boolean
           back_on_pace_enabled?: boolean
           body_metrics_enabled?: boolean
           calendar_days_ahead?: number
           client_can_edit_goal?: boolean
           client_id: string
           created_at?: string
+          current_level?: number
           dashboard_hero_image_url?: string | null
           dashboard_hero_message?: string | null
           eating_window_card_image_url?: string | null
@@ -494,6 +501,9 @@ export type Database = {
           is_premium?: boolean
           last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
+          level_completion_pct?: number
+          level_start_date?: string
+          level_status?: string
           lock_start_weight_after_set?: boolean
           macros_enabled?: boolean
           maintenance_mode?: boolean
@@ -523,12 +533,14 @@ export type Database = {
           active_fast_target_hours?: number | null
           activity_logging_enabled?: boolean
           allow_custom_goal_text?: boolean
+          auto_advance_levels?: boolean
           back_on_pace_enabled?: boolean
           body_metrics_enabled?: boolean
           calendar_days_ahead?: number
           client_can_edit_goal?: boolean
           client_id?: string
           created_at?: string
+          current_level?: number
           dashboard_hero_image_url?: string | null
           dashboard_hero_message?: string | null
           eating_window_card_image_url?: string | null
@@ -548,6 +560,9 @@ export type Database = {
           is_premium?: boolean
           last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
+          level_completion_pct?: number
+          level_start_date?: string
+          level_status?: string
           lock_start_weight_after_set?: boolean
           macros_enabled?: boolean
           maintenance_mode?: boolean

@@ -290,6 +290,18 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
               </button>
             );
           })}
+          {/* Auto-Advance Levels Toggle */}
+          <Separator className="my-3" />
+          <div className="flex items-center justify-between px-1">
+            <div>
+              <p className="text-sm font-medium">Auto-Advance Levels</p>
+              <p className="text-xs text-muted-foreground">Automatically advance client when eligible (no coach approval needed)</p>
+            </div>
+            <Switch
+              checked={!!(settings as any)?.auto_advance_levels}
+              onCheckedChange={(checked) => toggleMutation.mutate({ key: "auto_advance_levels", value: checked })}
+            />
+          </div>
         </CardContent>
       </Card>
 
