@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ClientLayout } from "@/components/ClientLayout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -7,9 +8,11 @@ import { QuickPlansSelector } from "@/components/QuickPlansSelector";
 import { FastingSafetyNotice } from "@/components/FastingSafetyNotice";
 import { FastingStructureComparison } from "@/components/FastingStructureComparison";
 import { RecommendationCard } from "@/components/RecommendationCard";
+import { LifestylePlanSelector } from "@/components/LifestylePlanSelector";
 
 export default function ClientChooseProtocol() {
   const navigate = useNavigate();
+  const [focusFilter, setFocusFilter] = useState<string | null>(null);
 
   return (
     <ClientLayout>
@@ -22,6 +25,7 @@ export default function ClientChooseProtocol() {
         </div>
 
         <RecommendationCard />
+        <LifestylePlanSelector selected={focusFilter} onSelect={setFocusFilter} />
         <ProgramsSelector navigate={navigate} />
         <QuickPlansSelector navigate={navigate} />
 
