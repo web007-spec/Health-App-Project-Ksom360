@@ -24,6 +24,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { ImpactTrendsSection } from "@/components/command-center/ImpactTrendsSection";
 
 interface CoachIntelligenceTabProps {
   trainerId: string;
@@ -557,6 +558,9 @@ export function CoachIntelligenceTab({ trainerId }: CoachIntelligenceTabProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Impact Trends — Adaptive Calibration Analytics */}
+      <ImpactTrendsSection trainerId={trainerId} />
 
       {/* All Clients Overview */}
       <Card>
