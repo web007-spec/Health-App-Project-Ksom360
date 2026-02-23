@@ -167,6 +167,39 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_events: {
+        Row: {
+          amount: number | null
+          client_id: string
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          stripe_event_id: string | null
+          tier: string | null
+        }
+        Insert: {
+          amount?: number | null
+          client_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          stripe_event_id?: string | null
+          tier?: string | null
+        }
+        Update: {
+          amount?: number | null
+          client_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          stripe_event_id?: string | null
+          tier?: string | null
+        }
+        Relationships: []
+      }
       booking_settings: {
         Row: {
           allow_self_booking: boolean
@@ -3524,10 +3557,16 @@ export type Database = {
           email: string
           engine_mode: Database["public"]["Enums"]["engine_mode"]
           full_name: string | null
+          grace_period_ends_at: string | null
           id: string
           onboarding_answers: Json | null
           onboarding_completed: boolean
           role: Database["public"]["Enums"]["user_role"]
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_canceled_at: string | null
+          subscription_renews_at: string | null
+          subscription_status: string | null
           subscription_tier: Database["public"]["Enums"]["subscription_tier"]
           updated_at: string
         }
@@ -3537,10 +3576,16 @@ export type Database = {
           email: string
           engine_mode?: Database["public"]["Enums"]["engine_mode"]
           full_name?: string | null
+          grace_period_ends_at?: string | null
           id: string
           onboarding_answers?: Json | null
           onboarding_completed?: boolean
           role?: Database["public"]["Enums"]["user_role"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_canceled_at?: string | null
+          subscription_renews_at?: string | null
+          subscription_status?: string | null
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
         }
@@ -3550,10 +3595,16 @@ export type Database = {
           email?: string
           engine_mode?: Database["public"]["Enums"]["engine_mode"]
           full_name?: string | null
+          grace_period_ends_at?: string | null
           id?: string
           onboarding_answers?: Json | null
           onboarding_completed?: boolean
           role?: Database["public"]["Enums"]["user_role"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_canceled_at?: string | null
+          subscription_renews_at?: string | null
+          subscription_status?: string | null
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
         }

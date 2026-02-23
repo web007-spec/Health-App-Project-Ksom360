@@ -95,6 +95,33 @@ const TIER_MAX_LEVEL: Record<SubscriptionTier, number> = {
   enterprise: 7,
 };
 
+// ─── Subscription status types ──────────────────────────
+
+export type SubscriptionStatus = "active" | "past_due" | "canceled" | "incomplete" | "trialing";
+
+export interface BillingState {
+  subscriptionStatus: SubscriptionStatus;
+  gracePeriodEndsAt: string | null;
+}
+
+/** Returns the effective tier after applying billing status / grace period rules. */
+export function getEffectiveTier(
+  tier: SubscriptionTier,
+  billing?: BillingState | null,
+): SubscriptionTier {
+  if (!billing) return tier; // no billing info → trust stored tier
+  const { subscriptionStatus, gracePeriodEndsAt } = billing;
+
+  // Active or trialing → full tier
+  if (subscriptionStatus === "active" || subscriptionStatus === "trialing") return tier;
+
+  // Past-due or canceled but within grace period → keep tier
+  if (gracePeriodEndsAt && new Date(gracePeriodEndsAt) > new Date()) return tier;
+
+  // Grace expired or incomplete → downgrade to starter
+  return "starter";
+}
+
 // ─── Public API ─────────────────────────────────────────
 
 export function hasFeatureAccess(tier: SubscriptionTier, feature: GatedFeature): boolean {
