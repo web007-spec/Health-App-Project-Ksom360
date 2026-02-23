@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { ProgramsSelector } from "@/components/ProgramsSelector";
 import { QuickPlansSelector } from "@/components/QuickPlansSelector";
 import { FastingSafetyNotice } from "@/components/FastingSafetyNotice";
+import { FastingStructureComparison } from "@/components/FastingStructureComparison";
 
 export default function ClientChooseProtocol() {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ export default function ClientChooseProtocol() {
         <ProgramsSelector navigate={navigate} />
         <QuickPlansSelector navigate={navigate} />
 
+        <FastingStructureComparison />
         <FastingSafetyNotice />
       </div>
     </ClientLayout>

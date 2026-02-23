@@ -19,6 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Target, Users, Utensils, Info, Zap } from "lucide-react";
 import { FastingSafetyNotice } from "@/components/FastingSafetyNotice";
+import { FastingStructureComparison } from "@/components/FastingStructureComparison";
 
 interface PlanDescription {
   subtitle?: string;
@@ -356,6 +357,7 @@ export default function ClientQuickPlans() {
                     See All Quick Plans
                   </Button>
                 </div>
+                <FastingStructureComparison />
                 <FastingSafetyNotice />
               </div>
             </ScrollArea>
