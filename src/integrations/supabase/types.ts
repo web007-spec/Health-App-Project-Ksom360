@@ -484,6 +484,7 @@ export type Database = {
           selected_protocol_id: string | null
           selected_quick_plan_id: string | null
           sport_schedule_enabled: boolean
+          subscription_tier: Database["public"]["Enums"]["subscription_tier"]
           tasks_enabled: boolean
           trainer_id: string
           training_enabled: boolean
@@ -564,6 +565,7 @@ export type Database = {
           selected_protocol_id?: string | null
           selected_quick_plan_id?: string | null
           sport_schedule_enabled?: boolean
+          subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           tasks_enabled?: boolean
           trainer_id: string
           training_enabled?: boolean
@@ -644,6 +646,7 @@ export type Database = {
           selected_protocol_id?: string | null
           selected_quick_plan_id?: string | null
           sport_schedule_enabled?: boolean
+          subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           tasks_enabled?: boolean
           trainer_id?: string
           training_enabled?: boolean
@@ -3525,6 +3528,7 @@ export type Database = {
           onboarding_answers: Json | null
           onboarding_completed: boolean
           role: Database["public"]["Enums"]["user_role"]
+          subscription_tier: Database["public"]["Enums"]["subscription_tier"]
           updated_at: string
         }
         Insert: {
@@ -3537,6 +3541,7 @@ export type Database = {
           onboarding_answers?: Json | null
           onboarding_completed?: boolean
           role?: Database["public"]["Enums"]["user_role"]
+          subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
         }
         Update: {
@@ -3549,6 +3554,7 @@ export type Database = {
           onboarding_answers?: Json | null
           onboarding_completed?: boolean
           role?: Database["public"]["Enums"]["user_role"]
+          subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
         }
         Relationships: []
@@ -5356,6 +5362,7 @@ export type Database = {
       meal_type: "breakfast" | "lunch" | "dinner" | "snack"
       ondemand_workout_type: "regular" | "video"
       resource_type: "link" | "document" | "form"
+      subscription_tier: "starter" | "pro" | "elite" | "enterprise"
       task_type:
         | "general"
         | "progress_photo"
@@ -5506,6 +5513,7 @@ export const Constants = {
       meal_type: ["breakfast", "lunch", "dinner", "snack"],
       ondemand_workout_type: ["regular", "video"],
       resource_type: ["link", "document", "form"],
+      subscription_tier: ["starter", "pro", "elite", "enterprise"],
       task_type: ["general", "progress_photo", "body_metrics", "form", "habit"],
       user_role: ["trainer", "client"],
       workout_difficulty: ["beginner", "intermediate", "advanced"],

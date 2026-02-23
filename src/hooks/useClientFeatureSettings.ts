@@ -31,6 +31,7 @@ export interface ClientFeatureSettings {
   maintenance_mode: boolean;
   maintenance_schedule_type: string | null;
   restore_profile_type: string;
+  subscription_tier: string;
 }
 
 const DEFAULT_SETTINGS: ClientFeatureSettings = {
@@ -62,6 +63,7 @@ const DEFAULT_SETTINGS: ClientFeatureSettings = {
   maintenance_mode: false,
   maintenance_schedule_type: null,
   restore_profile_type: "performance",
+  subscription_tier: "starter",
 };
 
 export function useClientFeatureSettings() {
