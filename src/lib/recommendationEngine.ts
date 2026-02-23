@@ -130,8 +130,8 @@ function normCompletion(pct: number): number {
   return Math.min(pct, 100);
 }
 
-export function computeEngine(engine: EngineType, recentDays: CheckinDay[]): EngineResult {
-  const w = ENGINE_WEIGHTS[engine];
+export function computeEngine(engine: EngineType, recentDays: CheckinDay[], weightOverrides?: Partial<Weights>): EngineResult {
+  const w = { ...ENGINE_WEIGHTS[engine], ...weightOverrides };
   const streak = calculateStreak(recentDays);
   const wkCompletion = weeklyCompletion(recentDays);
 

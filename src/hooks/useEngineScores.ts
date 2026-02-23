@@ -1,14 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
-import { computeAllEngines, EngineResult, CheckinDay } from "@/lib/recommendationEngine";
+import { computeAllEngines, computeEngine, EngineResult, CheckinDay } from "@/lib/recommendationEngine";
+import { useEngineMode } from "@/hooks/useEngineMode";
 import { subDays, format } from "date-fns";
 
 export function useEngineScores() {
   const clientId = useEffectiveClientId();
+  const { engineMode, config } = useEngineMode();
 
   return useQuery({
-    queryKey: ["engine-scores", clientId],
+    queryKey: ["engine-scores", clientId, engineMode],
     queryFn: async (): Promise<EngineResult[]> => {
       if (!clientId) return [];
 
@@ -45,7 +47,11 @@ export function useEngineScores() {
         });
       }
 
-      return computeAllEngines(days);
+      // Put the user's active engine first, then the other two
+      const primaryResult = computeEngine(engineMode, days, config.scoringWeights);
+      const allEngines = computeAllEngines(days);
+      const others = allEngines.filter(r => r.engine !== engineMode);
+      return [primaryResult, ...others];
     },
     enabled: !!clientId,
     staleTime: 5 * 60 * 1000,
