@@ -11,7 +11,11 @@ export function FastingSafetyNotice() {
   const [open, setOpen] = useState(false);
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="mt-6">
+    <div className="mt-6 space-y-2">
+      <p className="text-xs text-muted-foreground italic text-center">
+        This program provides educational guidance only and is not a substitute for medical care.
+      </p>
+      <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="flex items-center justify-between w-full rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-left hover:bg-destructive/10 transition-colors">
         <div className="flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
@@ -55,5 +59,6 @@ export function FastingSafetyNotice() {
         </p>
       </CollapsibleContent>
     </Collapsible>
+    </div>
   );
 }
