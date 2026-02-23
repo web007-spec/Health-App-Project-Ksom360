@@ -23,6 +23,7 @@ import { ClientMealPlanTab } from "@/components/command-center/ClientMealPlanTab
 import { ClientOnDemandTab } from "@/components/command-center/ClientOnDemandTab";
 import { ClientCalendarTab } from "@/components/command-center/ClientCalendarTab";
 import { AdminGoalsTab } from "@/components/command-center/AdminGoalsTab";
+import { CoachCommandCenterTab } from "@/components/command-center/CoachCommandCenterTab";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ClientCommandCenter() {
@@ -204,6 +205,7 @@ export default function ClientCommandCenter() {
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="w-full justify-start overflow-x-auto flex-nowrap">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="command">Command Center</TabsTrigger>
             <TabsTrigger value="calendar">Calendar</TabsTrigger>
             <TabsTrigger value="training">Training</TabsTrigger>
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
@@ -218,6 +220,9 @@ export default function ClientCommandCenter() {
 
           <TabsContent value="overview">
             <ClientOverviewTab clientId={clientId!} trainerId={user?.id!} />
+          </TabsContent>
+          <TabsContent value="command">
+            <CoachCommandCenterTab clientId={clientId!} trainerId={user?.id!} />
           </TabsContent>
           <TabsContent value="calendar">
             <ClientCalendarTab clientId={clientId!} trainerId={user?.id!} />

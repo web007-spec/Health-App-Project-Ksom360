@@ -415,6 +415,9 @@ export type Database = {
           active_fast_target_hours: number | null
           activity_logging_enabled: boolean
           allow_custom_goal_text: boolean
+          allow_level_auto_advance: boolean
+          allow_plan_suggestions: boolean
+          athletic_safety_lock: boolean
           auto_advance_levels: boolean
           back_on_pace_enabled: boolean
           body_metrics_enabled: boolean
@@ -446,6 +449,7 @@ export type Database = {
           level_completion_pct: number
           level_start_date: string
           level_status: string
+          lock_advanced_plans: boolean
           lock_start_weight_after_set: boolean
           macros_enabled: boolean
           maintenance_mode: boolean
@@ -462,6 +466,7 @@ export type Database = {
           protocol_assigned_by: string | null
           protocol_completed: boolean
           protocol_start_date: string | null
+          require_coach_approval_plans: boolean
           restore_profile_type: string
           selected_protocol_id: string | null
           selected_quick_plan_id: string | null
@@ -477,6 +482,9 @@ export type Database = {
           active_fast_target_hours?: number | null
           activity_logging_enabled?: boolean
           allow_custom_goal_text?: boolean
+          allow_level_auto_advance?: boolean
+          allow_plan_suggestions?: boolean
+          athletic_safety_lock?: boolean
           auto_advance_levels?: boolean
           back_on_pace_enabled?: boolean
           body_metrics_enabled?: boolean
@@ -508,6 +516,7 @@ export type Database = {
           level_completion_pct?: number
           level_start_date?: string
           level_status?: string
+          lock_advanced_plans?: boolean
           lock_start_weight_after_set?: boolean
           macros_enabled?: boolean
           maintenance_mode?: boolean
@@ -524,6 +533,7 @@ export type Database = {
           protocol_assigned_by?: string | null
           protocol_completed?: boolean
           protocol_start_date?: string | null
+          require_coach_approval_plans?: boolean
           restore_profile_type?: string
           selected_protocol_id?: string | null
           selected_quick_plan_id?: string | null
@@ -539,6 +549,9 @@ export type Database = {
           active_fast_target_hours?: number | null
           activity_logging_enabled?: boolean
           allow_custom_goal_text?: boolean
+          allow_level_auto_advance?: boolean
+          allow_plan_suggestions?: boolean
+          athletic_safety_lock?: boolean
           auto_advance_levels?: boolean
           back_on_pace_enabled?: boolean
           body_metrics_enabled?: boolean
@@ -570,6 +583,7 @@ export type Database = {
           level_completion_pct?: number
           level_start_date?: string
           level_status?: string
+          lock_advanced_plans?: boolean
           lock_start_weight_after_set?: boolean
           macros_enabled?: boolean
           maintenance_mode?: boolean
@@ -586,6 +600,7 @@ export type Database = {
           protocol_assigned_by?: string | null
           protocol_completed?: boolean
           protocol_start_date?: string | null
+          require_coach_approval_plans?: boolean
           restore_profile_type?: string
           selected_protocol_id?: string | null
           selected_quick_plan_id?: string | null
@@ -1559,6 +1574,39 @@ export type Database = {
           is_active?: boolean
           message?: string
           trainer_id?: string
+        }
+        Relationships: []
+      }
+      coach_override_log: {
+        Row: {
+          client_id: string
+          coach_id: string
+          created_at: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          override_type: string
+          reason: string | null
+        }
+        Insert: {
+          client_id: string
+          coach_id: string
+          created_at?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          override_type: string
+          reason?: string | null
+        }
+        Update: {
+          client_id?: string
+          coach_id?: string
+          created_at?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          override_type?: string
+          reason?: string | null
         }
         Relationships: []
       }
@@ -3596,9 +3644,14 @@ export type Database = {
           client_id: string
           coach_approved: boolean
           coach_approved_at: string | null
+          coach_id: string | null
           coach_override_required: boolean
           created_at: string
           date: string
+          dismissal_note: string | null
+          dismissal_reason: string | null
+          dismissed: boolean
+          dismissed_at: string | null
           engine_mode: string
           id: string
           lowest_factor: string | null
@@ -3613,9 +3666,14 @@ export type Database = {
           client_id: string
           coach_approved?: boolean
           coach_approved_at?: string | null
+          coach_id?: string | null
           coach_override_required?: boolean
           created_at?: string
           date?: string
+          dismissal_note?: string | null
+          dismissal_reason?: string | null
+          dismissed?: boolean
+          dismissed_at?: string | null
           engine_mode: string
           id?: string
           lowest_factor?: string | null
@@ -3630,9 +3688,14 @@ export type Database = {
           client_id?: string
           coach_approved?: boolean
           coach_approved_at?: string | null
+          coach_id?: string | null
           coach_override_required?: boolean
           created_at?: string
           date?: string
+          dismissal_note?: string | null
+          dismissal_reason?: string | null
+          dismissed?: boolean
+          dismissed_at?: string | null
           engine_mode?: string
           id?: string
           lowest_factor?: string | null
