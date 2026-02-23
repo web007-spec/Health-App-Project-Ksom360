@@ -2,11 +2,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { getEngineConfig, type EngineMode, type EngineConfig } from "@/lib/engineConfig";
+import { switchEngineMode } from "@/lib/engineSwitchGuard";
+import { useAuth } from "@/hooks/useAuth";
 
 const DEFAULT_ENGINE: EngineMode = "performance";
 
 export function useEngineMode() {
   const clientId = useEffectiveClientId();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: engineMode, isLoading } = useQuery({
@@ -30,20 +33,17 @@ export function useEngineMode() {
   const setEngineMode = useMutation({
     mutationFn: async (mode: EngineMode) => {
       if (!clientId) throw new Error("No client ID");
+      const previousMode = engineMode || DEFAULT_ENGINE;
 
-      // Update both profiles and client_feature_settings
-      const [profileRes, settingsRes] = await Promise.all([
-        supabase.from("profiles").update({ engine_mode: mode as any }).eq("id", clientId),
-        supabase.from("client_feature_settings").update({ engine_mode: mode as any }).eq("client_id", clientId),
-      ]);
-
-      if (profileRes.error) throw profileRes.error;
-      if (settingsRes.error) throw settingsRes.error;
+      // Use safeguarded engine switch
+      await switchEngineMode(clientId, user?.id || "", mode, previousMode);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["engine-mode"] });
       queryClient.invalidateQueries({ queryKey: ["my-feature-settings"] });
       queryClient.invalidateQueries({ queryKey: ["client-feature-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["engine-scores"] });
+      queryClient.invalidateQueries({ queryKey: ["level-progression"] });
     },
   });
 
