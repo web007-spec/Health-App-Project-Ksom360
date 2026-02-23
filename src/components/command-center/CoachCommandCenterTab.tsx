@@ -5,6 +5,7 @@ import { InsightCoachControls } from "./InsightCoachControls";
 import { SafetyControls } from "./SafetyControls";
 import { ActivityLog } from "./ActivityLog";
 import { ParentLinkSection } from "./ParentLinkSection";
+import { CopilotAssistPanel } from "./CopilotAssistPanel";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -89,7 +90,10 @@ export function CoachCommandCenterTab({ clientId, trainerId }: CoachCommandCente
         />
       )}
 
-      {/* G) Activity Log */}
+      {/* G) Copilot Assist */}
+      <CopilotAssistPanel clientId={clientId} trainerId={trainerId} />
+
+      {/* H) Activity Log */}
       <ActivityLog clientId={clientId} />
     </div>
   );
