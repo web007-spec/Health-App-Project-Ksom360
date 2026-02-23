@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Dumbbell, Target, Plus, Clock, Trash2, CheckCircle2, StickyNote, Timer } from "lucide-react";
+import { ClientRecommendationReview } from "./ClientRecommendationReview";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -196,6 +197,9 @@ export function ClientOverviewTab({ clientId, trainerId }: ClientOverviewTabProp
     <div className="grid gap-6 lg:grid-cols-3">
       {/* Left column */}
       <div className="lg:col-span-2 space-y-6">
+        {/* Adaptive Recommendations */}
+        <ClientRecommendationReview clientId={clientId} />
+
         {/* Training Stats */}
         <TrainingStatsCard stats={trainingStats} />
 

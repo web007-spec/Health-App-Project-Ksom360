@@ -1,16 +1,15 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp, Shield, Zap, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Shield, Zap, AlertTriangle, ArrowRight, Eye } from "lucide-react";
 import { useEngineScores } from "@/hooks/useEngineScores";
+import { useAdaptiveRecommendation } from "@/hooks/useAdaptiveRecommendation";
 import {
   ENGINE_SCORE_LABELS,
   STATUS_DISPLAY,
-  RECOMMENDATION_MESSAGES,
-  CORRECTIVE_ACTIONS,
   StatusLabel,
-  RecommendationType,
 } from "@/lib/recommendationEngine";
+import { PLAN_SUGGESTION_LABELS } from "@/lib/recommendationRules";
 import type { EngineMode } from "@/lib/engineConfig";
 
 const ENGINE_ICONS: Record<EngineMode, React.ReactNode> = {
@@ -31,13 +30,19 @@ const PROGRESS_COLORS: Record<StatusLabel, string> = {
   needs_support: "[&>div]:bg-red-500",
 };
 
-export function RecommendationCard() {
-  const { data: scores, isLoading } = useEngineScores();
+const TREND_ICONS = {
+  up: <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />,
+  flat: <Minus className="h-3.5 w-3.5 text-muted-foreground" />,
+  down: <TrendingDown className="h-3.5 w-3.5 text-red-400" />,
+};
 
-  if (isLoading || !scores || scores.length === 0) return null;
+export function RecommendationCard() {
+  const { data: scores, isLoading: scoresLoading } = useEngineScores();
+  const { data: recommendation, isLoading: recLoading } = useAdaptiveRecommendation();
+
+  if (scoresLoading || !scores || scores.length === 0) return null;
 
   const result = scores[0];
-  const recMsg = RECOMMENDATION_MESSAGES[result.recommendation][result.status];
 
   return (
     <Card className="border-border">
@@ -80,22 +85,51 @@ export function RecommendationCard() {
           ))}
         </div>
 
-        {/* Recommendation */}
-        <div className="border-t border-border pt-3 space-y-2">
-          <p className="text-xs font-semibold text-foreground">{recMsg.title}</p>
-          <p className="text-xs text-muted-foreground">{recMsg.description}</p>
-
-          {/* Corrective action for moderate/needs_support */}
-          {result.status !== "strong" && (
-            <div className="flex items-start gap-2 p-2 rounded-md bg-muted/50 mt-1">
-              <AlertTriangle className="h-3.5 w-3.5 text-amber-400 mt-0.5 flex-shrink-0" />
-              <p className="text-[11px] text-muted-foreground">
-                <span className="font-medium text-foreground">Lowest: {result.lowestFactor.label}.</span>{" "}
-                {CORRECTIVE_ACTIONS[result.lowestFactor.factor]}
-              </p>
+        {/* Adaptive Recommendations */}
+        {recommendation && (
+          <div className="border-t border-border pt-3 space-y-3">
+            {/* Today */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <ArrowRight className="h-3 w-3 text-primary" />
+                <p className="text-xs font-semibold text-foreground">Today</p>
+              </div>
+              <p className="text-xs text-muted-foreground pl-[18px]">{recommendation.todayText}</p>
             </div>
-          )}
-        </div>
+
+            {/* This Week */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                {TREND_ICONS[recommendation.trendDirection as keyof typeof TREND_ICONS] || TREND_ICONS.flat}
+                <p className="text-xs font-semibold text-foreground">This Week</p>
+              </div>
+              <p className="text-xs text-muted-foreground pl-[18px]">{recommendation.weekText}</p>
+            </div>
+
+            {/* Plan Suggestion */}
+            {recommendation.planSuggestion && (
+              <div className="flex items-start gap-2 p-2 rounded-md bg-muted/50">
+                <Eye className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-primary" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] px-1.5 py-0 ${
+                        PLAN_SUGGESTION_LABELS[recommendation.planSuggestion.type]?.color || ""
+                      }`}
+                    >
+                      {PLAN_SUGGESTION_LABELS[recommendation.planSuggestion.type]?.label}
+                    </Badge>
+                    {recommendation.planSuggestion.coachOverrideRequired && (
+                      <span className="text-[10px] text-muted-foreground">Coach Review</span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">{recommendation.planSuggestion.text}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Footer stats */}
         <div className="flex items-center gap-3 pt-1 border-t border-border">

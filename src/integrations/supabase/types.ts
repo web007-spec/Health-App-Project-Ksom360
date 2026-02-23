@@ -3519,6 +3519,60 @@ export type Database = {
         }
         Relationships: []
       }
+      recommendation_events: {
+        Row: {
+          client_id: string
+          coach_approved: boolean
+          coach_approved_at: string | null
+          coach_override_required: boolean
+          created_at: string
+          date: string
+          engine_mode: string
+          id: string
+          lowest_factor: string | null
+          plan_suggestion_text: string | null
+          plan_suggestion_type: string | null
+          score_total: number
+          status: string
+          today_recommendation_text: string
+          week_recommendation_text: string
+        }
+        Insert: {
+          client_id: string
+          coach_approved?: boolean
+          coach_approved_at?: string | null
+          coach_override_required?: boolean
+          created_at?: string
+          date?: string
+          engine_mode: string
+          id?: string
+          lowest_factor?: string | null
+          plan_suggestion_text?: string | null
+          plan_suggestion_type?: string | null
+          score_total?: number
+          status?: string
+          today_recommendation_text: string
+          week_recommendation_text: string
+        }
+        Update: {
+          client_id?: string
+          coach_approved?: boolean
+          coach_approved_at?: string | null
+          coach_override_required?: boolean
+          created_at?: string
+          date?: string
+          engine_mode?: string
+          id?: string
+          lowest_factor?: string | null
+          plan_suggestion_text?: string | null
+          plan_suggestion_type?: string | null
+          score_total?: number
+          status?: string
+          today_recommendation_text?: string
+          week_recommendation_text?: string
+        }
+        Relationships: []
+      }
       resource_collections: {
         Row: {
           created_at: string
