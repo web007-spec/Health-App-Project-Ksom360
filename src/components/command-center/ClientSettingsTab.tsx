@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Dumbbell, MessageSquare, Camera, CheckSquare, Utensils, Activity, Target, Scale, BookOpen, CalendarDays, List, ChefHat, Eye, Clock, Smile, Type, Image, Shield, TrendingUp, Zap } from "lucide-react";
+import { InsightCoachControls } from "./InsightCoachControls";
 import { ENGINE_MODE_OPTIONS, type EngineMode } from "@/lib/engineConfig";
 import { Slider } from "@/components/ui/slider";
 import { RestDayCardEditor } from "./RestDayCardEditor";
@@ -304,6 +305,9 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
           </div>
         </CardContent>
       </Card>
+
+      {/* Insight Intelligence Controls */}
+      <InsightCoachControls clientId={clientId} trainerId={trainerId} settings={settings} toggleMutation={toggleMutation} />
 
       {/* Dashboard Customization */}
       <Card>
