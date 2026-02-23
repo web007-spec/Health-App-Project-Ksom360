@@ -34,6 +34,8 @@ import { ProtocolCompletionDialog } from "@/components/ProtocolCompletionDialog"
 import { MyProgressSection } from "@/components/MyProgressSection";
 import { DailyCheckinCard } from "@/components/DailyCheckinCard";
 import { RecommendationCard } from "@/components/RecommendationCard";
+import { DashboardFocusSelector } from "@/components/DashboardFocusSelector";
+import { DashboardInsightCard } from "@/components/DashboardInsightCard";
 
 // Fasting Protocol Card sub-component
 function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; navigate: (path: string) => void }) {
@@ -1276,11 +1278,13 @@ export default function ClientDashboard() {
           <FastingProtocolCard clientId={clientId} navigate={navigate} />
         )}
 
-        {/* Daily Check-In & Readiness */}
+        {/* Daily Check-In, Readiness & Focus */}
         {settings.fasting_enabled && (
           <>
+            <DashboardFocusSelector currentFocus={null} />
             <DailyCheckinCard />
             <RecommendationCard />
+            <DashboardInsightCard />
           </>
         )}
 
