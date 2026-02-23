@@ -119,7 +119,64 @@ export function useLevelProgression() {
   const advanceLevel = useMutation({
     mutationFn: async () => {
       if (!clientId || !data?.isEligible) throw new Error("Not eligible");
+
+      // Level Advancement Protection checks
+      const { data: settings } = await supabase
+        .from("client_feature_settings")
+        .select("parent_link_enabled, is_minor, engine_mode")
+        .eq("client_id", clientId)
+        .maybeSingle();
+
+      // Check for 3+ "Needs Support" days in last 7
+      const last7Scores = (data.criteria.find(c => c.label === "Low days (last 14)")?.current) || "0";
+      const needsSupportDays = parseInt(last7Scores, 10);
+
+      // Check pending coach overrides
+      const { count: pendingOverrides } = await supabase
+        .from("recommendation_events")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", clientId)
+        .not("plan_suggestion_type", "is", null)
+        .is("coach_approved", null)
+        .is("dismissed", null);
+
+      if ((pendingOverrides || 0) > 0) {
+        // Log blocked advancement
+        const { logSystemEvent } = await import("@/lib/systemEvents");
+        await logSystemEvent("level_advancement_blocked", clientId, null, {
+          reason: "coach_override_pending",
+          current_level: data.currentLevel,
+        });
+        await supabase
+          .from("client_feature_settings")
+          .update({ level_blocked_reason: "Coach override pending" } as any)
+          .eq("client_id", clientId);
+        throw new Error("Coach override pending — level advancement blocked.");
+      }
+
+      // Check parent link for athletic minors
+      if (settings?.is_minor && settings?.engine_mode === "athletic" && settings?.parent_link_enabled) {
+        const { logSystemEvent } = await import("@/lib/systemEvents");
+        await logSystemEvent("level_advancement_blocked", clientId, null, {
+          reason: "parent_link_active_needs_review",
+          current_level: data.currentLevel,
+        });
+        await supabase
+          .from("client_feature_settings")
+          .update({ level_blocked_reason: "Parent link active — coach review required" } as any)
+          .eq("client_id", clientId);
+        throw new Error("Parent link active — coach must review before advancement.");
+      }
+
       const newLevel = Math.min(data.currentLevel + 1, 7);
+
+      // Log successful advancement
+      const { logSystemEvent } = await import("@/lib/systemEvents");
+      await logSystemEvent("level_advancement", clientId, null, {
+        previous_level: data.currentLevel,
+        new_level: newLevel,
+      });
+
       const { error } = await supabase
         .from("client_feature_settings")
         .update({
@@ -127,6 +184,7 @@ export function useLevelProgression() {
           level_start_date: new Date().toISOString().split("T")[0],
           level_completion_pct: 0,
           level_status: newLevel >= 7 ? "completed" : "active",
+          level_blocked_reason: null,
         } as any)
         .eq("client_id", clientId);
       if (error) throw error;

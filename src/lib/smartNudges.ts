@@ -98,6 +98,36 @@ export function getApplicableNudgeTypes(ctx: NudgeContext): NudgeType[] {
   return types;
 }
 
+// Check if client has been Strong for 3 consecutive days (suppress nudges)
+export async function isConsecutiveStrong(userId: string): Promise<boolean> {
+  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data } = await supabase
+    .from("recommendation_events")
+    .select("status")
+    .eq("client_id", userId)
+    .gte("created_at", threeDaysAgo)
+    .order("created_at", { ascending: false })
+    .limit(3);
+
+  if (!data || data.length < 3) return false;
+  return data.every((e) => (e.status || "").toLowerCase().includes("strong"));
+}
+
+// Check if parent link is active for athletic minor (suppress non-performance nudges)
+export async function hasActiveParentLink(userId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from("client_feature_settings")
+    .select("is_minor, engine_mode, parent_link_enabled")
+    .eq("client_id", userId)
+    .maybeSingle();
+
+  return !!(data?.is_minor && data?.engine_mode === "athletic" && data?.parent_link_enabled);
+}
+
+// Types that are allowed even with parent link active
+const PARENT_LINK_ALLOWED_TYPES: NudgeType[] = ["workout", "recovery", "hydration"];
+
 // Frequency limits
 const FREQUENCY_LIMITS: Record<string, number> = {
   low: 1,
@@ -194,4 +224,44 @@ export async function logNotification(
     body: body || null,
     suppression_reason: suppressionReason || null,
   });
+}
+
+/**
+ * Comprehensive nudge suppression check combining all safety rules.
+ * Returns a suppression reason string, or null if the nudge should be sent.
+ */
+export async function checkNudgeSuppression(
+  userId: string,
+  type: NudgeType,
+  ctx: NudgeContext,
+  quietStart: string,
+  quietEnd: string,
+  maxPerDay: number,
+): Promise<string | null> {
+  // 1. Quiet hours
+  if (isQuietHours(quietStart, quietEnd)) return "quiet_hours";
+
+  // 2. Frequency limit
+  const todayCount = await getTodayNudgeCount(userId);
+  if (todayCount >= maxPerDay) return "frequency_limit";
+
+  // 3. Dismissed 3x in 7 days
+  const suppressed = await shouldSuppressNudge(userId, type);
+  if (suppressed) return "dismissed_3x_in_7d";
+
+  // 4. Recently completed (within 60 min)
+  const recent = await wasRecentlyCompleted(userId, type);
+  if (recent) return "recently_completed";
+
+  // 5. Strong for 3 consecutive days — suppress all nudges
+  const strong3 = await isConsecutiveStrong(userId);
+  if (strong3) return "consecutive_strong_3d";
+
+  // 6. Parent link active — suppress non-performance nudges for athletic minors
+  const parentLink = await hasActiveParentLink(userId);
+  if (parentLink && !PARENT_LINK_ALLOWED_TYPES.includes(type)) {
+    return "parent_link_active";
+  }
+
+  return null;
 }

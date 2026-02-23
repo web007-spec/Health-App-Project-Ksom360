@@ -445,8 +445,10 @@ export type Database = {
           insights_enabled: boolean
           is_minor: boolean
           is_premium: boolean
+          last_engine_switch_at: string | null
           last_fast_completed_at: string | null
           last_fast_ended_at: string | null
+          level_blocked_reason: string | null
           level_completion_pct: number
           level_start_date: string
           level_status: string
@@ -523,8 +525,10 @@ export type Database = {
           insights_enabled?: boolean
           is_minor?: boolean
           is_premium?: boolean
+          last_engine_switch_at?: string | null
           last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
+          level_blocked_reason?: string | null
           level_completion_pct?: number
           level_start_date?: string
           level_status?: string
@@ -601,8 +605,10 @@ export type Database = {
           insights_enabled?: boolean
           is_minor?: boolean
           is_premium?: boolean
+          last_engine_switch_at?: string | null
           last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
+          level_blocked_reason?: string | null
           level_completion_pct?: number
           level_start_date?: string
           level_status?: string
@@ -4370,6 +4376,33 @@ export type Database = {
           status?: string
           trainer_id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      system_events: {
+        Row: {
+          client_id: string
+          coach_id: string | null
+          created_at: string
+          details: Json | null
+          event_type: string
+          id: string
+        }
+        Insert: {
+          client_id: string
+          coach_id?: string | null
+          created_at?: string
+          details?: Json | null
+          event_type: string
+          id?: string
+        }
+        Update: {
+          client_id?: string
+          coach_id?: string | null
+          created_at?: string
+          details?: Json | null
+          event_type?: string
+          id?: string
         }
         Relationships: []
       }

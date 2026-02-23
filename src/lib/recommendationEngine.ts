@@ -51,22 +51,56 @@ export interface DailyInputs {
 
 // ─── Normalization helpers ──────────────────────────────
 
-function normSleep(hours: number | null): number {
-  if (hours === null) return 50;
+function normSleep(hours: number | null): number | null {
+  if (hours === null) return null;
   if (hours >= 7 && hours <= 9) return 100;
   if (hours >= 6) return 70;
   if (hours >= 5) return 40;
   return 20;
 }
 
-function normBool(val: boolean | null): number {
-  if (val === null) return 50;
+function normBool(val: boolean | null): number | null {
+  if (val === null) return null;
   return val ? 100 : 20;
 }
 
-function avg(values: number[]): number {
-  if (values.length === 0) return 50;
-  return values.reduce((s, v) => s + v, 0) / values.length;
+function avg(values: (number | null)[]): number {
+  const valid = values.filter((v): v is number => v !== null);
+  if (valid.length === 0) return 50;
+  return valid.reduce((s, v) => s + v, 0) / valid.length;
+}
+
+/**
+ * Build factors with proportional weight redistribution when inputs are null.
+ * Returns { factors, incompleteDataFlag, missingPct }
+ */
+function buildFactorsWithRedistribution(
+  rawFactors: { factor: ScoreFactor; normalized: number | null; weight: number }[],
+): { factors: FactorScore[]; incompleteDataFlag: boolean; missingPct: number } {
+  const total = rawFactors.length;
+  const present = rawFactors.filter((f) => f.normalized !== null);
+  const missing = total - present.length;
+  const missingPct = missing / total;
+
+  if (present.length === 0) {
+    // All missing — return neutral factors
+    return {
+      factors: rawFactors.map((f) => buildFactor(f.factor, 50, f.weight)),
+      incompleteDataFlag: true,
+      missingPct,
+    };
+  }
+
+  // Redistribute missing weight proportionally
+  const totalPresentWeight = present.reduce((s, f) => s + f.weight, 0);
+  const totalMissingWeight = rawFactors.filter((f) => f.normalized === null).reduce((s, f) => s + f.weight, 0);
+
+  const factors: FactorScore[] = present.map((f) => {
+    const redistributedWeight = f.weight + (totalMissingWeight * (f.weight / totalPresentWeight));
+    return buildFactor(f.factor, f.normalized!, redistributedWeight);
+  });
+
+  return { factors, incompleteDataFlag: missing > 0, missingPct };
 }
 
 // ─── Streak & weekly ────────────────────────────────────
@@ -127,21 +161,27 @@ function buildFactor(factor: ScoreFactor, normalized: number, weight: number): F
 function computeMetabolic(days: DailyInputs[]): EngineResult {
   const last7 = days.slice(0, 7);
 
-  const fastingNorm = avg(last7.map((d) => normBool(d.fastCompleted ? true : null)));
-  const sleepNorm = avg(last7.map((d) => normSleep(d.sleepHours)));
-  const nutritionNorm = avg(last7.map((d) => normBool(d.nutritionOnTrack)));
+  const fastingNorms = last7.map((d) => normBool(d.fastCompleted ? true : null));
+  const sleepNorms = last7.map((d) => normSleep(d.sleepHours));
+  const nutritionNorms = last7.map((d) => normBool(d.nutritionOnTrack));
   const wkPct = weeklyPct(days, "fastCompleted");
   const completionNorm = Math.min(wkPct, 100);
 
-  const factors: FactorScore[] = [
-    buildFactor("fasting", fastingNorm, 0.40),
-    buildFactor("sleep", sleepNorm, 0.20),
-    buildFactor("nutrition", nutritionNorm, 0.20),
-    buildFactor("weekly_completion", completionNorm, 0.20),
-  ];
+  const { factors, incompleteDataFlag, missingPct } = buildFactorsWithRedistribution([
+    { factor: "fasting", normalized: avg(fastingNorms), weight: 0.40 },
+    { factor: "sleep", normalized: avg(sleepNorms), weight: 0.20 },
+    { factor: "nutrition", normalized: avg(nutritionNorms), weight: 0.20 },
+    { factor: "weekly_completion", normalized: completionNorm, weight: 0.20 },
+  ]);
 
-  const score = Math.min(100, Math.max(0, Math.round(factors.reduce((s, f) => s + f.weighted, 0))));
-  const status = getStatus(score);
+  let score = Math.min(100, Math.max(0, Math.round(factors.reduce((s, f) => s + f.weighted, 0))));
+  let status = getStatus(score);
+
+  // >50% data missing → cap at Moderate
+  if (missingPct > 0.5 && status === "strong") {
+    status = "moderate";
+  }
+
   const lowestFactor = [...factors].sort((a, b) => a.normalized - b.normalized)[0];
 
   return {
@@ -159,32 +199,35 @@ function computeMetabolic(days: DailyInputs[]): EngineResult {
 function computePerformance(days: DailyInputs[], fastingEnabled: boolean): EngineResult {
   const last7 = days.slice(0, 7);
 
-  const workoutNorm = avg(last7.map((d) => normBool(d.workoutCompleted ? true : null)));
-  const sleepNorm = avg(last7.map((d) => normSleep(d.sleepHours)));
-  const recoveryNorm = avg(last7.map((d) => normBool(d.recoveryCompleted)));
-  const fastingNorm = avg(last7.map((d) => normBool(d.fastCompleted ? true : null)));
+  const workoutNorms = last7.map((d) => normBool(d.workoutCompleted ? true : null));
+  const sleepNorms = last7.map((d) => normSleep(d.sleepHours));
+  const recoveryNorms = last7.map((d) => normBool(d.recoveryCompleted));
+  const fastingNorms = last7.map((d) => normBool(d.fastCompleted ? true : null));
   const wkPct = weeklyPct(days, "workoutCompleted");
   const completionNorm = Math.min(wkPct, 100);
 
   let wWorkout = 0.35, wSleep = 0.20, wRecovery = 0.20, wFasting = 0.15, wWeekly = 0.10;
 
   if (!fastingEnabled) {
-    // Redistribute 15% proportionally: workout gets 9%, recovery gets 6%
     wWorkout += 0.09;
     wRecovery += 0.06;
     wFasting = 0;
   }
 
-  const factors: FactorScore[] = [
-    buildFactor("workout", workoutNorm, wWorkout),
-    buildFactor("sleep", sleepNorm, wSleep),
-    buildFactor("recovery", recoveryNorm, wRecovery),
-    ...(fastingEnabled ? [buildFactor("fasting", fastingNorm, wFasting)] : []),
-    buildFactor("weekly_completion", completionNorm, wWeekly),
+  const rawFactors: { factor: ScoreFactor; normalized: number | null; weight: number }[] = [
+    { factor: "workout", normalized: avg(workoutNorms), weight: wWorkout },
+    { factor: "sleep", normalized: avg(sleepNorms), weight: wSleep },
+    { factor: "recovery", normalized: avg(recoveryNorms), weight: wRecovery },
+    ...(fastingEnabled ? [{ factor: "fasting" as ScoreFactor, normalized: avg(fastingNorms), weight: wFasting }] : []),
+    { factor: "weekly_completion", normalized: completionNorm, weight: wWeekly },
   ];
 
-  const score = Math.min(100, Math.max(0, Math.round(factors.reduce((s, f) => s + f.weighted, 0))));
-  const status = getStatus(score);
+  const { factors, missingPct } = buildFactorsWithRedistribution(rawFactors);
+
+  let score = Math.min(100, Math.max(0, Math.round(factors.reduce((s, f) => s + f.weighted, 0))));
+  let status = getStatus(score);
+  if (missingPct > 0.5 && status === "strong") status = "moderate";
+
   const lowestFactor = [...factors].sort((a, b) => a.normalized - b.normalized)[0];
 
   return {
@@ -202,20 +245,22 @@ function computePerformance(days: DailyInputs[], fastingEnabled: boolean): Engin
 function computeAthletic(days: DailyInputs[]): EngineResult {
   const last7 = days.slice(0, 7);
 
-  const sleepNorm = avg(last7.map((d) => normSleep(d.sleepHours)));
-  const trainingNorm = avg(last7.map((d) => normBool(d.workoutCompleted ? true : null)));
-  const recoveryNorm = avg(last7.map((d) => normBool(d.recoveryCompleted)));
-  const nutritionNorm = avg(last7.map((d) => normBool(d.nutritionOnTrack)));
+  const sleepNorms = last7.map((d) => normSleep(d.sleepHours));
+  const trainingNorms = last7.map((d) => normBool(d.workoutCompleted ? true : null));
+  const recoveryNorms = last7.map((d) => normBool(d.recoveryCompleted));
+  const nutritionNorms = last7.map((d) => normBool(d.nutritionOnTrack));
 
-  const factors: FactorScore[] = [
-    buildFactor("sleep", sleepNorm, 0.30),
-    buildFactor("training_load", trainingNorm, 0.25),
-    buildFactor("recovery", recoveryNorm, 0.25),
-    buildFactor("nutrition", nutritionNorm, 0.20),
-  ];
+  const { factors, missingPct } = buildFactorsWithRedistribution([
+    { factor: "sleep", normalized: avg(sleepNorms), weight: 0.30 },
+    { factor: "training_load", normalized: avg(trainingNorms), weight: 0.25 },
+    { factor: "recovery", normalized: avg(recoveryNorms), weight: 0.25 },
+    { factor: "nutrition", normalized: avg(nutritionNorms), weight: 0.20 },
+  ]);
 
-  const score = Math.min(100, Math.max(0, Math.round(factors.reduce((s, f) => s + f.weighted, 0))));
-  const status = getStatus(score);
+  let score = Math.min(100, Math.max(0, Math.round(factors.reduce((s, f) => s + f.weighted, 0))));
+  let status = getStatus(score);
+  if (missingPct > 0.5 && status === "strong") status = "moderate";
+
   const lowestFactor = [...factors].sort((a, b) => a.normalized - b.normalized)[0];
 
   return {
