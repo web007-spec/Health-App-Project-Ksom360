@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, TrendingDown, Users, Dumbbell, Activity, Calendar, Download, Swords, Trophy } from "lucide-react";
+import { CoachIntelligenceTab } from "@/components/CoachIntelligenceTab";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -403,13 +404,18 @@ export default function Analytics() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="workouts" className="space-y-6">
+        <Tabs defaultValue="intelligence" className="space-y-6">
           <TabsList>
+            <TabsTrigger value="intelligence">Coach Intelligence</TabsTrigger>
             <TabsTrigger value="workouts">Workouts</TabsTrigger>
             <TabsTrigger value="sports">Sports</TabsTrigger>
             <TabsTrigger value="progress">Progress</TabsTrigger>
             <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="intelligence">
+            <CoachIntelligenceTab trainerId={user?.id!} />
+          </TabsContent>
 
           {/* Workouts Tab */}
           <TabsContent value="workouts" className="space-y-6">
