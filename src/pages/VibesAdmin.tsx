@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, Music, GripVertical, Star, Headphones, Moon, Tag } from "lucide-react";
+import { Plus, Pencil, Trash2, Music, GripVertical, Star, Headphones, Moon, Tag, Timer, ChevronDown, ChevronUp } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -20,6 +20,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
+import { PROTOCOL_DETAIL_COPY } from "@/lib/protocolDetailContent";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export default function VibesAdmin() {
   const [catDialogOpen, setCatDialogOpen] = useState(false);
@@ -31,6 +33,20 @@ export default function VibesAdmin() {
   const [storyDialogOpen, setStoryDialogOpen] = useState(false);
   const [editStory, setEditStory] = useState<any>(null);
   const qc = useQueryClient();
+  const [expandedProtocol, setExpandedProtocol] = useState<string | null>(null);
+
+  const { data: protocols = [] } = useQuery({
+    queryKey: ["admin-fasting-protocols"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fasting_protocols")
+        .select("*")
+        .order("category")
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const { data: categories = [] } = useQuery({
     queryKey: ["vibes-categories"],
@@ -161,12 +177,128 @@ export default function VibesAdmin() {
 
         <Tabs defaultValue="categories">
           <TabsList>
+            <TabsTrigger value="protocols">Fasting Protocols</TabsTrigger>
             <TabsTrigger value="categories">Categories</TabsTrigger>
             <TabsTrigger value="tags">Tags</TabsTrigger>
             <TabsTrigger value="sounds">Sounds</TabsTrigger>
             <TabsTrigger value="sessions">Guided Sessions</TabsTrigger>
             <TabsTrigger value="stories">Sleep Stories</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="protocols" className="space-y-4">
+            {(() => {
+              const grouped = (protocols as any[]).reduce((acc: Record<string, any[]>, p: any) => {
+                const cat = p.category || "Uncategorized";
+                if (!acc[cat]) acc[cat] = [];
+                acc[cat].push(p);
+                return acc;
+              }, {} as Record<string, any[]>);
+              return Object.entries(grouped).map(([category, protos]) => (
+                <div key={category} className="space-y-3">
+                  <h3 className="text-lg font-semibold text-primary">{category}</h3>
+                  <div className="space-y-2">
+                    {(protos as any[]).map((p: any) => {
+                      const detail = PROTOCOL_DETAIL_COPY[p.id];
+                      const isExpanded = expandedProtocol === p.id;
+                      return (
+                        <Collapsible key={p.id} open={isExpanded} onOpenChange={() => setExpandedProtocol(isExpanded ? null : p.id)}>
+                          <Card>
+                            <CollapsibleTrigger asChild>
+                              <CardContent className="p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <Timer className="h-5 w-5 text-primary" />
+                                    <div>
+                                      <p className="font-semibold">{p.name}</p>
+                                      <p className="text-sm text-muted-foreground">{detail?.descriptionOverride || p.description}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant="outline">{detail?.statsLabel || `${p.fast_target_hours}h`}</Badge>
+                                    <Badge variant="secondary">{detail?.difficultyLabel || p.difficulty_level}</Badge>
+                                    <Badge>{p.duration_days ? `${p.duration_days} days` : "Ongoing"}</Badge>
+                                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              {detail ? (
+                                <CardContent className="pt-0 pb-4 px-4 space-y-4 border-t">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                                    <div className="space-y-3">
+                                      <div>
+                                        <h4 className="font-semibold text-sm mb-1">How It Works</h4>
+                                        <ul className="text-sm text-muted-foreground space-y-1">
+                                          {detail.howItWorks.map((s, i) => <li key={i}>• {s}</li>)}
+                                        </ul>
+                                      </div>
+                                      {detail.progression && (
+                                        <div>
+                                          <h4 className="font-semibold text-sm mb-1">Progression</h4>
+                                          <div className="space-y-1">
+                                            {detail.progression.map((p, i) => (
+                                              <div key={i} className="text-sm flex gap-2">
+                                                <Badge variant="outline" className="text-xs">{p.label}</Badge>
+                                                <span className="text-muted-foreground">Fast {p.fastHours} / Eat {p.eatHours}</span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                          {detail.progressionNote && <p className="text-xs text-muted-foreground mt-1 italic">{detail.progressionNote}</p>}
+                                        </div>
+                                      )}
+                                      <div>
+                                        <h4 className="font-semibold text-sm mb-1">Schedule</h4>
+                                        <p className="text-sm text-muted-foreground">Stop eating: {detail.schedule.stopEating}</p>
+                                        <p className="text-sm text-muted-foreground">Break fast: {detail.schedule.breakFast}</p>
+                                        <p className="text-sm text-muted-foreground mt-1">Meals: {detail.scheduleMeals.join(", ")}</p>
+                                        {detail.scheduleNote && <p className="text-xs text-muted-foreground italic">{detail.scheduleNote}</p>}
+                                      </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                      <div>
+                                        <h4 className="font-semibold text-sm mb-1">Meal Strategy</h4>
+                                        <ul className="text-sm text-muted-foreground space-y-1">
+                                          {detail.mealStrategy.map((s, i) => <li key={i}>• {s}</li>)}
+                                        </ul>
+                                      </div>
+                                      <div>
+                                        <h4 className="font-semibold text-sm mb-1">What to Expect</h4>
+                                        <ul className="text-sm text-muted-foreground space-y-1">
+                                          {detail.whatToExpect.map((s, i) => <li key={i}>• {s}</li>)}
+                                        </ul>
+                                        {detail.whatToExpectNote && <p className="text-xs text-muted-foreground italic">{detail.whatToExpectNote}</p>}
+                                      </div>
+                                      <div>
+                                        <h4 className="font-semibold text-sm mb-1">Coach Guidance</h4>
+                                        <ul className="text-sm text-muted-foreground space-y-1">
+                                          {detail.coachGuidance.map((s, i) => <li key={i}>• {s}</li>)}
+                                        </ul>
+                                      </div>
+                                      <div>
+                                        <h4 className="font-semibold text-sm mb-1">Who This Is For</h4>
+                                        <ul className="text-sm text-muted-foreground space-y-1">
+                                          {detail.whoThisIsFor.map((s, i) => <li key={i}>• {s}</li>)}
+                                        </ul>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              ) : (
+                                <CardContent className="pt-0 pb-4 px-4 border-t">
+                                  <p className="text-sm text-muted-foreground pt-4 italic">No detailed copy configured for this protocol.</p>
+                                </CardContent>
+                              )}
+                            </CollapsibleContent>
+                          </Card>
+                        </Collapsible>
+                      );
+                    })}
+                  </div>
+                </div>
+              ));
+            })()}
+          </TabsContent>
 
           <TabsContent value="categories" className="space-y-4">
             <div className="flex justify-end">
