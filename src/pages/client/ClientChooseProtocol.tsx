@@ -6,6 +6,7 @@ import { ProgramsSelector } from "@/components/ProgramsSelector";
 import { QuickPlansSelector } from "@/components/QuickPlansSelector";
 import { FastingSafetyNotice } from "@/components/FastingSafetyNotice";
 import { FastingStructureComparison } from "@/components/FastingStructureComparison";
+import { RecommendationCard } from "@/components/RecommendationCard";
 
 export default function ClientChooseProtocol() {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export default function ClientChooseProtocol() {
           <h1 className="text-2xl font-bold">Choose Protocol</h1>
         </div>
 
+        <RecommendationCard />
         <ProgramsSelector navigate={navigate} />
         <QuickPlansSelector navigate={navigate} />
 

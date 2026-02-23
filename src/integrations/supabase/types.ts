@@ -1646,6 +1646,42 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_checkins: {
+        Row: {
+          checkin_date: string
+          client_id: string
+          created_at: string
+          id: string
+          nutrition_on_track: boolean | null
+          recovery_completed: boolean | null
+          sleep_hours: number | null
+          sleep_quality: number | null
+          updated_at: string
+        }
+        Insert: {
+          checkin_date?: string
+          client_id: string
+          created_at?: string
+          id?: string
+          nutrition_on_track?: boolean | null
+          recovery_completed?: boolean | null
+          sleep_hours?: number | null
+          sleep_quality?: number | null
+          updated_at?: string
+        }
+        Update: {
+          checkin_date?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          nutrition_on_track?: boolean | null
+          recovery_completed?: boolean | null
+          sleep_hours?: number | null
+          sleep_quality?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       eating_window_meal_photos: {
         Row: {
           client_id: string
@@ -1670,6 +1706,42 @@ export type Database = {
           image_url?: string
           order_index?: number
           trainer_id?: string
+        }
+        Relationships: []
+      }
+      engine_scores: {
+        Row: {
+          client_id: string
+          computed_at: string
+          engine_type: string
+          id: string
+          recommendation: string | null
+          score: number
+          status: string
+          streak_days: number
+          weekly_completion_pct: number
+        }
+        Insert: {
+          client_id: string
+          computed_at?: string
+          engine_type: string
+          id?: string
+          recommendation?: string | null
+          score?: number
+          status: string
+          streak_days?: number
+          weekly_completion_pct?: number
+        }
+        Update: {
+          client_id?: string
+          computed_at?: string
+          engine_type?: string
+          id?: string
+          recommendation?: string | null
+          score?: number
+          status?: string
+          streak_days?: number
+          weekly_completion_pct?: number
         }
         Relationships: []
       }
