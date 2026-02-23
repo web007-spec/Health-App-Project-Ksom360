@@ -443,6 +443,7 @@ export type Database = {
           greeting_subtitle: string
           id: string
           insights_enabled: boolean
+          is_minor: boolean
           is_premium: boolean
           last_fast_completed_at: string | null
           last_fast_ended_at: string | null
@@ -460,6 +461,7 @@ export type Database = {
           meal_plan_type: string
           messages_enabled: boolean
           pace_enabled: boolean
+          parent_link_enabled: boolean
           pinned_insight_text: string | null
           pinned_insight_until: string | null
           progress_photos_enabled: boolean
@@ -510,6 +512,7 @@ export type Database = {
           greeting_subtitle?: string
           id?: string
           insights_enabled?: boolean
+          is_minor?: boolean
           is_premium?: boolean
           last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
@@ -527,6 +530,7 @@ export type Database = {
           meal_plan_type?: string
           messages_enabled?: boolean
           pace_enabled?: boolean
+          parent_link_enabled?: boolean
           pinned_insight_text?: string | null
           pinned_insight_until?: string | null
           progress_photos_enabled?: boolean
@@ -577,6 +581,7 @@ export type Database = {
           greeting_subtitle?: string
           id?: string
           insights_enabled?: boolean
+          is_minor?: boolean
           is_premium?: boolean
           last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
@@ -594,6 +599,7 @@ export type Database = {
           meal_plan_type?: string
           messages_enabled?: boolean
           pace_enabled?: boolean
+          parent_link_enabled?: boolean
           pinned_insight_text?: string | null
           pinned_insight_until?: string | null
           progress_photos_enabled?: boolean
@@ -2569,6 +2575,63 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "group_classes_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guardian_links: {
+        Row: {
+          athlete_user_id: string
+          coach_note: string | null
+          created_at: string
+          expires_at: string
+          guardian_email: string
+          id: string
+          linked_at: string | null
+          revoked_at: string | null
+          status: string
+          token: string
+          trainer_id: string
+        }
+        Insert: {
+          athlete_user_id: string
+          coach_note?: string | null
+          created_at?: string
+          expires_at?: string
+          guardian_email: string
+          id?: string
+          linked_at?: string | null
+          revoked_at?: string | null
+          status?: string
+          token?: string
+          trainer_id: string
+        }
+        Update: {
+          athlete_user_id?: string
+          coach_note?: string | null
+          created_at?: string
+          expires_at?: string
+          guardian_email?: string
+          id?: string
+          linked_at?: string | null
+          revoked_at?: string | null
+          status?: string
+          token?: string
+          trainer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guardian_links_athlete_user_id_fkey"
+            columns: ["athlete_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guardian_links_trainer_id_fkey"
             columns: ["trainer_id"]
             isOneToOne: false
             referencedRelation: "profiles"

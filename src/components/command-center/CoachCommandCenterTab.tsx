@@ -4,6 +4,7 @@ import { ManualOverrides } from "./ManualOverrides";
 import { InsightCoachControls } from "./InsightCoachControls";
 import { SafetyControls } from "./SafetyControls";
 import { ActivityLog } from "./ActivityLog";
+import { ParentLinkSection } from "./ParentLinkSection";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -15,14 +16,27 @@ interface CoachCommandCenterTabProps {
 export function CoachCommandCenterTab({ clientId, trainerId }: CoachCommandCenterTabProps) {
   const queryClient = useQueryClient();
 
-  // Fetch settings for InsightCoachControls
+  // Fetch settings for InsightCoachControls + parent link visibility
   const { data: settings } = useQuery({
     queryKey: ["cc-insight-settings", clientId],
     queryFn: async () => {
       const { data } = await supabase
         .from("client_feature_settings")
-        .select("insights_enabled, pinned_insight_text, pinned_insight_until")
+        .select("insights_enabled, pinned_insight_text, pinned_insight_until, is_minor, engine_mode, parent_link_enabled")
         .eq("client_id", clientId)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  // Fetch athlete name for the parent link section
+  const { data: clientProfile } = useQuery({
+    queryKey: ["cc-client-profile", clientId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", clientId)
         .maybeSingle();
       return data;
     },
@@ -41,6 +55,8 @@ export function CoachCommandCenterTab({ clientId, trainerId }: CoachCommandCente
       queryClient.invalidateQueries({ queryKey: ["my-feature-settings"] });
     },
   });
+
+  const showParentLink = settings?.is_minor && settings?.engine_mode === "athletic" && settings?.parent_link_enabled;
 
   return (
     <div className="space-y-6">
@@ -64,7 +80,16 @@ export function CoachCommandCenterTab({ clientId, trainerId }: CoachCommandCente
       {/* E) Safety Controls */}
       <SafetyControls clientId={clientId} trainerId={trainerId} />
 
-      {/* F) Activity Log */}
+      {/* F) Parent / Guardian Link (Athletic minors only) */}
+      {showParentLink && (
+        <ParentLinkSection
+          clientId={clientId}
+          trainerId={trainerId}
+          athleteName={clientProfile?.full_name || "Athlete"}
+        />
+      )}
+
+      {/* G) Activity Log */}
       <ActivityLog clientId={clientId} />
     </div>
   );

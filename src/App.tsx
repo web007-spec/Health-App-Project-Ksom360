@@ -78,6 +78,7 @@ import Scheduling from "./pages/Scheduling";
 import TrainerSettings from "./pages/TrainerSettings";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import GuardianSummary from "./pages/GuardianSummary";
 
 const queryClient = new QueryClient();
 
@@ -91,6 +92,7 @@ const App = () => (
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/guardian/:token" element={<GuardianSummary />} />
           
           {/* Trainer Routes */}
           <Route path="/" element={<ProtectedRoute allowedRoles={["trainer"]}><TrainerDashboard /></ProtectedRoute>} />
