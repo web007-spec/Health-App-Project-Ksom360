@@ -1486,6 +1486,75 @@ export type Database = {
           },
         ]
       }
+      client_weekly_summaries: {
+        Row: {
+          avg_score_7d: number | null
+          client_id: string
+          completion_7d: number | null
+          current_level: number
+          engine_mode: string
+          has_pending_suggestion: boolean
+          id: string
+          level_up_eligible: boolean
+          lowest_factor_mode: string | null
+          needs_support_days_14d: number
+          pending_suggestion_type: string | null
+          score_status: string
+          trainer_id: string
+          trend_direction: string
+          updated_at: string
+        }
+        Insert: {
+          avg_score_7d?: number | null
+          client_id: string
+          completion_7d?: number | null
+          current_level?: number
+          engine_mode?: string
+          has_pending_suggestion?: boolean
+          id?: string
+          level_up_eligible?: boolean
+          lowest_factor_mode?: string | null
+          needs_support_days_14d?: number
+          pending_suggestion_type?: string | null
+          score_status?: string
+          trainer_id: string
+          trend_direction?: string
+          updated_at?: string
+        }
+        Update: {
+          avg_score_7d?: number | null
+          client_id?: string
+          completion_7d?: number | null
+          current_level?: number
+          engine_mode?: string
+          has_pending_suggestion?: boolean
+          id?: string
+          level_up_eligible?: boolean
+          lowest_factor_mode?: string | null
+          needs_support_days_14d?: number
+          pending_suggestion_type?: string | null
+          score_status?: string
+          trainer_id?: string
+          trend_direction?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_weekly_summaries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_weekly_summaries_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_workout_collection_access: {
         Row: {
           client_id: string
