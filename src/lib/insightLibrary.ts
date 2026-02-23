@@ -88,46 +88,50 @@ export const INSIGHT_LIBRARY: InsightEntry[] = [
   // PERFORMANCE ENGINE (30 insights)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // Workout
-  i("performance", "1-3", "workout", "strong", "Strong workout completion. You're building the training base for long-term gains.", "Hit every set with intent today."),
-  i("performance", "1-3", "workout", "moderate", "Missed sessions slow momentum. Get back to your training schedule today."),
-  i("performance", "1-3", "workout", "needs_support", "Training consistency is your foundation. Even a reduced session beats a skipped one.", "Complete at least a warm-up and main lift today."),
-  i("performance", "4-6", "workout", "strong", "Your training consistency is driving measurable adaptation. Keep pushing."),
-  i("performance", "4-6", "workout", "moderate", "Performance gains require consistent stimulus. Don't let off-days become off-weeks.", "Schedule tomorrow's session now."),
-  i("performance", "4-6", "workout", "needs_support", "Your training load has dropped. Reduce volume but maintain frequency to stay on track."),
-  i("performance", "7", "workout", "strong", "Mastery-level training. You have the discipline to auto-regulate load. Trust your readiness."),
-  i("performance", "7", "workout", "moderate", "Even at mastery, consistency drives performance. Adjust intensity, not attendance."),
+  i("performance", "1-3", "workout", "needs_support", "Training consistency drives performance adaptation.", "Complete today's workout fully."),
+  i("performance", "1-3", "workout", "moderate", "You're building rhythm. Stay consistent.", "Finish strong today."),
+  i("performance", "4-6", "workout", "strong", "Training execution is supporting measurable progress."),
+  i("performance", "4-6", "workout", "needs_support", "Missed sessions reduce adaptation efficiency.", "Recommit to scheduled volume."),
+  i("performance", "7", "workout", "any", "Mastery is sustained through disciplined execution."),
 
   // Sleep
-  i("performance", "1-3", "sleep", "any", "Sleep is where adaptation happens. Prioritize 7–8 hours to maximize training gains.", "Set your sleep target for tonight."),
-  i("performance", "4-6", "sleep", "strong", "Quality sleep is powering your recovery and performance gains. Protect this asset."),
-  i("performance", "4-6", "sleep", "needs_support", "Poor sleep directly reduces training output and recovery quality. Make it non-negotiable.", "No caffeine after 2pm today."),
-  i("performance", "7", "sleep", "any", "At your level, sleep quality differentiates good from great performance."),
+  i("performance", "1-3", "sleep", "needs_support", "Performance output is limited by recovery quality.", "Prioritize 7+ hours tonight."),
+  i("performance", "1-3", "sleep", "moderate", "Sleep stability increases training response.", "Protect tonight's recovery."),
+  i("performance", "4-6", "sleep", "strong", "Recovery patterns are supporting strength gains."),
+  i("performance", "4-6", "sleep", "needs_support", "Recovery inconsistency can stall progress.", "Reinforce sleep timing."),
+  i("performance", "7", "sleep", "any", "Elite output requires elite recovery habits."),
 
   // Recovery
-  i("performance", "1-3", "recovery", "strong", "Good recovery habits. This balance between stress and rest drives progress."),
-  i("performance", "1-3", "recovery", "needs_support", "Recovery is not passive — it's active preparation for your next session.", "Add mobility work or a recovery walk today."),
-  i("performance", "4-6", "recovery", "any", "Recovery balance determines your training ceiling. Invest in it like you invest in training."),
-  i("performance", "7", "recovery", "any", "Mastery recovery means knowing when to push and when to pull back. Trust the data."),
+  i("performance", "1-3", "recovery", "needs_support", "Recovery gaps increase fatigue accumulation.", "Add light mobility or walk today."),
+  i("performance", "1-3", "recovery", "moderate", "Active recovery sustains training intensity.", "Stay moving."),
+  i("performance", "4-6", "recovery", "strong", "Balanced recovery supports higher workload capacity."),
+  i("performance", "4-6", "recovery", "needs_support", "Accumulated fatigue reduces performance output.", "Lower intensity if needed."),
+  i("performance", "7", "recovery", "any", "Optimization replaces overtraining at this level."),
 
-  // Fasting (secondary for performance)
-  i("performance", "any", "fasting", "strong", "Fasting is supporting your performance toolkit. Solid adherence."),
-  i("performance", "any", "fasting", "moderate", "Fasting is a tool, not a requirement. Adjust timing around training for best results."),
-  i("performance", "any", "fasting", "needs_support", "If fasting is impacting training quality, reduce window length or pause it."),
+  // Fasting
+  i("performance", "1-3", "fasting", "moderate", "Fasting discipline supports metabolic efficiency.", "Maintain your planned window."),
+  i("performance", "1-3", "fasting", "needs_support", "Nutritional timing affects training energy.", "Stabilize your eating window."),
+  i("performance", "4-6", "fasting", "strong", "Nutritional structure is aligned with performance."),
+  i("performance", "4-6", "fasting", "moderate", "Energy consistency improves output.", "Refine meal timing."),
+  i("performance", "7", "fasting", "any", "Fueling precision enhances advanced adaptation."),
 
-  // Nutrition & completion
-  i("performance", "any", "nutrition", "strong", "Nutrition is fueling your performance gains. Keep protein targets consistent."),
-  i("performance", "any", "nutrition", "needs_support", "Under-fueling sabotages training adaptation. Prioritize adequate nutrition today.", "Hit your protein target today."),
-  i("performance", "1-3", "weekly_completion", "any", "Consistency builds capacity. Show up every scheduled day this week."),
-  i("performance", "4-6", "weekly_completion", "moderate", "Your weekly completion is below target. Performance requires sustained effort.", "Complete all remaining sessions this week."),
-  i("performance", "7", "weekly_completion", "any", "At mastery, your weekly rhythm should be self-sustaining. Maintain the standard."),
+  // Completion
+  i("performance", "1-3", "weekly_completion", "needs_support", "Progress depends on full weekly execution.", "Complete remaining sessions."),
+  i("performance", "1-3", "weekly_completion", "moderate", "You're close to full execution.", "Finish strong this week."),
+  i("performance", "4-6", "weekly_completion", "strong", "Consistency is translating into measurable strength."),
+  i("performance", "4-6", "weekly_completion", "needs_support", "Partial completion slows progression.", "Close the gap."),
+  i("performance", "7", "weekly_completion", "any", "Elite consistency compounds results."),
 
-  // General performance
-  i("performance", "any", "any", "strong", "Your readiness score reflects real capacity. You've earned this momentum."),
-  i("performance", "any", "any", "moderate", "Forward momentum requires daily commitment. One strong day leads to the next."),
-  i("performance", "any", "any", "needs_support", "Rest is not regression. Strategic recovery builds the base for your next push."),
-  i("performance", "1-3", "any", "any", "Build the habits now that will carry you through advanced programming later."),
-  i("performance", "4-6", "any", "any", "You're past the beginner phase. Precision in execution separates good from great."),
-  i("performance", "7", "any", "any", "Mastery means self-regulation within structure. You know what works — execute it."),
+  // General
+  i("performance", "1-3", "any", "strong", "You are building performance capacity."),
+  i("performance", "1-3", "any", "moderate", "Small refinements produce noticeable gains.", "Improve your weakest metric."),
+  i("performance", "1-3", "any", "needs_support", "Stability first. Intensity second.", "Reinforce structure."),
+  i("performance", "4-6", "any", "strong", "Your readiness trend is upward."),
+  i("performance", "4-6", "any", "moderate", "Focus sharpens outcomes.", "Target your lowest score."),
+  i("performance", "4-6", "any", "needs_support", "Correct the weakest variable.", "Stabilize before increasing load."),
+  i("performance", "7", "any", "strong", "Performance mastery is visible in the data."),
+  i("performance", "7", "any", "moderate", "Optimization requires precise adjustments.", "Refine the weakest input."),
+  i("performance", "7", "any", "needs_support", "Advanced progress demands recalibration.", "Correct before increasing intensity."),
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // ATHLETIC ENGINE (30 insights)
