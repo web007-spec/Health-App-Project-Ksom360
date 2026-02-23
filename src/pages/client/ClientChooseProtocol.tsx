@@ -9,6 +9,7 @@ import { FastingSafetyNotice } from "@/components/FastingSafetyNotice";
 import { FastingStructureComparison } from "@/components/FastingStructureComparison";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { LifestylePlanSelector } from "@/components/LifestylePlanSelector";
+import { TransformationPathCard } from "@/components/TransformationPathCard";
 
 export default function ClientChooseProtocol() {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export default function ClientChooseProtocol() {
 
         <RecommendationCard />
         <LifestylePlanSelector selected={focusFilter} onSelect={setFocusFilter} />
+        <TransformationPathCard />
         <ProgramsSelector navigate={navigate} />
         <QuickPlansSelector navigate={navigate} />
 
