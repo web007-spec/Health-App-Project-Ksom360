@@ -5,7 +5,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Dumbbell, MessageSquare, Camera, CheckSquare, Utensils, Activity, Target, Scale, BookOpen, CalendarDays, List, ChefHat, Eye, Clock, Smile, Type, Image } from "lucide-react";
+import { Dumbbell, MessageSquare, Camera, CheckSquare, Utensils, Activity, Target, Scale, BookOpen, CalendarDays, List, ChefHat, Eye, Clock, Smile, Type, Image, Shield, TrendingUp, Zap } from "lucide-react";
+import { ENGINE_MODE_OPTIONS, type EngineMode } from "@/lib/engineConfig";
 import { Slider } from "@/components/ui/slider";
 import { RestDayCardEditor } from "./RestDayCardEditor";
 import { SportDayCardEditor } from "./SportDayCardEditor";
@@ -219,8 +220,79 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
     );
   }
 
+  // Engine mode mutation (updates both profiles + feature settings)
+  const engineModeMutation = useMutation({
+    mutationFn: async (mode: EngineMode) => {
+      const [profileRes, settingsRes] = await Promise.all([
+        supabase.from("profiles").update({ engine_mode: mode as any }).eq("id", clientId),
+        supabase.from("client_feature_settings").update({ engine_mode: mode as any }).eq("client_id", clientId),
+      ]);
+      if (profileRes.error) throw profileRes.error;
+      if (settingsRes.error) throw settingsRes.error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client-feature-settings", clientId] });
+      queryClient.invalidateQueries({ queryKey: ["engine-mode", clientId] });
+      toast({ title: "Engine mode updated" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update engine mode", variant: "destructive" });
+    },
+  });
+
+  const ENGINE_ICONS_MAP: Record<EngineMode, React.ReactNode> = {
+    metabolic: <Shield className="h-5 w-5" />,
+    performance: <TrendingUp className="h-5 w-5" />,
+    athletic: <Zap className="h-5 w-5" />,
+  };
+
   return (
     <div className="space-y-6">
+      {/* Engine Mode Selector */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Engine Mode
+          </CardTitle>
+          <CardDescription>
+            Controls dashboard layout, scoring weights, insight tone, and feature emphasis for this client.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {ENGINE_MODE_OPTIONS.map((option) => {
+            const currentMode = (settings as any)?.engine_mode || "performance";
+            const isSelected = currentMode === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => engineModeMutation.mutate(option.value)}
+                disabled={engineModeMutation.isPending}
+                className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                  isSelected
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/40"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`p-2 rounded-lg ${isSelected ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                    {ENGINE_ICONS_MAP[option.value]}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm">{option.label}</span>
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{option.ageRange}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{option.description}</p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </CardContent>
+      </Card>
+
       {/* Dashboard Customization */}
       <Card>
         <CardHeader>

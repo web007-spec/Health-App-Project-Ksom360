@@ -12,10 +12,13 @@ import {
   Recommendation,
 } from "@/lib/recommendationEngine";
 
-const ENGINE_ICONS: Record<EngineType, React.ReactNode> = {
+const ENGINE_ICONS: Record<string, React.ReactNode> = {
   metabolic_stability: <Shield className="h-4 w-4" />,
   performance_readiness: <TrendingUp className="h-4 w-4" />,
   game_readiness: <Zap className="h-4 w-4" />,
+  metabolic: <Shield className="h-4 w-4" />,
+  performance: <TrendingUp className="h-4 w-4" />,
+  athletic: <Zap className="h-4 w-4" />,
 };
 
 const STATUS_COLORS: Record<StatusLabel, string> = {

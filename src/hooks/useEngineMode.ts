@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { getEngineConfig, type EngineMode, type EngineConfig } from "@/lib/engineConfig";
 
-const DEFAULT_ENGINE: EngineMode = "metabolic_stability";
+const DEFAULT_ENGINE: EngineMode = "performance";
 
 export function useEngineMode() {
   const clientId = useEffectiveClientId();
@@ -33,8 +33,8 @@ export function useEngineMode() {
 
       // Update both profiles and client_feature_settings
       const [profileRes, settingsRes] = await Promise.all([
-        supabase.from("profiles").update({ engine_mode: mode }).eq("id", clientId),
-        supabase.from("client_feature_settings").update({ engine_mode: mode }).eq("client_id", clientId),
+        supabase.from("profiles").update({ engine_mode: mode as any }).eq("id", clientId),
+        supabase.from("client_feature_settings").update({ engine_mode: mode as any }).eq("client_id", clientId),
       ]);
 
       if (profileRes.error) throw profileRes.error;
@@ -43,6 +43,7 @@ export function useEngineMode() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["engine-mode"] });
       queryClient.invalidateQueries({ queryKey: ["my-feature-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["client-feature-settings"] });
     },
   });
 
