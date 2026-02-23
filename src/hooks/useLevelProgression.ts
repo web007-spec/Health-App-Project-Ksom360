@@ -120,12 +120,28 @@ export function useLevelProgression() {
     mutationFn: async () => {
       if (!clientId || !data?.isEligible) throw new Error("Not eligible");
 
-      // Level Advancement Protection checks
-      const { data: settings } = await supabase
+      // ── Authority gate: auto_level_advance_enabled ──
+      const { data: authorityRow } = await supabase
         .from("client_feature_settings")
-        .select("parent_link_enabled, is_minor, engine_mode")
+        .select("auto_level_advance_enabled, engine_mode, subscription_tier, parent_link_enabled, is_minor")
         .eq("client_id", clientId)
         .maybeSingle();
+
+      const engine = (authorityRow?.engine_mode || "performance") as import("@/lib/engineConfig").EngineMode;
+      const tier = (authorityRow?.subscription_tier || "starter") as import("@/lib/featureAccessGuard").SubscriptionTier;
+
+      const { checkAuthorityGate } = await import("@/lib/featureAccessGuard");
+      const autoAllowed = checkAuthorityGate(tier, engine, !!authorityRow?.auto_level_advance_enabled);
+
+      if (!autoAllowed) {
+        const { logAuthorityBlocked } = await import("@/lib/systemEvents");
+        await logAuthorityBlocked(clientId, "level_auto_advance", engine, tier, {
+          auto_level_advance_enabled: !!authorityRow?.auto_level_advance_enabled,
+        });
+        throw new Error("Coach Approval Required — auto level advance is not enabled for this client.");
+      }
+
+      const settings = authorityRow;
 
       // Check for 3+ "Needs Support" days in last 7
       const last7Scores = (data.criteria.find(c => c.label === "Low days (last 14)")?.current) || "0";
