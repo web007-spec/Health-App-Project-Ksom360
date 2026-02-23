@@ -1961,6 +1961,75 @@ export type Database = {
         }
         Relationships: []
       }
+      copilot_events: {
+        Row: {
+          approved: boolean | null
+          client_id: string
+          coach_id: string
+          created_at: string
+          engine_mode: string
+          event_type: string
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          approved?: boolean | null
+          client_id: string
+          coach_id: string
+          created_at?: string
+          engine_mode: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          approved?: boolean | null
+          client_id?: string
+          coach_id?: string
+          created_at?: string
+          engine_mode?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      copilot_messages: {
+        Row: {
+          approved: boolean | null
+          client_id: string
+          coach_id: string
+          created_at: string
+          engine_mode: string
+          id: string
+          prompt_context: Json | null
+          response_text: string
+          use_case: string
+        }
+        Insert: {
+          approved?: boolean | null
+          client_id: string
+          coach_id: string
+          created_at?: string
+          engine_mode: string
+          id?: string
+          prompt_context?: Json | null
+          response_text: string
+          use_case: string
+        }
+        Update: {
+          approved?: boolean | null
+          client_id?: string
+          coach_id?: string
+          created_at?: string
+          engine_mode?: string
+          id?: string
+          prompt_context?: Json | null
+          response_text?: string
+          use_case?: string
+        }
+        Relationships: []
+      }
       daily_checkins: {
         Row: {
           checkin_date: string
