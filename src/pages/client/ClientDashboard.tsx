@@ -32,6 +32,8 @@ import { CreatePinDialog, VerifyPinDialog, HoldToEndButton } from "@/components/
 import { FastingCoachTipCard } from "@/components/FastingCoachTipCard";
 import { ProtocolCompletionDialog } from "@/components/ProtocolCompletionDialog";
 import { MyProgressSection } from "@/components/MyProgressSection";
+import { DailyCheckinCard } from "@/components/DailyCheckinCard";
+import { RecommendationCard } from "@/components/RecommendationCard";
 
 // Fasting Protocol Card sub-component
 function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; navigate: (path: string) => void }) {
@@ -1272,6 +1274,14 @@ export default function ClientDashboard() {
         {/* Fasting Protocol Card */}
         {settings.fasting_enabled && (
           <FastingProtocolCard clientId={clientId} navigate={navigate} />
+        )}
+
+        {/* Daily Check-In & Readiness */}
+        {settings.fasting_enabled && (
+          <>
+            <DailyCheckinCard />
+            <RecommendationCard />
+          </>
         )}
 
         {/* Break Your Fast Card — only during active eating window */}
