@@ -38,6 +38,7 @@ import { RecommendationCard } from "@/components/RecommendationCard";
 import { DashboardFocusSelector } from "@/components/DashboardFocusSelector";
 import { DashboardInsightCard } from "@/components/DashboardInsightCard";
 import { LevelProgressionCard } from "@/components/LevelProgressionCard";
+import { InAppNotifications } from "@/components/InAppNotifications";
 
 // Fasting Protocol Card sub-component
 function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; navigate: (path: string) => void }) {
@@ -1197,6 +1198,9 @@ export default function ClientDashboard() {
             </CardContent>
           </Card>
         )}
+
+        {/* In-App Notifications */}
+        <InAppNotifications />
 
         {/* Day Strip Calendar */}
         {settings.calendar_days_ahead > 0 && clientId && (

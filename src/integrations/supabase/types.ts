@@ -460,6 +460,13 @@ export type Database = {
           meal_plan_header_label: string
           meal_plan_type: string
           messages_enabled: boolean
+          nudge_checkin: boolean
+          nudge_enabled: boolean
+          nudge_fasting: boolean
+          nudge_frequency: string
+          nudge_recovery: boolean
+          nudge_sleep: boolean
+          nudge_workout: boolean
           pace_enabled: boolean
           parent_link_enabled: boolean
           pinned_insight_text: string | null
@@ -468,6 +475,8 @@ export type Database = {
           protocol_assigned_by: string | null
           protocol_completed: boolean
           protocol_start_date: string | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
           require_coach_approval_plans: boolean
           restore_profile_type: string
           selected_protocol_id: string | null
@@ -529,6 +538,13 @@ export type Database = {
           meal_plan_header_label?: string
           meal_plan_type?: string
           messages_enabled?: boolean
+          nudge_checkin?: boolean
+          nudge_enabled?: boolean
+          nudge_fasting?: boolean
+          nudge_frequency?: string
+          nudge_recovery?: boolean
+          nudge_sleep?: boolean
+          nudge_workout?: boolean
           pace_enabled?: boolean
           parent_link_enabled?: boolean
           pinned_insight_text?: string | null
@@ -537,6 +553,8 @@ export type Database = {
           protocol_assigned_by?: string | null
           protocol_completed?: boolean
           protocol_start_date?: string | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
           require_coach_approval_plans?: boolean
           restore_profile_type?: string
           selected_protocol_id?: string | null
@@ -598,6 +616,13 @@ export type Database = {
           meal_plan_header_label?: string
           meal_plan_type?: string
           messages_enabled?: boolean
+          nudge_checkin?: boolean
+          nudge_enabled?: boolean
+          nudge_fasting?: boolean
+          nudge_frequency?: string
+          nudge_recovery?: boolean
+          nudge_sleep?: boolean
+          nudge_workout?: boolean
           pace_enabled?: boolean
           parent_link_enabled?: boolean
           pinned_insight_text?: string | null
@@ -606,6 +631,8 @@ export type Database = {
           protocol_assigned_by?: string | null
           protocol_completed?: boolean
           protocol_start_date?: string | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
           require_coach_approval_plans?: boolean
           restore_profile_type?: string
           selected_protocol_id?: string | null
@@ -3212,6 +3239,53 @@ export type Database = {
             columns: ["client_metric_id"]
             isOneToOne: false
             referencedRelation: "client_metrics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_events: {
+        Row: {
+          body: string | null
+          dismissed_at: string | null
+          engine_mode: string
+          id: string
+          opened_at: string | null
+          sent_at: string
+          suppression_reason: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          dismissed_at?: string | null
+          engine_mode: string
+          id?: string
+          opened_at?: string | null
+          sent_at?: string
+          suppression_reason?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          dismissed_at?: string | null
+          engine_mode?: string
+          id?: string
+          opened_at?: string | null
+          sent_at?: string
+          suppression_reason?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
