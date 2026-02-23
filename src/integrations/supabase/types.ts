@@ -426,6 +426,7 @@ export type Database = {
           eating_window_card_image_url: string | null
           eating_window_ends_at: string | null
           eating_window_hours: number
+          engine_mode: Database["public"]["Enums"]["engine_mode"]
           fast_lock_pin: string | null
           fasting_card_image_url: string | null
           fasting_card_subtitle: string
@@ -479,6 +480,7 @@ export type Database = {
           eating_window_card_image_url?: string | null
           eating_window_ends_at?: string | null
           eating_window_hours?: number
+          engine_mode?: Database["public"]["Enums"]["engine_mode"]
           fast_lock_pin?: string | null
           fasting_card_image_url?: string | null
           fasting_card_subtitle?: string
@@ -532,6 +534,7 @@ export type Database = {
           eating_window_card_image_url?: string | null
           eating_window_ends_at?: string | null
           eating_window_hours?: number
+          engine_mode?: Database["public"]["Enums"]["engine_mode"]
           fast_lock_pin?: string | null
           fasting_card_image_url?: string | null
           fasting_card_subtitle?: string
@@ -3115,6 +3118,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           email: string
+          engine_mode: Database["public"]["Enums"]["engine_mode"]
           full_name: string | null
           id: string
           onboarding_completed: boolean
@@ -3125,6 +3129,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email: string
+          engine_mode?: Database["public"]["Enums"]["engine_mode"]
           full_name?: string | null
           id: string
           onboarding_completed?: boolean
@@ -3135,6 +3140,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email?: string
+          engine_mode?: Database["public"]["Enums"]["engine_mode"]
           full_name?: string | null
           id?: string
           onboarding_completed?: boolean
@@ -4816,6 +4822,10 @@ export type Database = {
     }
     Enums: {
       client_status: "active" | "paused" | "pending"
+      engine_mode:
+        | "metabolic_stability"
+        | "performance_readiness"
+        | "game_readiness"
       label_category:
         | "level"
         | "duration"
@@ -4964,6 +4974,11 @@ export const Constants = {
   public: {
     Enums: {
       client_status: ["active", "paused", "pending"],
+      engine_mode: [
+        "metabolic_stability",
+        "performance_readiness",
+        "game_readiness",
+      ],
       label_category: [
         "level",
         "duration",

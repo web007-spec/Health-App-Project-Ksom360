@@ -41,7 +41,7 @@ export function RecommendationCard() {
 
   if (isLoading || !scores || scores.length === 0) return null;
 
-  // Show the primary engine (metabolic stability)
+  // Show the primary engine based on user's engine mode (first result is always the user's active engine)
   const primary = scores[0];
 
   return (

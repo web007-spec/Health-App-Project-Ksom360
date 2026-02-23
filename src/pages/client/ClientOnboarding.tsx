@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Dumbbell, Target, Settings, CheckCircle2 } from "lucide-react";
+import { Dumbbell, Target, Settings, CheckCircle2, Shield, TrendingUp, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { ENGINE_MODE_OPTIONS } from "@/lib/engineConfig";
+import type { EngineMode } from "@/lib/engineConfig";
 
 const profileSchema = z.object({
   full_name: z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name must be less than 100 characters"),
@@ -31,11 +33,18 @@ const preferencesSchema = z.object({
   fitness_level: z.string().optional(),
 });
 
+const ENGINE_ICONS: Record<EngineMode, React.ReactNode> = {
+  metabolic_stability: <Shield className="h-6 w-6" />,
+  performance_readiness: <TrendingUp className="h-6 w-6" />,
+  game_readiness: <Zap className="h-6 w-6" />,
+};
+
 export default function ClientOnboarding() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedEngine, setSelectedEngine] = useState<EngineMode>("metabolic_stability");
 
   // Form data
   const [profileData, setProfileData] = useState({
@@ -57,7 +66,7 @@ export default function ClientOnboarding() {
     fitness_level: "beginner",
   });
 
-  const totalSteps = 4;
+  const totalSteps = 5;
   const progress = (step / totalSteps) * 100;
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
@@ -89,7 +98,7 @@ export default function ClientOnboarding() {
         if (progressError) throw progressError;
       }
 
-      setStep(2);
+      setStep(3);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
@@ -120,7 +129,7 @@ export default function ClientOnboarding() {
 
       if (error) throw error;
 
-      setStep(3);
+      setStep(4);
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
@@ -137,24 +146,29 @@ export default function ClientOnboarding() {
     try {
       preferencesSchema.parse(preferencesData);
 
-      // Store preferences in notification_preferences or a new table
-      const { error } = await supabase
-        .from('notification_preferences')
-        .upsert({
-          user_id: user?.id!,
-          email_enabled: true,
-          push_enabled: false,
-        });
+      // Store preferences and engine mode
+      const [notifResult, profileResult, settingsResult] = await Promise.all([
+        supabase
+          .from('notification_preferences')
+          .upsert({
+            user_id: user?.id!,
+            email_enabled: true,
+            push_enabled: false,
+          }),
+        supabase
+          .from('profiles')
+          .update({ onboarding_completed: true, engine_mode: selectedEngine })
+          .eq('id', user?.id),
+        supabase
+          .from('client_feature_settings')
+          .update({ engine_mode: selectedEngine })
+          .eq('client_id', user?.id),
+      ]);
 
-      if (error) throw error;
+      if (notifResult.error) throw notifResult.error;
+      if (profileResult.error) throw profileResult.error;
 
-      // Mark onboarding as completed
-      await supabase
-        .from('profiles')
-        .update({ onboarding_completed: true })
-        .eq('id', user?.id);
-
-      setStep(4);
+      setStep(5);
       
       // Redirect to dashboard after a moment
       setTimeout(() => {
@@ -188,7 +202,53 @@ export default function ClientOnboarding() {
           </p>
         </div>
 
+        {/* Step 1: Engine Selection */}
         {step === 1 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Choose Your Engine
+              </CardTitle>
+              <CardDescription>Select the mode that matches your goals. This shapes your entire experience.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {ENGINE_MODE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setSelectedEngine(option.value)}
+                  className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                    selectedEngine === option.value
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/40"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-lg ${selectedEngine === option.value ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                      {ENGINE_ICONS[option.value]}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm">{option.label}</span>
+                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{option.ageRange}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">{option.description}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+              <div className="pt-4">
+                <Button className="w-full" onClick={() => setStep(2)}>
+                  Continue
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step 2: Profile */}
+        {step === 2 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -238,6 +298,9 @@ export default function ClientOnboarding() {
                 </div>
 
                 <div className="flex gap-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setStep(1)}>
+                    Back
+                  </Button>
                   <Button type="submit" className="flex-1">
                     Continue
                   </Button>
@@ -247,7 +310,8 @@ export default function ClientOnboarding() {
           </Card>
         )}
 
-        {step === 2 && (
+        {/* Step 3: Goal */}
+        {step === 3 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -309,7 +373,7 @@ export default function ClientOnboarding() {
                 </div>
 
                 <div className="flex gap-2 pt-4">
-                  <Button type="button" variant="outline" onClick={() => setStep(1)}>
+                  <Button type="button" variant="outline" onClick={() => setStep(2)}>
                     Back
                   </Button>
                   <Button type="submit" className="flex-1">
@@ -321,7 +385,8 @@ export default function ClientOnboarding() {
           </Card>
         )}
 
-        {step === 3 && (
+        {/* Step 4: Preferences */}
+        {step === 4 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -369,7 +434,7 @@ export default function ClientOnboarding() {
                 </div>
 
                 <div className="flex gap-2 pt-4">
-                  <Button type="button" variant="outline" onClick={() => setStep(2)}>
+                  <Button type="button" variant="outline" onClick={() => setStep(3)}>
                     Back
                   </Button>
                   <Button type="submit" className="flex-1" disabled={isLoading}>
@@ -381,7 +446,8 @@ export default function ClientOnboarding() {
           </Card>
         )}
 
-        {step === 4 && (
+        {/* Step 5: Complete */}
+        {step === 5 && (
           <Card>
             <CardContent className="pt-6">
               <div className="text-center space-y-4">

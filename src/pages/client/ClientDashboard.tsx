@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { format, isToday, parseISO } from "date-fns";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useClientFeatureSettings } from "@/hooks/useClientFeatureSettings";
+import { useEngineMode } from "@/hooks/useEngineMode";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -607,6 +608,7 @@ export default function ClientDashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { settings } = useClientFeatureSettings();
+  const { config: engineConfig } = useEngineMode();
   const { toast } = useToast();
 
   // Unread messages count for floating lion badge
@@ -1278,12 +1280,13 @@ export default function ClientDashboard() {
           <FastingProtocolCard clientId={clientId} navigate={navigate} />
         )}
 
-        {/* Daily Check-In, Readiness & Focus */}
+        {/* Engine-driven dashboard cards: Check-In, Readiness, Focus, Insight */}
         {settings.fasting_enabled && (
           <>
-            <DashboardFocusSelector currentFocus={null} />
+            {engineConfig.features.fastingDominant && <DashboardFocusSelector currentFocus={null} />}
             <DailyCheckinCard />
             <RecommendationCard />
+            {!engineConfig.features.fastingDominant && <DashboardFocusSelector currentFocus={null} />}
             <DashboardInsightCard />
           </>
         )}
