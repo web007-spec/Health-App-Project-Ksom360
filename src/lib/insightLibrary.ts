@@ -46,46 +46,43 @@ export const INSIGHT_LIBRARY: InsightEntry[] = [
   // METABOLIC ENGINE (30 insights)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // Fasting
-  i("metabolic", "1-3", "fasting", "strong", "Your fasting consistency is building a reliable metabolic rhythm. Stay the course.", "Complete today's fasting window on schedule."),
-  i("metabolic", "1-3", "fasting", "moderate", "Fasting adherence is developing. Consistent windows train your body's internal clock."),
-  i("metabolic", "1-3", "fasting", "needs_support", "Missed fasting windows reset your metabolic clock. Aim for the minimum window today.", "Start your fast within the next hour."),
-  i("metabolic", "4-6", "fasting", "strong", "Metabolic stability is evident. Your body is adapting to structured fasting cycles."),
-  i("metabolic", "4-6", "fasting", "moderate", "Your fasting rhythm has room for improvement. Tighten your eating window by 30 minutes.", "Close your eating window 30 minutes earlier."),
-  i("metabolic", "4-6", "fasting", "needs_support", "Fasting inconsistency undermines metabolic adaptation. Reset with a clean 14-hour fast today.", "Complete a clean 14h fast today."),
-  i("metabolic", "7", "fasting", "strong", "Mastery-level fasting. Your metabolic flexibility allows controlled window adjustments."),
-  i("metabolic", "7", "fasting", "moderate", "Even at mastery, consistency matters. Tighten your window back to baseline this week."),
+  i("metabolic", "1-3", "fasting", "moderate", "Metabolic stability improves when fasting windows remain consistent. Irregular timing disrupts regulation.", "Today: Maintain your planned fasting window."),
+  i("metabolic", "1-3", "fasting", "needs_support", "Inconsistent fasting reduces metabolic signaling efficiency.", "Today: Complete your full fasting window."),
+  i("metabolic", "4-6", "fasting", "strong", "Consistent fasting patterns are reinforcing metabolic adaptation.", "Continue current fasting rhythm."),
+  i("metabolic", "4-6", "fasting", "moderate", "Small fasting inconsistencies can compound over time.", "Prioritize window precision today."),
+  i("metabolic", "7", "fasting", "any", "Mastery is built on precision. Your fasting consistency sets the metabolic baseline."),
 
   // Sleep
-  i("metabolic", "1-3", "sleep", "any", "Sleep is the foundation of metabolic regulation. Prioritize 7+ hours tonight.", "Set a bedtime alarm for tonight."),
-  i("metabolic", "4-6", "sleep", "strong", "Quality sleep is amplifying your metabolic gains. Protect this rhythm."),
-  i("metabolic", "4-6", "sleep", "needs_support", "Poor sleep disrupts insulin sensitivity and hunger hormones. Make sleep your top priority.", "No screens 30 minutes before bed tonight."),
-  i("metabolic", "7", "sleep", "any", "At mastery level, sleep quality fine-tunes metabolic optimization. Guard it carefully."),
+  i("metabolic", "1-3", "sleep", "needs_support", "Reduced sleep disrupts insulin sensitivity and recovery.", "Tonight: Target at least 7 hours."),
+  i("metabolic", "1-3", "sleep", "moderate", "Sleep stability strengthens hormonal regulation.", "Protect your sleep schedule."),
+  i("metabolic", "4-6", "sleep", "strong", "Consistent sleep reinforces metabolic balance."),
+  i("metabolic", "4-6", "sleep", "needs_support", "Sleep debt undermines metabolic stability.", "Prioritize early wind-down."),
+  i("metabolic", "7", "sleep", "any", "Optimized sleep amplifies metabolic efficiency."),
 
   // Nutrition
-  i("metabolic", "1-3", "nutrition", "strong", "Nutritional discipline is building. Controlled eating within your window strengthens metabolic stability."),
-  i("metabolic", "1-3", "nutrition", "moderate", "Nutrition regulation is key to metabolic rhythm. Focus on balanced meals within your window.", "Plan your meals before breaking your fast."),
-  i("metabolic", "1-3", "nutrition", "needs_support", "Unregulated eating patterns destabilize metabolic progress. Start with one structured meal today."),
-  i("metabolic", "4-6", "nutrition", "any", "Your nutritional patterns should be reinforcing fasting gains. Track meal quality, not just timing."),
-  i("metabolic", "7", "nutrition", "any", "Mastery nutrition means intuitive eating within structure. Trust your regulated appetite."),
+  i("metabolic", "1-3", "nutrition", "needs_support", "Frequent overeating interrupts metabolic signaling.", "Today: Eat intentionally within your window."),
+  i("metabolic", "1-3", "nutrition", "moderate", "Meal composition influences insulin response.", "Prioritize protein and whole foods."),
+  i("metabolic", "4-6", "nutrition", "strong", "Nutritional discipline supports long-term regulation."),
+  i("metabolic", "4-6", "nutrition", "moderate", "Consistency in food quality protects metabolic gains.", "Limit processed intake."),
+  i("metabolic", "7", "nutrition", "any", "Refinement replaces restriction at mastery level."),
 
-  // Recovery
-  i("metabolic", "any", "recovery", "strong", "Recovery compliance supports long-term metabolic stability. Well done."),
-  i("metabolic", "any", "recovery", "needs_support", "Recovery is not optional. Your body needs structured rest to adapt to fasting stress.", "Add a 10-minute wind-down routine tonight."),
+  // Completion
+  i("metabolic", "1-3", "weekly_completion", "needs_support", "Missed days disrupt metabolic momentum.", "Recommit today."),
+  i("metabolic", "1-3", "weekly_completion", "moderate", "Consistency compounds faster than intensity.", "Complete today's plan fully."),
+  i("metabolic", "4-6", "weekly_completion", "strong", "Your discipline is reinforcing metabolic stability."),
+  i("metabolic", "4-6", "weekly_completion", "needs_support", "Consistency gaps slow adaptation.", "Complete all check-ins today."),
+  i("metabolic", "7", "weekly_completion", "any", "Mastery is sustained through quiet consistency."),
 
-  // Weekly completion
-  i("metabolic", "1-3", "weekly_completion", "any", "Weekly consistency builds metabolic resilience. Each completed day compounds your progress."),
-  i("metabolic", "4-6", "weekly_completion", "moderate", "Your weekly completion is slipping. Metabolic stability requires daily engagement.", "Check in and complete today's targets."),
-  i("metabolic", "4-6", "weekly_completion", "strong", "Strong weekly completion rate. Your metabolic system is responding to this discipline."),
-  i("metabolic", "7", "weekly_completion", "any", "At mastery level, weekly consistency is habitual. Maintain your standard."),
-
-  // General metabolic
-  i("metabolic", "any", "any", "strong", "Stability is your superpower. Consistent metabolic rhythm produces lasting change."),
-  i("metabolic", "any", "any", "moderate", "Progress is not linear. Focus on the trend, not the day. Small adjustments compound."),
-  i("metabolic", "any", "any", "needs_support", "When the system flags support needed, it means rest and regulation — not punishment."),
-  i("metabolic", "1-3", "any", "any", "You are building the foundation. Every completed fast, every tracked meal — it all counts."),
-  i("metabolic", "4-6", "any", "any", "Your metabolic engine is maturing. Precision matters more than effort now."),
-  i("metabolic", "7", "any", "any", "Mastery is not the absence of challenge — it is the presence of control."),
-  i("metabolic", "any", "any", "any", "Discipline compounds. Results follow. Small daily wins create visible change."),
+  // General
+  i("metabolic", "1-3", "any", "strong", "Early consistency builds metabolic confidence."),
+  i("metabolic", "1-3", "any", "moderate", "Small corrections today prevent regression tomorrow.", "Focus on your lowest metric."),
+  i("metabolic", "1-3", "any", "needs_support", "Metabolic stability requires daily regulation.", "Stabilize one behavior today."),
+  i("metabolic", "4-6", "any", "strong", "Your stability curve is improving steadily."),
+  i("metabolic", "4-6", "any", "moderate", "Optimization requires refinement.", "Improve your weakest factor."),
+  i("metabolic", "4-6", "any", "needs_support", "Temporary regression can be corrected quickly.", "Reestablish structure."),
+  i("metabolic", "7", "any", "strong", "Metabolic mastery is reflected in steady metrics."),
+  i("metabolic", "7", "any", "moderate", "Even advanced systems require recalibration.", "Refine your lowest input."),
+  i("metabolic", "7", "any", "needs_support", "Mastery demands recalibration, not reaction.", "Stabilize sleep and structure first."),
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // PERFORMANCE ENGINE (30 insights)
