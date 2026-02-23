@@ -37,6 +37,7 @@ import { DailyCheckinCard } from "@/components/DailyCheckinCard";
 import { RecommendationCard } from "@/components/RecommendationCard";
 import { DashboardFocusSelector } from "@/components/DashboardFocusSelector";
 import { DashboardInsightCard } from "@/components/DashboardInsightCard";
+import { LevelProgressionCard } from "@/components/LevelProgressionCard";
 
 // Fasting Protocol Card sub-component
 function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; navigate: (path: string) => void }) {
@@ -1285,6 +1286,7 @@ export default function ClientDashboard() {
           {engineConfig.features.showFastingUI && <DashboardFocusSelector currentFocus={null} />}
           <DailyCheckinCard />
           <RecommendationCard />
+          <LevelProgressionCard />
           <DashboardInsightCard />
         </>
 
