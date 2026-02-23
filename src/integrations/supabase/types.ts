@@ -439,6 +439,7 @@ export type Database = {
           greeting_emoji: string
           greeting_subtitle: string
           id: string
+          insights_enabled: boolean
           is_premium: boolean
           last_fast_completed_at: string | null
           last_fast_ended_at: string | null
@@ -455,6 +456,8 @@ export type Database = {
           meal_plan_type: string
           messages_enabled: boolean
           pace_enabled: boolean
+          pinned_insight_text: string | null
+          pinned_insight_until: string | null
           progress_photos_enabled: boolean
           protocol_assigned_by: string | null
           protocol_completed: boolean
@@ -498,6 +501,7 @@ export type Database = {
           greeting_emoji?: string
           greeting_subtitle?: string
           id?: string
+          insights_enabled?: boolean
           is_premium?: boolean
           last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
@@ -514,6 +518,8 @@ export type Database = {
           meal_plan_type?: string
           messages_enabled?: boolean
           pace_enabled?: boolean
+          pinned_insight_text?: string | null
+          pinned_insight_until?: string | null
           progress_photos_enabled?: boolean
           protocol_assigned_by?: string | null
           protocol_completed?: boolean
@@ -557,6 +563,7 @@ export type Database = {
           greeting_emoji?: string
           greeting_subtitle?: string
           id?: string
+          insights_enabled?: boolean
           is_premium?: boolean
           last_fast_completed_at?: string | null
           last_fast_ended_at?: string | null
@@ -573,6 +580,8 @@ export type Database = {
           meal_plan_type?: string
           messages_enabled?: boolean
           pace_enabled?: boolean
+          pinned_insight_text?: string | null
+          pinned_insight_until?: string | null
           progress_photos_enabled?: boolean
           protocol_assigned_by?: string | null
           protocol_completed?: boolean
@@ -768,6 +777,39 @@ export type Database = {
           sync_error?: string | null
           trainer_id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      client_insight_history: {
+        Row: {
+          client_id: string
+          created_at: string
+          engine_mode: string
+          factor_tag: string | null
+          id: string
+          insight_id: string
+          shown_date: string
+          status_tag: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          engine_mode: string
+          factor_tag?: string | null
+          id?: string
+          insight_id: string
+          shown_date?: string
+          status_tag?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          engine_mode?: string
+          factor_tag?: string | null
+          id?: string
+          insight_id?: string
+          shown_date?: string
+          status_tag?: string | null
         }
         Relationships: []
       }
@@ -1486,6 +1528,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      coach_custom_insights: {
+        Row: {
+          action_text: string | null
+          client_id: string
+          created_at: string
+          engine_mode: string | null
+          id: string
+          is_active: boolean
+          message: string
+          trainer_id: string
+        }
+        Insert: {
+          action_text?: string | null
+          client_id: string
+          created_at?: string
+          engine_mode?: string | null
+          id?: string
+          is_active?: boolean
+          message: string
+          trainer_id: string
+        }
+        Update: {
+          action_text?: string | null
+          client_id?: string
+          created_at?: string
+          engine_mode?: string | null
+          id?: string
+          is_active?: boolean
+          message?: string
+          trainer_id?: string
+        }
+        Relationships: []
       }
       collection_sections: {
         Row: {
