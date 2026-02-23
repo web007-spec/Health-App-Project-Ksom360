@@ -1562,6 +1562,36 @@ export type Database = {
         }
         Relationships: []
       }
+      coach_plan_overrides: {
+        Row: {
+          client_id: string
+          coach_id: string
+          created_at: string
+          id: string
+          plan_id: string
+          plan_source: string
+          reason: string | null
+        }
+        Insert: {
+          client_id: string
+          coach_id: string
+          created_at?: string
+          id?: string
+          plan_id: string
+          plan_source?: string
+          reason?: string | null
+        }
+        Update: {
+          client_id?: string
+          coach_id?: string
+          created_at?: string
+          id?: string
+          plan_id?: string
+          plan_source?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       collection_sections: {
         Row: {
           collection_id: string
@@ -2020,9 +2050,16 @@ export type Database = {
           description: string | null
           difficulty_level: string | null
           duration_days: number
+          engine_allowed: string[]
           fast_target_hours: number
           id: string
+          intensity_tier: string
+          is_extended_fast: boolean
+          is_youth_safe: boolean
+          max_level_allowed: number | null
+          min_level_required: number
           name: string
+          plan_type: string
         }
         Insert: {
           category: string
@@ -2030,9 +2067,16 @@ export type Database = {
           description?: string | null
           difficulty_level?: string | null
           duration_days: number
+          engine_allowed?: string[]
           fast_target_hours: number
           id?: string
+          intensity_tier?: string
+          is_extended_fast?: boolean
+          is_youth_safe?: boolean
+          max_level_allowed?: number | null
+          min_level_required?: number
           name: string
+          plan_type?: string
         }
         Update: {
           category?: string
@@ -2040,9 +2084,16 @@ export type Database = {
           description?: string | null
           difficulty_level?: string | null
           duration_days?: number
+          engine_allowed?: string[]
           fast_target_hours?: number
           id?: string
+          intensity_tier?: string
+          is_extended_fast?: boolean
+          is_youth_safe?: boolean
+          max_level_allowed?: number | null
+          min_level_required?: number
           name?: string
+          plan_type?: string
         }
         Relationships: []
       }
@@ -3328,30 +3379,51 @@ export type Database = {
           description: Json | null
           difficulty_group: string
           eat_hours: number
+          engine_allowed: string[]
           fast_hours: number
           id: string
+          intensity_tier: string
+          is_extended_fast: boolean
+          is_youth_safe: boolean
+          max_level_allowed: number | null
+          min_level_required: number
           name: string
           order_index: number
+          plan_type: string
         }
         Insert: {
           created_at?: string
           description?: Json | null
           difficulty_group?: string
           eat_hours: number
+          engine_allowed?: string[]
           fast_hours: number
           id?: string
+          intensity_tier?: string
+          is_extended_fast?: boolean
+          is_youth_safe?: boolean
+          max_level_allowed?: number | null
+          min_level_required?: number
           name: string
           order_index?: number
+          plan_type?: string
         }
         Update: {
           created_at?: string
           description?: Json | null
           difficulty_group?: string
           eat_hours?: number
+          engine_allowed?: string[]
           fast_hours?: number
           id?: string
+          intensity_tier?: string
+          is_extended_fast?: boolean
+          is_youth_safe?: boolean
+          max_level_allowed?: number | null
+          min_level_required?: number
           name?: string
           order_index?: number
+          plan_type?: string
         }
         Relationships: []
       }
