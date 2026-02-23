@@ -12,6 +12,7 @@ import {
   getDifficultyLabel,
 } from "@/lib/fastingCategoryConfig";
 import { PROTOCOL_DETAIL_COPY } from "@/lib/protocolDetailContent";
+import { FastingSafetyNotice } from "@/components/FastingSafetyNotice";
 
 function generateWeeklyProgression(durationDays: number, fastTargetHours: number) {
   const weeks = Math.ceil(durationDays / 7);
@@ -365,6 +366,8 @@ export default function ClientProtocolDetail() {
           Save program for later
         </Button>
       </div>
+
+      <FastingSafetyNotice />
     </ClientLayout>
   );
 }
