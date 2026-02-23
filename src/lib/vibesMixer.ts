@@ -4,6 +4,7 @@
 import { getSyntheticBuffer } from "./syntheticSounds";
 
 let audioCtx: AudioContext | null = null;
+const bufferCache = new Map<string, AudioBuffer>();
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const FADE_DURATION = 0.15; // 150ms crossfade
@@ -36,7 +37,7 @@ export function getAudioContext(): AudioContext {
   return audioCtx;
 }
 
-/** Fetch + decode audio, fallback to synthetic generation */
+/** Fetch + decode audio, fallback to synthetic generation. Uses cache for instant replay. */
 export async function prepareItem(item: MixItem): Promise<MixItem> {
   const ctx = getAudioContext();
   
@@ -47,12 +48,20 @@ export async function prepareItem(item: MixItem): Promise<MixItem> {
     throw new Error(`No audio source for "${item.name}"`);
   }
 
+  // Return cached buffer instantly if available
+  const cacheKey = item.url;
+  const cached = bufferCache.get(cacheKey);
+  if (cached) {
+    return { ...item, buffer: cached };
+  }
+
   try {
     const fetchUrl = getProxiedUrl(item.url);
     const res = await fetch(fetchUrl);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const arrayBuf = await res.arrayBuffer();
     const audioBuf = await ctx.decodeAudioData(arrayBuf);
+    bufferCache.set(cacheKey, audioBuf);
     return { ...item, buffer: audioBuf };
   } catch (err) {
     console.log(`[vibesMixer] URL load failed for "${item.name}", using synthetic audio`);
@@ -188,4 +197,21 @@ export function fadeOutAndClearMix(items: MixItem[]): Promise<void> {
 export function clearMix(items: MixItem[]): MixItem[] {
   items.forEach(stopItemImmediate);
   return [];
+}
+
+/** Preload audio URLs into the buffer cache in the background */
+export function preloadAudioUrls(urls: string[]): void {
+  const ctx = getAudioContext();
+  for (const url of urls) {
+    if (!url || bufferCache.has(url)) continue;
+    const fetchUrl = getProxiedUrl(url);
+    fetch(fetchUrl)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.arrayBuffer();
+      })
+      .then((buf) => ctx.decodeAudioData(buf))
+      .then((audioBuf) => bufferCache.set(url, audioBuf))
+      .catch(() => {}); // silent — will fallback on actual play
+  }
 }
