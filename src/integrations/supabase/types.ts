@@ -3121,6 +3121,7 @@ export type Database = {
           engine_mode: Database["public"]["Enums"]["engine_mode"]
           full_name: string | null
           id: string
+          onboarding_answers: Json | null
           onboarding_completed: boolean
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
@@ -3132,6 +3133,7 @@ export type Database = {
           engine_mode?: Database["public"]["Enums"]["engine_mode"]
           full_name?: string | null
           id: string
+          onboarding_answers?: Json | null
           onboarding_completed?: boolean
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
@@ -3143,6 +3145,7 @@ export type Database = {
           engine_mode?: Database["public"]["Enums"]["engine_mode"]
           full_name?: string | null
           id?: string
+          onboarding_answers?: Json | null
           onboarding_completed?: boolean
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
