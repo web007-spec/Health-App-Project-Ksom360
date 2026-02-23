@@ -1,144 +1,62 @@
 /**
- * Recommendation Engine Scoring Logic
+ * Recommendation Engine — Engine-Specific Scoring
  *
- * Three engines with weighted scoring:
- * 1. Metabolic Stability Index  – prioritizes fasting consistency + nutrition
- * 2. Performance Readiness Score – prioritizes sleep + recovery
- * 3. Game Readiness Score        – balanced across all inputs
- *
- * Each produces a 0–100 score → status label → recommendation.
+ * Metabolic Stability Index:   fasting 40%, sleep 20%, nutrition 20%, weekly completion 20%
+ * Performance Readiness Score:  workout 35%, sleep 20%, recovery 20%, fasting 15%, weekly 10%
+ *   → if fasting disabled: redistribute 15% → workout +9%, recovery +6%
+ * Game Readiness Score:         sleep 30%, training load 25%, recovery 25%, nutrition 20%
  */
 
-export type EngineType = "metabolic_stability" | "performance_readiness" | "game_readiness" | "metabolic" | "performance" | "athletic";
+import type { EngineMode } from "@/lib/engineConfig";
+
 export type StatusLabel = "strong" | "moderate" | "needs_support";
-export type Recommendation = "advance" | "maintain" | "reduce";
+export type RecommendationType = "advance" | "maintain" | "reduce";
+
+export type ScoreFactor =
+  | "fasting"
+  | "sleep"
+  | "nutrition"
+  | "weekly_completion"
+  | "workout"
+  | "recovery"
+  | "training_load";
+
+export interface FactorScore {
+  factor: ScoreFactor;
+  label: string;
+  normalized: number; // 0-100
+  weight: number;
+  weighted: number;
+}
 
 export interface EngineResult {
-  engine: EngineType;
+  engine: EngineMode;
   score: number;
   status: StatusLabel;
-  recommendation: Recommendation;
+  recommendation: RecommendationType;
+  lowestFactor: FactorScore;
+  factors: FactorScore[];
   streakDays: number;
   weeklyCompletionPct: number;
 }
 
-export interface CheckinDay {
+export interface DailyInputs {
   sleepHours: number | null;
   sleepQuality: number | null; // 1-5
   nutritionOnTrack: boolean | null;
   recoveryCompleted: boolean | null;
   fastCompleted: boolean;
+  workoutCompleted: boolean;
 }
 
-interface Weights {
-  streak: number;
-  weeklyCompletion: number;
-  sleepHours: number;
-  sleepQuality: number;
-  nutrition: number;
-  recovery: number;
-}
+// ─── Normalization helpers ──────────────────────────────
 
-const ENGINE_WEIGHTS: Record<string, Weights> = {
-  metabolic_stability: {
-    streak: 0.25,
-    weeklyCompletion: 0.25,
-    sleepHours: 0.10,
-    sleepQuality: 0.05,
-    nutrition: 0.25,
-    recovery: 0.10,
-  },
-  metabolic: {
-    streak: 0.25,
-    weeklyCompletion: 0.25,
-    sleepHours: 0.10,
-    sleepQuality: 0.05,
-    nutrition: 0.25,
-    recovery: 0.10,
-  },
-  performance_readiness: {
-    streak: 0.15,
-    weeklyCompletion: 0.15,
-    sleepHours: 0.20,
-    sleepQuality: 0.15,
-    nutrition: 0.10,
-    recovery: 0.25,
-  },
-  performance: {
-    streak: 0.15,
-    weeklyCompletion: 0.15,
-    sleepHours: 0.20,
-    sleepQuality: 0.15,
-    nutrition: 0.10,
-    recovery: 0.25,
-  },
-  game_readiness: {
-    streak: 0.20,
-    weeklyCompletion: 0.15,
-    sleepHours: 0.15,
-    sleepQuality: 0.15,
-    nutrition: 0.15,
-    recovery: 0.20,
-  },
-  athletic: {
-    streak: 0.20,
-    weeklyCompletion: 0.15,
-    sleepHours: 0.15,
-    sleepQuality: 0.15,
-    nutrition: 0.15,
-    recovery: 0.20,
-  },
-};
-
-// Thresholds
-const STRONG_THRESHOLD = 75;
-const MODERATE_THRESHOLD = 45;
-
-function getStatus(score: number): StatusLabel {
-  if (score >= STRONG_THRESHOLD) return "strong";
-  if (score >= MODERATE_THRESHOLD) return "moderate";
-  return "needs_support";
-}
-
-function getRecommendation(score: number, streakDays: number): Recommendation {
-  if (score >= STRONG_THRESHOLD && streakDays >= 10) return "advance";
-  if (score >= MODERATE_THRESHOLD) return "maintain";
-  return "reduce";
-}
-
-/** Calculate consecutive completion days (streak) from recent data, newest first */
-function calculateStreak(days: CheckinDay[]): number {
-  let streak = 0;
-  for (const day of days) {
-    if (day.fastCompleted) {
-      streak++;
-    } else {
-      break;
-    }
-  }
-  return streak;
-}
-
-/** Weekly completion as percentage of last 7 days */
-function weeklyCompletion(days: CheckinDay[]): number {
-  const last7 = days.slice(0, 7);
-  if (last7.length === 0) return 0;
-  const completed = last7.filter((d) => d.fastCompleted).length;
-  return (completed / 7) * 100;
-}
-
-/** Normalize a value to 0-100 */
 function normSleep(hours: number | null): number {
-  if (hours === null) return 50; // neutral if not logged
+  if (hours === null) return 50;
   if (hours >= 7 && hours <= 9) return 100;
   if (hours >= 6) return 70;
   if (hours >= 5) return 40;
   return 20;
-}
-
-function normQuality(q: number | null): number {
-  if (q === null) return 50;
-  return (q / 5) * 100;
 }
 
 function normBool(val: boolean | null): number {
@@ -146,87 +64,239 @@ function normBool(val: boolean | null): number {
   return val ? 100 : 20;
 }
 
-function normStreak(streak: number): number {
-  return Math.min(streak / 14, 1) * 100; // 14-day streak = 100
+function avg(values: number[]): number {
+  if (values.length === 0) return 50;
+  return values.reduce((s, v) => s + v, 0) / values.length;
 }
 
-function normCompletion(pct: number): number {
-  return Math.min(pct, 100);
+// ─── Streak & weekly ────────────────────────────────────
+
+function calculateStreak(days: DailyInputs[], key: "fastCompleted" | "workoutCompleted"): number {
+  let streak = 0;
+  for (const d of days) {
+    if (d[key]) streak++;
+    else break;
+  }
+  return streak;
 }
 
-export function computeEngine(engine: EngineType, recentDays: CheckinDay[], weightOverrides?: Partial<Weights>): EngineResult {
-  const w = { ...ENGINE_WEIGHTS[engine], ...weightOverrides };
-  const streak = calculateStreak(recentDays);
-  const wkCompletion = weeklyCompletion(recentDays);
+function weeklyPct(days: DailyInputs[], key: "fastCompleted" | "workoutCompleted"): number {
+  const last7 = days.slice(0, 7);
+  if (last7.length === 0) return 0;
+  return (last7.filter((d) => d[key]).length / 7) * 100;
+}
 
-  // Average recent check-in values (last 7 days)
-  const last7 = recentDays.slice(0, 7);
-  const avgSleepHours = last7.length > 0
-    ? last7.reduce((s, d) => s + normSleep(d.sleepHours), 0) / last7.length
-    : 50;
-  const avgSleepQuality = last7.length > 0
-    ? last7.reduce((s, d) => s + normQuality(d.sleepQuality), 0) / last7.length
-    : 50;
-  const avgNutrition = last7.length > 0
-    ? last7.reduce((s, d) => s + normBool(d.nutritionOnTrack), 0) / last7.length
-    : 50;
-  const avgRecovery = last7.length > 0
-    ? last7.reduce((s, d) => s + normBool(d.recoveryCompleted), 0) / last7.length
-    : 50;
+// ─── Status & Recommendation ────────────────────────────
 
-  const score = Math.round(
-    w.streak * normStreak(streak) +
-    w.weeklyCompletion * normCompletion(wkCompletion) +
-    w.sleepHours * avgSleepHours +
-    w.sleepQuality * avgSleepQuality +
-    w.nutrition * avgNutrition +
-    w.recovery * avgRecovery
-  );
+function getStatus(score: number): StatusLabel {
+  if (score >= 80) return "strong";
+  if (score >= 60) return "moderate";
+  return "needs_support";
+}
 
+function getRecommendation(status: StatusLabel): RecommendationType {
+  if (status === "strong") return "maintain";
+  if (status === "moderate") return "reduce"; // "adjust" maps to reduce
+  return "reduce";
+}
+
+// ─── Factor helpers ─────────────────────────────────────
+
+const FACTOR_LABELS: Record<ScoreFactor, string> = {
+  fasting: "Fasting Adherence",
+  sleep: "Sleep",
+  nutrition: "Nutrition",
+  weekly_completion: "Weekly Completion",
+  workout: "Workout Completion",
+  recovery: "Recovery Balance",
+  training_load: "Training Load Balance",
+};
+
+function buildFactor(factor: ScoreFactor, normalized: number, weight: number): FactorScore {
   return {
-    engine,
-    score: Math.min(100, Math.max(0, score)),
-    status: getStatus(score),
-    recommendation: getRecommendation(score, streak),
-    streakDays: streak,
-    weeklyCompletionPct: Math.round(wkCompletion),
+    factor,
+    label: FACTOR_LABELS[factor],
+    normalized: Math.round(normalized),
+    weight,
+    weighted: Math.round(normalized * weight),
   };
 }
 
-export function computeAllEngines(recentDays: CheckinDay[]): EngineResult[] {
-  return [
-    computeEngine("metabolic_stability", recentDays),
-    computeEngine("performance_readiness", recentDays),
-    computeEngine("game_readiness", recentDays),
+// ─── Engine Computations ────────────────────────────────
+
+function computeMetabolic(days: DailyInputs[]): EngineResult {
+  const last7 = days.slice(0, 7);
+
+  const fastingNorm = avg(last7.map((d) => normBool(d.fastCompleted ? true : null)));
+  const sleepNorm = avg(last7.map((d) => normSleep(d.sleepHours)));
+  const nutritionNorm = avg(last7.map((d) => normBool(d.nutritionOnTrack)));
+  const wkPct = weeklyPct(days, "fastCompleted");
+  const completionNorm = Math.min(wkPct, 100);
+
+  const factors: FactorScore[] = [
+    buildFactor("fasting", fastingNorm, 0.40),
+    buildFactor("sleep", sleepNorm, 0.20),
+    buildFactor("nutrition", nutritionNorm, 0.20),
+    buildFactor("weekly_completion", completionNorm, 0.20),
   ];
+
+  const score = Math.min(100, Math.max(0, Math.round(factors.reduce((s, f) => s + f.weighted, 0))));
+  const status = getStatus(score);
+  const lowestFactor = [...factors].sort((a, b) => a.normalized - b.normalized)[0];
+
+  return {
+    engine: "metabolic",
+    score,
+    status,
+    recommendation: getRecommendation(status),
+    lowestFactor,
+    factors,
+    streakDays: calculateStreak(days, "fastCompleted"),
+    weeklyCompletionPct: Math.round(wkPct),
+  };
 }
 
-export const ENGINE_LABELS: Record<string, string> = {
-  metabolic_stability: "Metabolic Stability",
-  performance_readiness: "Performance Readiness",
-  game_readiness: "Game Readiness",
+function computePerformance(days: DailyInputs[], fastingEnabled: boolean): EngineResult {
+  const last7 = days.slice(0, 7);
+
+  const workoutNorm = avg(last7.map((d) => normBool(d.workoutCompleted ? true : null)));
+  const sleepNorm = avg(last7.map((d) => normSleep(d.sleepHours)));
+  const recoveryNorm = avg(last7.map((d) => normBool(d.recoveryCompleted)));
+  const fastingNorm = avg(last7.map((d) => normBool(d.fastCompleted ? true : null)));
+  const wkPct = weeklyPct(days, "workoutCompleted");
+  const completionNorm = Math.min(wkPct, 100);
+
+  let wWorkout = 0.35, wSleep = 0.20, wRecovery = 0.20, wFasting = 0.15, wWeekly = 0.10;
+
+  if (!fastingEnabled) {
+    // Redistribute 15% proportionally: workout gets 9%, recovery gets 6%
+    wWorkout += 0.09;
+    wRecovery += 0.06;
+    wFasting = 0;
+  }
+
+  const factors: FactorScore[] = [
+    buildFactor("workout", workoutNorm, wWorkout),
+    buildFactor("sleep", sleepNorm, wSleep),
+    buildFactor("recovery", recoveryNorm, wRecovery),
+    ...(fastingEnabled ? [buildFactor("fasting", fastingNorm, wFasting)] : []),
+    buildFactor("weekly_completion", completionNorm, wWeekly),
+  ];
+
+  const score = Math.min(100, Math.max(0, Math.round(factors.reduce((s, f) => s + f.weighted, 0))));
+  const status = getStatus(score);
+  const lowestFactor = [...factors].sort((a, b) => a.normalized - b.normalized)[0];
+
+  return {
+    engine: "performance",
+    score,
+    status,
+    recommendation: getRecommendation(status),
+    lowestFactor,
+    factors,
+    streakDays: calculateStreak(days, "workoutCompleted"),
+    weeklyCompletionPct: Math.round(wkPct),
+  };
+}
+
+function computeAthletic(days: DailyInputs[]): EngineResult {
+  const last7 = days.slice(0, 7);
+
+  const sleepNorm = avg(last7.map((d) => normSleep(d.sleepHours)));
+  const trainingNorm = avg(last7.map((d) => normBool(d.workoutCompleted ? true : null)));
+  const recoveryNorm = avg(last7.map((d) => normBool(d.recoveryCompleted)));
+  const nutritionNorm = avg(last7.map((d) => normBool(d.nutritionOnTrack)));
+
+  const factors: FactorScore[] = [
+    buildFactor("sleep", sleepNorm, 0.30),
+    buildFactor("training_load", trainingNorm, 0.25),
+    buildFactor("recovery", recoveryNorm, 0.25),
+    buildFactor("nutrition", nutritionNorm, 0.20),
+  ];
+
+  const score = Math.min(100, Math.max(0, Math.round(factors.reduce((s, f) => s + f.weighted, 0))));
+  const status = getStatus(score);
+  const lowestFactor = [...factors].sort((a, b) => a.normalized - b.normalized)[0];
+
+  return {
+    engine: "athletic",
+    score,
+    status,
+    recommendation: getRecommendation(status),
+    lowestFactor,
+    factors,
+    streakDays: calculateStreak(days, "workoutCompleted"),
+    weeklyCompletionPct: Math.round(weeklyPct(days, "workoutCompleted")),
+  };
+}
+
+// ─── Public API ─────────────────────────────────────────
+
+export function computeEngineScore(
+  engine: EngineMode,
+  days: DailyInputs[],
+  fastingEnabled = true,
+): EngineResult {
+  switch (engine) {
+    case "metabolic":
+      return computeMetabolic(days);
+    case "performance":
+      return computePerformance(days, fastingEnabled);
+    case "athletic":
+      return computeAthletic(days);
+    default:
+      return computePerformance(days, fastingEnabled);
+  }
+}
+
+export const ENGINE_SCORE_LABELS: Record<EngineMode, string> = {
   metabolic: "Metabolic Stability Index",
   performance: "Performance Readiness Score",
-  athletic: "Game Readiness Score",
+  athletic: "Recovery & Game Readiness Score",
 };
 
-export const STATUS_LABELS: Record<StatusLabel, string> = {
-  strong: "Strong",
-  moderate: "Moderate",
-  needs_support: "Needs Support",
+export const STATUS_DISPLAY: Record<StatusLabel, { label: string; color: string }> = {
+  strong: { label: "Strong", color: "emerald" },
+  moderate: { label: "Moderate", color: "amber" },
+  needs_support: { label: "Needs Support", color: "red" },
 };
 
-export const RECOMMENDATION_LABELS: Record<Recommendation, { label: string; description: string }> = {
+export const RECOMMENDATION_MESSAGES: Record<
+  RecommendationType,
+  Record<StatusLabel, { title: string; description: string }>
+> = {
   advance: {
-    label: "Recommended",
-    description: "You are ready to advance based on recent stability.",
+    strong: { title: "Ready to Advance", description: "Your consistency supports progression." },
+    moderate: { title: "Building Momentum", description: "Keep pushing toward advancement." },
+    needs_support: { title: "Focus First", description: "Shore up fundamentals before advancing." },
   },
   maintain: {
-    label: "Maintain",
-    description: "Remain at this level to reinforce metabolic rhythm.",
+    strong: {
+      title: "Maintain Course",
+      description: "Consistency is your strength. Keep this rhythm going.",
+    },
+    moderate: { title: "Hold Steady", description: "Stay consistent to build toward Strong status." },
+    needs_support: { title: "Stabilize", description: "Focus on daily habits before progressing." },
   },
   reduce: {
-    label: "Reduce",
-    description: "Step back temporarily to support recovery.",
+    strong: { title: "Ease Back", description: "Pull back slightly to avoid overtraining." },
+    moderate: {
+      title: "Adjust Approach",
+      description: "Focus on your lowest scoring area to improve readiness.",
+    },
+    needs_support: {
+      title: "Recovery Focus",
+      description: "Reduce training intensity. Prioritize sleep and recovery.",
+    },
   },
+};
+
+export const CORRECTIVE_ACTIONS: Record<ScoreFactor, string> = {
+  fasting: "Try to complete your fasting window consistently.",
+  sleep: "Aim for 7–9 hours of quality sleep tonight.",
+  nutrition: "Focus on balanced meals within your eating window.",
+  weekly_completion: "Increase your daily check-in completions this week.",
+  workout: "Complete your scheduled workouts to improve this score.",
+  recovery: "Add a recovery session or active rest day.",
+  training_load: "Balance training intensity with adequate rest days.",
 };

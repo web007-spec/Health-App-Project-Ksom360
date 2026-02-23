@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
-import { computeAllEngines, computeEngine, EngineResult, CheckinDay } from "@/lib/recommendationEngine";
+import { computeEngineScore, EngineResult, DailyInputs } from "@/lib/recommendationEngine";
 import { useEngineMode } from "@/hooks/useEngineMode";
 import { subDays, format } from "date-fns";
 
@@ -16,42 +16,54 @@ export function useEngineScores() {
 
       const since = format(subDays(new Date(), 30), "yyyy-MM-dd");
 
-      // Fetch last 30 days of check-ins
-      const { data: checkins } = await supabase
-        .from("daily_checkins")
-        .select("*")
-        .eq("client_id", clientId)
-        .gte("checkin_date", since)
-        .order("checkin_date", { ascending: false });
+      // Fetch check-ins, workout completions, and fasting settings in parallel
+      const [checkinsRes, workoutsRes, featureRes] = await Promise.all([
+        supabase
+          .from("daily_checkins")
+          .select("*")
+          .eq("client_id", clientId)
+          .gte("checkin_date", since)
+          .order("checkin_date", { ascending: false }),
+        supabase
+          .from("client_workouts")
+          .select("scheduled_date, completed_at")
+          .eq("client_id", clientId)
+          .gte("scheduled_date", since),
+        supabase
+          .from("client_feature_settings")
+          .select("fasting_enabled")
+          .eq("client_id", clientId)
+          .maybeSingle(),
+      ]);
 
-      // Fetch fasting completion data (last_fast_completed_at from feature settings gives last completion,
-      // but we need daily data — use fasting_logs if available, otherwise approximate from checkins)
-      // For now, we treat a day as "fast completed" if a check-in exists for that day
-      // This can be enhanced later with actual fasting session data
-      const { data: featureSettings } = await supabase
-        .from("client_feature_settings")
-        .select("last_fast_completed_at")
-        .eq("client_id", clientId)
-        .maybeSingle();
+      const checkins = checkinsRes.data || [];
+      const workouts = workoutsRes.data || [];
+      const fastingEnabled = featureRes.data?.fasting_enabled ?? true;
 
-      const days: CheckinDay[] = [];
+      // Build a set of dates with completed workouts
+      const workoutCompletedDates = new Set(
+        workouts
+          .filter((w: any) => w.completed_at)
+          .map((w: any) => w.scheduled_date)
+          .filter(Boolean)
+      );
+
+      const days: DailyInputs[] = [];
       for (let i = 0; i < 30; i++) {
         const date = format(subDays(new Date(), i), "yyyy-MM-dd");
-        const checkin = (checkins || []).find((c: any) => c.checkin_date === date);
+        const checkin = checkins.find((c: any) => c.checkin_date === date);
         days.push({
           sleepHours: checkin?.sleep_hours ?? null,
           sleepQuality: checkin?.sleep_quality ?? null,
           nutritionOnTrack: checkin?.nutrition_on_track ?? null,
           recoveryCompleted: checkin?.recovery_completed ?? null,
-          fastCompleted: !!checkin, // presence of checkin = engaged that day
+          fastCompleted: !!checkin,
+          workoutCompleted: workoutCompletedDates.has(date),
         });
       }
 
-      // Put the user's active engine first, then the other two
-      const primaryResult = computeEngine(engineMode, days, config.scoringWeights);
-      const allEngines = computeAllEngines(days);
-      const others = allEngines.filter(r => r.engine !== engineMode);
-      return [primaryResult, ...others];
+      const primaryResult = computeEngineScore(engineMode, days, fastingEnabled);
+      return [primaryResult];
     },
     enabled: !!clientId,
     staleTime: 5 * 60 * 1000,

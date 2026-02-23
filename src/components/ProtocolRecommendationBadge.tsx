@@ -1,8 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { useEngineScores } from "@/hooks/useEngineScores";
-import { RECOMMENDATION_LABELS, Recommendation } from "@/lib/recommendationEngine";
+import { RECOMMENDATION_MESSAGES, RecommendationType, StatusLabel } from "@/lib/recommendationEngine";
 
-const REC_COLORS: Record<Recommendation, string> = {
+const REC_COLORS: Record<RecommendationType, string> = {
   advance: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
   maintain: "bg-amber-500/15 text-amber-400 border-amber-500/30",
   reduce: "bg-red-500/15 text-red-400 border-red-500/30",
@@ -14,11 +14,11 @@ export function ProtocolRecommendationBadge() {
 
   if (!scores || scores.length === 0) return null;
 
-  const primary = scores[0]; // metabolic stability
+  const primary = scores[0];
 
   return (
     <Badge variant="outline" className={`text-[10px] ${REC_COLORS[primary.recommendation]}`}>
-      {RECOMMENDATION_LABELS[primary.recommendation].label}
+      {RECOMMENDATION_MESSAGES[primary.recommendation][primary.status].title}
     </Badge>
   );
 }
