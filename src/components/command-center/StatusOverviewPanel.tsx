@@ -15,10 +15,10 @@ const STATUS_COLORS: Record<string, string> = {
   needs_support: "bg-red-500/15 text-red-400 border-red-500/30",
 };
 
-const ENGINE_COLORS: Record<string, string> = {
-  metabolic: "bg-teal-500 text-white border-teal-600",
-  performance: "bg-orange-500 text-white border-orange-600",
-  athletic: "bg-blue-500 text-white border-blue-600",
+const ENGINE_CARD_BG: Record<string, string> = {
+  metabolic: "bg-teal-500",
+  performance: "bg-orange-500",
+  athletic: "bg-blue-500",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -79,58 +79,58 @@ export function StatusOverviewPanel({ clientId }: StatusOverviewPanelProps) {
   const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
   const trendColor = trend === "up" ? "text-emerald-400" : trend === "down" ? "text-red-400" : "text-amber-400";
 
+  const cardBg = ENGINE_CARD_BG[engineMode] || "";
+
   return (
-    <Card>
+    <Card className={`${cardBg} border-0`}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
+        <CardTitle className="text-base flex items-center gap-2 text-white">
           <Gauge className="h-4 w-4" />
           Status Overview
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div className="rounded-lg border border-border p-3 space-y-1">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Engine</p>
-            <Badge variant="outline" className={`text-xs capitalize font-semibold ${ENGINE_COLORS[engineMode] || ""}`}>
-              {ENGINE_LABELS[engineMode] || engineMode}
-            </Badge>
+          <div className="rounded-lg bg-white p-3 space-y-1">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">Engine</p>
+            <p className="text-sm font-bold text-gray-900 capitalize">{ENGINE_LABELS[engineMode] || engineMode}</p>
           </div>
 
-          <div className="rounded-lg border border-border p-3 space-y-1">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+          <div className="rounded-lg bg-white p-3 space-y-1">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500 flex items-center gap-1">
               <Layers className="h-3 w-3" /> Level
             </p>
-            <p className="text-sm font-bold">{getLevelBand(currentLevel)}</p>
+            <p className="text-sm font-bold text-gray-900">{getLevelBand(currentLevel)}</p>
           </div>
 
-          <div className="rounded-lg border border-border p-3 space-y-1">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+          <div className="rounded-lg bg-white p-3 space-y-1">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500 flex items-center gap-1">
               <BarChart3 className="h-3 w-3" /> Score
             </p>
             <div className="flex items-center gap-2">
-              <p className="text-sm font-bold">{score}/100</p>
+              <p className="text-sm font-bold text-gray-900">{score}/100</p>
               <Badge variant="outline" className={`text-[10px] ${STATUS_COLORS[status] || ""}`}>
                 {STATUS_LABELS[status] || status}
               </Badge>
             </div>
           </div>
 
-          <div className="rounded-lg border border-border p-3 space-y-1">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+          <div className="rounded-lg bg-white p-3 space-y-1">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500 flex items-center gap-1">
               <Target className="h-3 w-3" /> Lowest Factor
             </p>
-            <p className="text-sm font-medium capitalize">{lowestFactor.replace("_", " ")}</p>
+            <p className="text-sm font-medium text-gray-900 capitalize">{lowestFactor.replace("_", " ")}</p>
           </div>
 
-          <div className="rounded-lg border border-border p-3 space-y-1">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground flex items-center gap-1">
+          <div className="rounded-lg bg-white p-3 space-y-1">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500 flex items-center gap-1">
               <Activity className="h-3 w-3" /> Completion
             </p>
-            <p className="text-sm font-bold">{rec ? "—" : "—"}%</p>
+            <p className="text-sm font-bold text-gray-900">{rec ? "—" : "—"}%</p>
           </div>
 
-          <div className="rounded-lg border border-border p-3 space-y-1">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Trend</p>
+          <div className="rounded-lg bg-white p-3 space-y-1">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-gray-500">Trend</p>
             <div className="flex items-center gap-1.5">
               <TrendIcon className={`h-4 w-4 ${trendColor}`} />
               <p className={`text-sm font-medium capitalize ${trendColor}`}>{trend}</p>
