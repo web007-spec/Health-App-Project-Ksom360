@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Moon, Sun, Sunrise, CloudSun, Sparkles, Music2, Headphones } from "lucide-react";
+import { Moon, Sun, Sunrise, CloudSun, Sparkles, Music2, Headphones, Wind } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRestoreProfile } from "@/hooks/useRestoreProfile";
 
@@ -27,7 +27,7 @@ const TIME_GRADIENTS: Record<TimeOfDay, string> = {
   night: "from-indigo-950/50 via-slate-950/30 to-transparent",
 };
 
-export type RestoreSection = "home" | "guided" | "sleep" | "soundlab";
+export type RestoreSection = "home" | "guided" | "sleep" | "breathe" | "soundlab";
 export type Mood = "energized" | "calm" | "stressed" | "tired" | null;
 
 const MOOD_OPTIONS: { value: Exclude<Mood, null>; emoji: string; label: string }[] = [
@@ -47,6 +47,7 @@ interface SectionDef {
 const SECTIONS_BASE: Omit<SectionDef, "description">[] = [
   { id: "home", label: "For You", icon: Sparkles },
   { id: "guided", label: "Guided", icon: Headphones },
+  { id: "breathe", label: "Breathe", icon: Wind },
   { id: "sleep", label: "Sleep", icon: Moon },
   { id: "soundlab", label: "Sound Lab", icon: Music2 },
 ];
@@ -114,7 +115,7 @@ export function RestoreEntryScreen({ activeSection, onSectionChange, mood, onMoo
       </div>
 
       {/* Section navigation */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-5 gap-2">
         {sections.map((sec) => {
           const Icon = sec.icon;
           const isActive = activeSection === sec.id;

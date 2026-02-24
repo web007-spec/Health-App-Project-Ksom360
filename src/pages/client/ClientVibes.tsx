@@ -15,6 +15,7 @@ import { RestoreEntryScreen, RestoreSection, Mood } from "@/components/vibes/Res
 import { RestoreForYouTab } from "@/components/vibes/RestoreForYouTab";
 import { RestoreGuidedTab } from "@/components/vibes/RestoreGuidedTab";
 import { RestoreSleepTab } from "@/components/vibes/RestoreSleepTab";
+import { RestoreBreathingTab } from "@/components/vibes/RestoreBreathingTab";
 import { useSearchParams } from "react-router-dom";
 
 export default function ClientVibes() {
@@ -113,6 +114,10 @@ export default function ClientVibes() {
 
           {section === "guided" && (
             <RestoreGuidedTab sounds={sounds} />
+          )}
+
+          {section === "breathe" && (
+            <RestoreBreathingTab />
           )}
 
           {section === "sleep" && (
