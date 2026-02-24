@@ -30,7 +30,7 @@ export function OnboardingPreviewSection() {
   const createDemoClient = useCreateDemoClient();
 
   const handleGoLive = (engine: EngineMode) => {
-    createDemoClient.mutate(undefined, {
+    createDemoClient.mutate(engine, {
       onSuccess: (data) => {
         localStorage.setItem("impersonatedClientId", data.client.id);
         navigate("/client/onboarding");

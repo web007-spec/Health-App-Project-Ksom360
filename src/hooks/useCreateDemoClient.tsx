@@ -6,7 +6,7 @@ export function useCreateDemoClient() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (engineMode: string | undefined = 'performance') => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -21,6 +21,7 @@ export function useCreateDemoClient() {
             'Authorization': `Bearer ${session.access_token}`,
             'Content-Type': 'application/json',
           },
+          body: JSON.stringify({ engine_mode: engineMode || 'performance' }),
         }
       );
 

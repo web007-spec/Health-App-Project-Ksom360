@@ -31,6 +31,15 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
+    // Parse optional engine mode from request body
+    let engineMode = 'performance'; // default
+    try {
+      const body = await req.json();
+      if (body?.engine_mode && ['metabolic', 'performance', 'athletic'].includes(body.engine_mode)) {
+        engineMode = body.engine_mode;
+      }
+    } catch { /* no body or invalid JSON, use default */ }
+
     // Create demo client user
     const demoEmail = `demo.client.${Date.now()}@fittrainer.app`;
     const demoPassword = 'DemoClient123!';
@@ -57,6 +66,18 @@ serve(async (req) => {
       });
 
     if (relationError) throw relationError;
+
+    // Set engine mode on the demo client's profile
+    await supabaseAdmin
+      .from('profiles')
+      .update({ engine_mode: engineMode })
+      .eq('id', newUser.user.id);
+
+    // Set engine mode on feature settings (if row exists from trigger)
+    await supabaseAdmin
+      .from('client_feature_settings')
+      .update({ engine_mode: engineMode })
+      .eq('client_id', newUser.user.id);
 
     // Get some workout plans to assign
     const { data: workoutPlans } = await supabaseAdmin
