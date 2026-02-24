@@ -17,12 +17,29 @@ SAFETY CONSTRAINTS — You MUST follow these rules:
 - Keep responses concise (2-4 sentences for suggestions, 2-3 sentences for level-up messages).
 `;
 
-function buildSystemPrompt(useCase: string, context: Record<string, unknown>): string {
+function buildSystemPrompt(useCase: string, context: Record<string, unknown>, styleSettings?: Record<string, unknown>): string {
   const engine = context.engine_mode || "performance";
   let toneInstruction = "Use a professional coaching tone.";
   if (engine === "metabolic") toneInstruction = "Use a structured, clinical tone. Focus on metabolic stability and fasting adherence.";
   else if (engine === "performance") toneInstruction = "Use a confident, direct tone. Focus on training readiness and performance.";
   else if (engine === "athletic") toneInstruction = "Use an energetic, growth-oriented tone. Focus on recovery and competitive development.";
+
+  // Style overrides from AI settings panel
+  if (styleSettings) {
+    const writingTone = styleSettings.tone as string;
+    if (writingTone === "casual") toneInstruction = "Use a casual, friendly, conversational tone. Keep it warm and approachable.";
+    else if (writingTone === "formal") toneInstruction = "Use a formal, professional tone. Be precise and structured.";
+    else if (writingTone === "storytelling") toneInstruction = "Use a storytelling tone. Be narrative, motivational, and paint a picture of progress.";
+
+    const length = styleSettings.length as string;
+    if (length === "short") toneInstruction += " Keep responses very brief (1-2 sentences max).";
+    else if (length === "long") toneInstruction += " Provide detailed, comprehensive responses (4-6 sentences).";
+
+    const emojiLevel = styleSettings.emoji_level as string;
+    if (emojiLevel === "none") toneInstruction += " Do NOT use any emojis.";
+    else if (emojiLevel === "some") toneInstruction += " Use 1-2 relevant emojis sparingly.";
+    else if (emojiLevel === "lots") toneInstruction += " Use emojis liberally throughout the response for energy and personality.";
+  }
 
   const levelBand = context.level_band || "1-3";
   const levelContext = levelBand === "7"
@@ -88,6 +105,38 @@ Base the insight on the client's lowest scoring factor, current status, and tren
 Generate a short push notification message (max 100 characters) to nudge this client based on their current status and lowest factor. The message should feel personal and motivating, not generic. Match the engine tone.
 Return ONLY the notification text, nothing else.`;
 
+    case "client_feedback":
+      return `${base}
+You are writing a personalized feedback message from a coach to their client. This will be sent as a direct message.
+Based on the client's current data (scores, trends, lowest factor, completion rate), write a feedback message that:
+1. Acknowledges specific progress or areas of focus
+2. Provides 1-2 actionable takeaways
+3. Ends with encouragement
+${context.feedback_topic ? `Focus on this topic: ${context.feedback_topic}` : "Cover overall progress."}
+Return ONLY the message text, ready to send.`;
+
+    case "progress_report":
+      return `${base}
+Generate a week-over-week progress report summary for the coach to review. Structure it as:
+
+📊 WEEKLY PROGRESS REPORT
+─────────────────────
+**Status**: [current status assessment]
+**Key Wins**: [1-2 specific improvements based on data]
+**Areas to Watch**: [1-2 areas needing attention based on lowest factor and trend]
+**Recommendation**: [1 actionable coaching suggestion]
+**Overall Trend**: [up/down/flat with brief explanation]
+
+Keep it data-driven and actionable. This is for the coach's internal review.`;
+
+    case "alert_message":
+      return `${base}
+Generate a brief alert/notification message (max 160 characters) for this client based on their current status. The alert should:
+1. Be specific to their situation (not generic)
+2. Feel urgent but not alarming
+3. Drive a specific action
+Return ONLY the alert text, nothing else.`;
+
     default:
       return base;
   }
@@ -99,12 +148,12 @@ serve(async (req) => {
   }
 
   try {
-    const { use_case, context, original_text } = await req.json();
+    const { use_case, context, original_text, style_settings } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = buildSystemPrompt(use_case, context || {});
+    const systemPrompt = buildSystemPrompt(use_case, context || {}, style_settings);
 
     let userMessage: string;
     if (use_case === "insight_rephrase" && original_text) {
@@ -115,6 +164,12 @@ serve(async (req) => {
       userMessage = "Generate a custom insight with an action line for this client.";
     } else if (use_case === "nudge_message_suggest") {
       userMessage = "Generate a short nudge notification message for this client.";
+    } else if (use_case === "client_feedback") {
+      userMessage = "Write a personalized feedback message for this client based on their current context and progress data.";
+    } else if (use_case === "progress_report") {
+      userMessage = "Generate a comprehensive weekly progress report summary for the coach to review.";
+    } else if (use_case === "alert_message") {
+      userMessage = "Generate a brief, actionable alert message for this client.";
     } else {
       userMessage = `Generate the ${use_case === "plan_suggestion" ? "plan adjustment suggestion" : "level-up message"} based on the client context provided.`;
     }
