@@ -92,7 +92,8 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
   return (
     <>
       <Sheet open={open} onOpenChange={(v) => { if (!v) resetAndClose(); }}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto p-0">
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto p-0 bg-transparent border-none shadow-none [&>button]:hidden">
+          <div className="bg-background rounded-t-2xl">
           {/* Header */}
           <div className="flex items-center gap-3 p-4 border-b border-border">
             {step !== "pick" && (
@@ -118,7 +119,7 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
                     onClick={() => handleSelectActivity(act)}
                     className="w-full flex items-center gap-3"
                   >
-                    <div className="flex items-center rounded-xl bg-destructive overflow-hidden shrink-0">
+                    <div className="flex items-center rounded-full bg-destructive overflow-hidden shrink-0">
                       <div className="flex items-center justify-center w-14 h-12">
                         {act.icon_url ? (
                           <img src={act.icon_url} alt={act.name} className="h-6 w-6 object-contain invert" />
@@ -284,6 +285,7 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
               </div>
             </div>
           )}
+          </div>
         </SheetContent>
       </Sheet>
 
