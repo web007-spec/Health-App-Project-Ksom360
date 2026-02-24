@@ -367,6 +367,60 @@ export type Database = {
           },
         ]
       }
+      checkin_auto_drafts: {
+        Row: {
+          client_id: string
+          created_at: string
+          draft_text: string
+          id: string
+          schedule_id: string
+          sent_at: string | null
+          status: string
+          task_id: string
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          draft_text: string
+          id?: string
+          schedule_id: string
+          sent_at?: string | null
+          status?: string
+          task_id: string
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          draft_text?: string
+          id?: string
+          schedule_id?: string
+          sent_at?: string | null
+          status?: string
+          task_id?: string
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkin_auto_drafts_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_checkin_schedules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkin_auto_drafts_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "client_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_badges: {
         Row: {
           badge_id: string
@@ -4111,6 +4165,88 @@ export type Database = {
           week_recommendation_text?: string
         }
         Relationships: []
+      }
+      recurring_checkin_schedules: {
+        Row: {
+          ai_auto_draft: boolean
+          ai_auto_send: boolean
+          client_id: string
+          created_at: string
+          day_of_month: number | null
+          day_of_week: number | null
+          frequency: string
+          id: string
+          is_active: boolean
+          last_triggered_at: string | null
+          next_trigger_at: string | null
+          schedule_name: string
+          schedule_type: string
+          template_id: string | null
+          time_of_day: string
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          ai_auto_draft?: boolean
+          ai_auto_send?: boolean
+          client_id: string
+          created_at?: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          next_trigger_at?: string | null
+          schedule_name: string
+          schedule_type?: string
+          template_id?: string | null
+          time_of_day?: string
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          ai_auto_draft?: boolean
+          ai_auto_send?: boolean
+          client_id?: string
+          created_at?: string
+          day_of_month?: number | null
+          day_of_week?: number | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          last_triggered_at?: string | null
+          next_trigger_at?: string | null
+          schedule_name?: string
+          schedule_type?: string
+          template_id?: string | null
+          time_of_day?: string
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_checkin_schedules_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_checkin_schedules_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "task_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_checkin_schedules_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       resource_collections: {
         Row: {

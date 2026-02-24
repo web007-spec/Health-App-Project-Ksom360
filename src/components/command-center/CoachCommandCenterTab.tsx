@@ -14,6 +14,7 @@ import { AIMealPlanPanel } from "./AIMealPlanPanel";
 import { AIOnboardingSummaryPanel } from "./AIOnboardingSummaryPanel";
 import { AICoachChatPanel } from "./AICoachChatPanel";
 import { AIPhotoAnalysisPanel } from "./AIPhotoAnalysisPanel";
+import { RecurringCheckinScheduler } from "./RecurringCheckinScheduler";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -101,7 +102,8 @@ export function CoachCommandCenterTab({ clientId, trainerId }: CoachCommandCente
         />
       )}
 
-      {/* G) AI Write — Feedback, Alerts, Nudges */}
+      {/* Recurring Check-in Scheduler */}
+      <RecurringCheckinScheduler clientId={clientId} trainerId={trainerId} />
       <AIWriteFeedbackPanel clientId={clientId} trainerId={trainerId} />
 
       {/* G2) AI Progress Report */}
