@@ -18,9 +18,9 @@ export function RestoreBreathingTab() {
   return (
     <div className="space-y-4 mt-2">
       <div className="text-center space-y-1.5">
-        <h3 className="text-lg font-bold text-white/90">Breathing Exercises</h3>
+        <h3 className="text-lg font-bold text-white/90">Breathing Protocols</h3>
         <p className="text-xs text-white/40 max-w-sm mx-auto">
-          Choose a technique to calm your mind, reduce stress, or energize your body.
+          Structured breath regulation for recovery and nervous system control.
         </p>
       </div>
 
