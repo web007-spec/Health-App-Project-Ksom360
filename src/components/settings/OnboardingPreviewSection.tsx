@@ -1,14 +1,16 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, ChevronRight, CheckCircle2, Settings, ArrowRight, Home, LayoutGrid, BarChart3, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Settings, ArrowRight, Home, LayoutGrid, BarChart3, User, Play, Loader2 } from "lucide-react";
 import { ENGINE_ONBOARDING } from "@/components/onboarding/engineOnboardingContent";
 import EngineIntroStep from "@/components/onboarding/EngineIntroStep";
 import EngineQuestionsStep from "@/components/onboarding/EngineQuestionsStep";
 import type { EngineMode } from "@/lib/engineConfig";
+import { useCreateDemoClient } from "@/hooks/useCreateDemoClient";
 
 const ENGINE_LABELS: Record<EngineMode, { label: string; color: string }> = {
   metabolic: { label: "Metabolic", color: "text-blue-400" },
@@ -23,6 +25,17 @@ const TOTAL_STEPS = 6;
 export function OnboardingPreviewSection() {
   const [activeEngine, setActiveEngine] = useState<EngineMode>("metabolic");
   const [previewStep, setPreviewStep] = useState(0);
+  const navigate = useNavigate();
+  const createDemoClient = useCreateDemoClient();
+
+  const handleGoLive = () => {
+    createDemoClient.mutate(undefined, {
+      onSuccess: (data) => {
+        localStorage.setItem("impersonatedClientId", data.client.id);
+        navigate("/client/dashboard");
+      },
+    });
+  };
 
   const handleEngineChange = (engine: string) => {
     setActiveEngine(engine as EngineMode);
@@ -171,7 +184,24 @@ export function OnboardingPreviewSection() {
                         </div>
                       </div>
 
-                      <Button variant="outline" size="sm" onClick={handleRestart} className="mt-2">
+                      {/* Go Live button */}
+                      <Button
+                        size="lg"
+                        className="w-full gap-2 mt-2"
+                        onClick={handleGoLive}
+                        disabled={createDemoClient.isPending}
+                      >
+                        {createDemoClient.isPending ? (
+                          <><Loader2 className="h-4 w-4 animate-spin" /> Creating demo client...</>
+                        ) : (
+                          <><Play className="h-4 w-4" /> Go Live — Experience as Client</>
+                        )}
+                      </Button>
+                      <p className="text-[11px] text-muted-foreground">
+                        Creates a demo client and drops you into full client view with working navigation
+                      </p>
+
+                      <Button variant="outline" size="sm" onClick={handleRestart} className="mt-1">
                         Restart Preview
                       </Button>
                     </div>
