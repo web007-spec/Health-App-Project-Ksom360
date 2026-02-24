@@ -15,10 +15,11 @@ export function AdminBreathingTab() {
         <Button variant="ghost" size="sm" onClick={() => setPreviewExercise(null)}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Back to list
         </Button>
-        <div className="max-w-md mx-auto rounded-2xl bg-[hsl(260,20%,5%)] p-6">
+        <div className="max-w-md mx-auto rounded-2xl overflow-hidden relative" style={{ aspectRatio: "9/16", background: "hsl(220, 25%, 5%)" }}>
           <BreathingPlayer
             exercise={previewExercise}
             onBack={() => setPreviewExercise(null)}
+            contained
           />
         </div>
       </div>

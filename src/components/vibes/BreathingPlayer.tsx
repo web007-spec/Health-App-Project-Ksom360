@@ -5,6 +5,7 @@ import type { BreathingExercise, ProtocolTone } from "@/lib/breathingExercises";
 interface Props {
   exercise: BreathingExercise;
   onBack: () => void;
+  contained?: boolean;
 }
 
 /* ─── Adaptive timing hook (Phase 2 ready) ─── */
@@ -50,18 +51,20 @@ function SessionSummary({
   totalSeconds,
   onBack,
   tone,
+  contained = false,
 }: {
   cycleCount: number;
   totalSeconds: number;
   onBack: () => void;
   tone: ProtocolTone;
+  contained?: boolean;
 }) {
   const mins = Math.floor(totalSeconds / 60);
   const secs = totalSeconds % 60;
   const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+    <div className={`${contained ? "absolute" : "fixed"} inset-0 z-50 flex flex-col items-center justify-center`}
       style={{ background: `hsl(${tone.hueBase}, ${tone.hueSat - 20}%, 4%)` }}>
       <span className="text-[10px] uppercase tracking-[0.3em] font-medium"
         style={{ color: `hsla(${tone.hueBase}, 30%, 60%, 0.7)` }}>
@@ -97,7 +100,7 @@ function SessionSummary({
   );
 }
 
-export function BreathingPlayer({ exercise, onBack }: Props) {
+export function BreathingPlayer({ exercise, onBack, contained = false }: Props) {
   const timing = useBreathTiming(exercise);
   const tone = exercise.tone;
   const ratioStr = buildRatioString(timing.phases);
@@ -199,7 +202,11 @@ export function BreathingPlayer({ exercise, onBack }: Props) {
   /* ─── Show summary ─── */
   if (finished) {
     const totalSecs = Math.round((Date.now() - sessionStartRef.current) / 1000);
-    return <SessionSummary cycleCount={cycleCount} totalSeconds={totalSecs} onBack={onBack} tone={tone} />;
+    return (
+      <div className={contained ? "relative w-full aspect-[9/16] overflow-hidden rounded-2xl" : ""}>
+        <SessionSummary cycleCount={cycleCount} totalSeconds={totalSecs} onBack={onBack} tone={tone} contained={contained} />
+      </div>
+    );
   }
 
   /* ─── Atmosphere calculations with per-protocol tone ─── */
@@ -254,7 +261,7 @@ export function BreathingPlayer({ exercise, onBack }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-hidden select-none cursor-pointer"
+      className={`${contained ? "absolute" : "fixed"} inset-0 z-50 overflow-hidden select-none cursor-pointer`}
       onClick={entered ? showUi : undefined}
       style={{
         opacity: entered ? 1 : entryOpacity,
