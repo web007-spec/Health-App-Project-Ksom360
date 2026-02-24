@@ -3,6 +3,7 @@ import { ArrowLeft, Pause, Play, RotateCcw } from "lucide-react";
 import type { BreathingExercise, RestoreMode, MotionProfile, ProtocolTone } from "@/lib/breathingExercises";
 import { BreathingEntryScreen } from "./BreathingEntryScreen";
 import { BreathingSessionSummary } from "./BreathingSessionSummary";
+import { BreathingAnimationLayer } from "./BreathingAnimationLayer";
 
 interface Props {
   exercise: BreathingExercise;
@@ -352,6 +353,18 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
           );
         })}
       </svg>
+
+      {/* ─── Animation Layer ─── */}
+      <BreathingAnimationLayer
+        animation={exercise.animation}
+        progress={mappedProgress}
+        phaseType={currentPhase.type}
+        hue={h}
+        sat={s}
+        brightness={brightness}
+        arcIntensity={arcIntensity}
+        time={time}
+      />
 
       {/* ─── UI Layer ─── */}
 
