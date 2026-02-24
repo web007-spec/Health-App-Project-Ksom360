@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Wind, ArrowLeft } from "lucide-react";
 import { BREATHING_EXERCISES, type BreathingExercise } from "@/lib/breathingExercises";
 import { BreathingPlayer } from "./BreathingPlayer";
 
