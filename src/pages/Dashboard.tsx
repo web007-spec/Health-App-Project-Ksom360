@@ -105,7 +105,7 @@ export default function Dashboard() {
           <Button 
             size="lg" 
             className="gap-2"
-            onClick={() => createDemoClient.mutate()}
+            onClick={() => createDemoClient.mutate(undefined)}
             disabled={createDemoClient.isPending}
           >
             {createDemoClient.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
