@@ -16,9 +16,9 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const ENGINE_COLORS: Record<string, string> = {
-  metabolic: "bg-teal-500/15 text-teal-400 border-teal-500/40",
-  performance: "bg-orange-500/15 text-orange-400 border-orange-500/40",
-  athletic: "bg-blue-500/15 text-blue-400 border-blue-500/40",
+  metabolic: "bg-teal-500 text-white border-teal-600",
+  performance: "bg-orange-500 text-white border-orange-600",
+  athletic: "bg-blue-500 text-white border-blue-600",
 };
 
 const STATUS_LABELS: Record<string, string> = {
