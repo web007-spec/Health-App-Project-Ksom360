@@ -93,7 +93,7 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
   return (
     <>
       <Sheet open={open} onOpenChange={(v) => { if (!v) resetAndClose(); }}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto p-0 bg-black border-none shadow-none [&>button]:hidden">
+        <SheetContent side="bottom" className={`rounded-t-2xl max-h-[90vh] overflow-y-auto p-0 border-none shadow-none [&>button]:hidden ${step === "detail" ? "bg-black" : "bg-transparent"}`}>
           <div className="rounded-t-2xl">
           {/* Header */}
           <div className="flex items-center gap-3 p-4 border-b border-white/10">
