@@ -3,7 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { CopilotContext } from "@/lib/buildCopilotContext";
 
-export type CopilotUseCase = "plan_suggestion" | "level_up" | "insight_rephrase" | "insight_pin_suggest" | "custom_insight_suggest" | "nudge_message_suggest";
+export type CopilotUseCase = "plan_suggestion" | "level_up" | "insight_rephrase" | "insight_pin_suggest" | "custom_insight_suggest" | "nudge_message_suggest" | "client_feedback" | "progress_report" | "alert_message";
+
+export interface CopilotStyleSettings {
+  tone: "casual" | "formal" | "storytelling";
+  length: "short" | "medium" | "long";
+  emoji_level: "none" | "some" | "lots";
+}
 
 interface UseCopilotOptions {
   clientId: string;
@@ -19,6 +25,7 @@ export function useCopilot({ clientId, coachId, engineMode }: UseCopilotOptions)
     useCase: CopilotUseCase,
     context: CopilotContext,
     originalText?: string,
+    styleSettings?: CopilotStyleSettings,
   ) => {
     setIsGenerating(true);
     setLastResponse(null);
@@ -49,6 +56,7 @@ export function useCopilot({ clientId, coachId, engineMode }: UseCopilotOptions)
           use_case: useCase,
           context,
           original_text: originalText,
+          style_settings: styleSettings,
         },
       });
 

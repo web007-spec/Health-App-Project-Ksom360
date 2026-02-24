@@ -7,6 +7,8 @@ import { AuthorityControls } from "./AuthorityControls";
 import { ActivityLog } from "./ActivityLog";
 import { ParentLinkSection } from "./ParentLinkSection";
 import { CopilotAssistPanel } from "./CopilotAssistPanel";
+import { AIWriteFeedbackPanel } from "./AIWriteFeedbackPanel";
+import { AIProgressReportPanel } from "./AIProgressReportPanel";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -94,10 +96,16 @@ export function CoachCommandCenterTab({ clientId, trainerId }: CoachCommandCente
         />
       )}
 
-      {/* G) Copilot Assist */}
+      {/* G) AI Write — Feedback, Alerts, Nudges */}
+      <AIWriteFeedbackPanel clientId={clientId} trainerId={trainerId} />
+
+      {/* G2) AI Progress Report */}
+      <AIProgressReportPanel clientId={clientId} trainerId={trainerId} />
+
+      {/* H) Copilot Assist */}
       <CopilotAssistPanel clientId={clientId} trainerId={trainerId} />
 
-      {/* H) Activity Log */}
+      {/* I) Activity Log */}
       <ActivityLog clientId={clientId} />
     </div>
   );
