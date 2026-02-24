@@ -1,20 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ArrowLeft, Play } from "lucide-react";
-import type { BreathingExercise, ProtocolTone } from "@/lib/breathingExercises";
+import { ArrowLeft, Pause, Play, RotateCcw } from "lucide-react";
+import type { BreathingExercise, RestoreMode, MotionProfile, ProtocolTone } from "@/lib/breathingExercises";
+import { BreathingEntryScreen } from "./BreathingEntryScreen";
+import { BreathingSessionSummary } from "./BreathingSessionSummary";
 
 interface Props {
   exercise: BreathingExercise;
+  mode?: RestoreMode;
   onBack: () => void;
   contained?: boolean;
-}
-
-/* ─── Adaptive timing hook (Phase 2 ready) ─── */
-interface BreathTiming {
-  phases: { label: string; seconds: number; type: "inhale" | "hold" | "exhale" }[];
-}
-
-function useBreathTiming(exercise: BreathingExercise): BreathTiming {
-  return { phases: exercise.phases };
 }
 
 /* ─── Particle system ─── */
@@ -28,7 +22,8 @@ interface Particle {
   baseY: number;
 }
 
-function generateParticles(count: number): Particle[] {
+function generateParticles(density: number): Particle[] {
+  const count = Math.round(24 * density);
   return Array.from({ length: count }, (_, i) => ({
     id: i,
     x: Math.random() * 100,
@@ -40,102 +35,67 @@ function generateParticles(count: number): Particle[] {
   }));
 }
 
-/* ─── Build breath ratio string ─── */
-function buildRatioString(phases: BreathTiming["phases"]): string {
-  return phases.map((p) => p.seconds).join("–");
+function easeOutQuart(t: number): number {
+  return 1 - Math.pow(1 - t, 4);
 }
 
-/* ─── Session summary screen ─── */
-function SessionSummary({
-  cycleCount,
-  totalSeconds,
-  onBack,
-  tone,
-  contained = false,
-}: {
-  cycleCount: number;
-  totalSeconds: number;
-  onBack: () => void;
-  tone: ProtocolTone;
-  contained?: boolean;
-}) {
-  const mins = Math.floor(totalSeconds / 60);
-  const secs = totalSeconds % 60;
-  const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+/** Compute progressive intensity multiplier based on cycle progress */
+function getArcIntensity(arcMode: RestoreMode, cycleCount: number, totalCycles: number): number {
+  if (totalCycles <= 1) return 1;
+  const progress = Math.min(cycleCount / totalCycles, 1);
 
-  return (
-    <div className={`${contained ? "absolute" : "fixed"} inset-0 z-50 flex flex-col items-center justify-center`}
-      style={{ background: `hsl(${tone.hueBase}, ${tone.hueSat - 20}%, 4%)` }}>
-      <span className="text-[10px] uppercase tracking-[0.3em] font-medium"
-        style={{ color: `hsla(${tone.hueBase}, 30%, 60%, 0.7)` }}>
-        Restore Complete
-      </span>
-
-      <div className="mt-10 space-y-6 text-center">
-        <div>
-          <span className="block text-[10px] uppercase tracking-[0.2em] text-white/25">
-            Breath Cycles Completed
-          </span>
-          <span className="block text-2xl font-light text-white/70 mt-1 tabular-nums">
-            {cycleCount}
-          </span>
-        </div>
-        <div>
-          <span className="block text-[10px] uppercase tracking-[0.2em] text-white/25">
-            Total Regulation Time
-          </span>
-          <span className="block text-2xl font-light text-white/70 mt-1 tabular-nums">
-            {timeStr}
-          </span>
-        </div>
-      </div>
-
-      <button
-        onClick={onBack}
-        className="mt-14 text-[10px] uppercase tracking-[0.2em] text-white/30 hover:text-white/50 px-6 py-3"
-      >
-        Done
-      </button>
-    </div>
-  );
+  if (arcMode === "activate") {
+    // Build: 0.6 → 1.2 peak at ~80%, slight resolve at end
+    if (progress < 0.8) return 0.6 + progress * 0.75;
+    return 1.2 - (progress - 0.8) * 1.0;
+  }
+  if (arcMode === "downshift") {
+    // Reverse: 0.8 → 0.3 deepening
+    return 0.8 - progress * 0.5;
+  }
+  // regulate: steady
+  return 1.0;
 }
 
-export function BreathingPlayer({ exercise, onBack, contained = false }: Props) {
-  const timing = useBreathTiming(exercise);
+export function BreathingPlayer({ exercise, mode, onBack, contained = false }: Props) {
+  const effectiveMode = mode ?? exercise.motion.arcMode;
   const tone = exercise.tone;
-  const ratioStr = buildRatioString(timing.phases);
+  const motion = exercise.motion;
+  const phases = exercise.phases;
+  const ratioStr = phases.map((p) => p.seconds).join("–");
 
+  // States
+  const [stage, setStage] = useState<"entry" | "playing" | "summary">("entry");
   const [playing, setPlaying] = useState(false);
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [phaseElapsed, setPhaseElapsed] = useState(0);
   const [cycleCount, setCycleCount] = useState(0);
-  const [uiVisible, setUiVisible] = useState(true);
-  const [entered, setEntered] = useState(false);
-  const [entryOpacity, setEntryOpacity] = useState(0);
-  const [finished, setFinished] = useState(false);
+  const [durationSecs, setDurationSecs] = useState(180);
+  const [sessionElapsed, setSessionElapsed] = useState(0);
+
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const uiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const particlesRef = useRef<Particle[]>(generateParticles(24));
+  const particlesRef = useRef<Particle[]>(generateParticles(motion.particleDensity));
   const frameRef = useRef(0);
-  const sessionStartRef = useRef<number>(0);
+  const sessionStartRef = useRef(0);
 
-  const currentPhase = timing.phases[phaseIndex];
+  const currentPhase = phases[phaseIndex];
   const rawProgress = phaseElapsed / currentPhase.seconds;
+  const mappedProgress = currentPhase.type === "exhale" ? easeOutQuart(rawProgress) : rawProgress;
 
-  // Exhale: gravitational deceleration
-  const mappedProgress = (() => {
-    if (currentPhase.type !== "exhale") return rawProgress;
-    return easeOutQuart(rawProgress);
-  })();
+  // Estimate total cycles for arc calculation
+  const cycleLength = phases.reduce((s, p) => s + p.seconds, 0);
+  const estimatedTotalCycles = Math.max(1, Math.floor(durationSecs / cycleLength));
+
+  const arcIntensity = getArcIntensity(effectiveMode, cycleCount, estimatedTotalCycles);
 
   /* ─── Tick engine ─── */
   const tick = useCallback(() => {
     setPhaseElapsed((prev) => {
       const next = prev + 0.05;
-      if (next >= timing.phases[phaseIndex].seconds) {
+      if (next >= phases[phaseIndex].seconds) {
         setPhaseIndex((pi) => {
           const nextPi = pi + 1;
-          if (nextPi >= timing.phases.length) {
+          if (nextPi >= phases.length) {
             setCycleCount((c) => c + 1);
             return 0;
           }
@@ -145,141 +105,189 @@ export function BreathingPlayer({ exercise, onBack, contained = false }: Props) 
       }
       return next;
     });
+    setSessionElapsed((prev) => prev + 0.05);
     frameRef.current++;
-  }, [timing.phases, phaseIndex]);
+  }, [phases, phaseIndex]);
 
   useEffect(() => {
-    if (playing && entered) {
+    if (playing && stage === "playing") {
       intervalRef.current = setInterval(tick, 50);
     } else if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [playing, entered, tick]);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [playing, stage, tick]);
 
-  /* ─── Auto-hide UI after 3s ─── */
+  // Auto-end when duration reached
   useEffect(() => {
-    if (uiTimerRef.current) clearTimeout(uiTimerRef.current);
-    if (playing) {
-      uiTimerRef.current = setTimeout(() => setUiVisible(false), 3000);
-    } else {
-      setUiVisible(true);
+    if (stage === "playing" && sessionElapsed >= durationSecs) {
+      setPlaying(false);
+      setStage("summary");
     }
-    return () => {
-      if (uiTimerRef.current) clearTimeout(uiTimerRef.current);
-    };
-  }, [playing]);
+  }, [sessionElapsed, durationSecs, stage]);
 
-  /* ─── Session entry transition ─── */
-  const handleStart = () => {
-    setEntryOpacity(0);
+  const handleStart = (dur: number) => {
+    setDurationSecs(dur);
     sessionStartRef.current = Date.now();
-    requestAnimationFrame(() => {
-      setEntryOpacity(1);
-    });
-    setTimeout(() => {
-      setEntered(true);
-      setPlaying(true);
-    }, 1200);
+    setSessionElapsed(0);
+    setCycleCount(0);
+    setPhaseIndex(0);
+    setPhaseElapsed(0);
+    setStage("playing");
+    setPlaying(true);
   };
 
-  /* ─── End session ─── */
+  const handleReset = () => {
+    setPlaying(false);
+    setSessionElapsed(0);
+    setCycleCount(0);
+    setPhaseIndex(0);
+    setPhaseElapsed(0);
+  };
+
   const handleEnd = () => {
     setPlaying(false);
-    setFinished(true);
+    setStage("summary");
   };
 
-  const showUi = () => {
-    setUiVisible(true);
-    if (uiTimerRef.current) clearTimeout(uiTimerRef.current);
-    if (playing) {
-      uiTimerRef.current = setTimeout(() => setUiVisible(false), 3000);
-    }
-  };
-
-  /* ─── Show summary ─── */
-  if (finished) {
-    const totalSecs = Math.round((Date.now() - sessionStartRef.current) / 1000);
+  /* ─── Entry screen ─── */
+  if (stage === "entry") {
     return (
       <div className={contained ? "relative w-full aspect-[9/16] overflow-hidden rounded-2xl" : ""}>
-        <SessionSummary cycleCount={cycleCount} totalSeconds={totalSecs} onBack={onBack} tone={tone} contained={contained} />
+        <BreathingEntryScreen
+          exercise={exercise}
+          mode={effectiveMode}
+          onStart={handleStart}
+          onBack={onBack}
+          contained={contained}
+        />
       </div>
     );
   }
 
-  /* ─── Atmosphere calculations with per-protocol tone ─── */
-  const p = entered ? mappedProgress : 0;
+  /* ─── Summary screen ─── */
+  if (stage === "summary") {
+    const totalSecs = Math.round(sessionElapsed);
+    return (
+      <div className={contained ? "relative w-full aspect-[9/16] overflow-hidden rounded-2xl" : ""}>
+        <BreathingSessionSummary
+          cycleCount={cycleCount}
+          totalSeconds={totalSecs}
+          onBack={onBack}
+          tone={tone}
+          contained={contained}
+        />
+      </div>
+    );
+  }
+
+  /* ─── Atmosphere calculations ─── */
+  const p = mappedProgress;
   const lSpeed = tone.luminanceSpeed;
+  const lumAmp = motion.luminanceAmplitude * arcIntensity;
+
   const baseBrightness = 0.08;
   const brightness =
     currentPhase.type === "inhale"
-      ? baseBrightness + p * 0.05 * lSpeed
+      ? baseBrightness + p * lumAmp * lSpeed
       : currentPhase.type === "exhale"
-      ? baseBrightness + 0.05 * lSpeed - p * 0.05 * lSpeed
-      : baseBrightness + 0.05 * lSpeed + p * 0.02;
+      ? baseBrightness + lumAmp * lSpeed - p * lumAmp * lSpeed
+      : baseBrightness + lumAmp * lSpeed + p * 0.02;
 
-  // Micro-luminance pulse
   const pulseIntensity =
-    currentPhase.type === "hold" ? 0 : Math.sin(p * Math.PI) * 0.015;
+    currentPhase.type === "hold" ? 0 : Math.sin(p * Math.PI) * 0.015 * arcIntensity;
 
-  const lightY =
-    currentPhase.type === "inhale"
-      ? 55 - p * 15
-      : currentPhase.type === "exhale"
-      ? 40 + p * 15
-      : 40 + Math.sin(p * Math.PI) * 3;
+  // Motion-type-specific light position
+  const h = tone.hueBase;
+  const s = tone.hueSat;
+  const time = frameRef.current * 0.05;
+
+  let lightX = 50;
+  let lightY = 50;
+
+  switch (motion.motionType) {
+    case "horizon-drift": {
+      lightX = 50 + Math.sin(time * 0.15) * 15;
+      lightY = currentPhase.type === "inhale" ? 55 - p * 15 : currentPhase.type === "exhale" ? 40 + p * 15 : 40;
+      break;
+    }
+    case "diagonal-sweep": {
+      const angle = (motion.sweepAngle * Math.PI) / 180;
+      const sweep = Math.sin(time * 0.2) * 20;
+      lightX = 50 + Math.cos(angle) * sweep;
+      lightY = (currentPhase.type === "inhale" ? 55 - p * 18 : currentPhase.type === "exhale" ? 37 + p * 18 : 40) + Math.sin(angle) * sweep * 0.3;
+      break;
+    }
+    case "radial-gravity": {
+      const orbit = time * 0.1;
+      lightX = 50 + Math.cos(orbit) * 8 * (1 + p * 0.5);
+      lightY = 50 + Math.sin(orbit) * 8 * (1 + p * 0.5);
+      break;
+    }
+    case "radial-pulse": {
+      lightX = 50;
+      lightY = 50;
+      break;
+    }
+    case "ascent-arc": {
+      lightX = 50;
+      lightY = currentPhase.type === "inhale" ? 60 - p * 25 : currentPhase.type === "exhale" ? 35 + p * 25 : 40;
+      break;
+    }
+    case "deep-descent": {
+      lightX = 50 + Math.sin(time * 0.08) * 5;
+      lightY = currentPhase.type === "inhale" ? 55 - p * 10 : currentPhase.type === "exhale" ? 45 + p * 10 : 48;
+      break;
+    }
+    default: {
+      lightY = currentPhase.type === "inhale" ? 55 - p * 15 : currentPhase.type === "exhale" ? 40 + p * 15 : 40;
+    }
+  }
+
+  // Radial-pulse specific: pulsing size
+  const ellipseW = motion.motionType === "radial-pulse" ? 60 + Math.sin(time * 0.8) * 15 * arcIntensity : 80;
+  const ellipseH = motion.motionType === "radial-pulse" ? 45 + Math.sin(time * 0.8) * 10 * arcIntensity : 60;
 
   // Particles
-  const particleSpeed = currentPhase.type === "hold" ? 0.15 : 1.0;
-  const particleDir =
-    currentPhase.type === "inhale" ? -1 : currentPhase.type === "exhale" ? 1 : -0.15;
+  const pSpeed = motion.particleSpeedMul * arcIntensity;
+  const particleDir = currentPhase.type === "inhale" ? -1 : currentPhase.type === "exhale" ? 1 : -0.15;
+  const particleDrift = motion.particleDriftMul;
 
   // Depth blur
   const depthBlur =
-    currentPhase.type === "inhale"
-      ? 1.5 - p * 1.5
-      : currentPhase.type === "exhale"
-      ? p * 2
-      : 0.5;
+    currentPhase.type === "inhale" ? 1.5 - p * 1.5 : currentPhase.type === "exhale" ? p * 2 : 0.5;
 
   const secondsLeft = Math.ceil(currentPhase.seconds - phaseElapsed);
+  const timeRemaining = Math.max(0, Math.ceil(durationSecs - sessionElapsed));
+  const trMins = Math.floor(timeRemaining / 60);
+  const trSecs = timeRemaining % 60;
+  const timeRemainingStr = `${trMins}:${String(trSecs).padStart(2, "0")}`;
 
   const transitionDuration = currentPhase.type === "exhale" ? "1.4s" : "0.8s";
-  const transitionEasing =
-    currentPhase.type === "exhale"
-      ? "cubic-bezier(0.33, 0.0, 0.15, 1)"
-      : "cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+  const transitionEasing = currentPhase.type === "exhale"
+    ? "cubic-bezier(0.33, 0.0, 0.15, 1)"
+    : "cubic-bezier(0.25, 0.46, 0.45, 0.94)";
 
-  const showEntryButton = !entered && !playing;
-
-  // Protocol-specific hues
-  const h = tone.hueBase;
-  const s = tone.hueSat;
   const particleHue = h - 10;
+  const hSpread = motion.hueSpread;
 
   return (
     <div
-      className={`${contained ? "absolute" : "fixed"} inset-0 z-50 overflow-hidden select-none cursor-pointer`}
-      onClick={entered ? showUi : undefined}
+      className={`${contained ? "absolute" : "fixed"} inset-0 z-50 overflow-hidden select-none`}
       style={{
-        opacity: entered ? 1 : (showEntryButton ? 1 : entryOpacity),
-        transition: entered
-          ? `background ${transitionDuration} ${transitionEasing}`
-          : "opacity 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+        transition: `background ${transitionDuration} ${transitionEasing}`,
         background: `
           radial-gradient(
-            ellipse 80% 60% at 50% ${lightY}%,
+            ellipse ${ellipseW}% ${ellipseH}% at ${lightX}% ${lightY}%,
             hsla(${h}, ${s}%, ${12 + (brightness + pulseIntensity) * 100}%, ${0.35 + brightness + pulseIntensity}) 0%,
-            hsla(${h + 20}, ${s - 5}%, ${8 + brightness * 60}%, 0.6) 40%,
-            hsla(${h + 40}, ${Math.max(s - 20, 15)}%, ${6 + brightness * 30}%, 0.8) 70%,
-            hsla(${h + 45}, ${Math.max(s - 25, 10)}%, 4%, 1) 100%
+            hsla(${h + hSpread * 0.4}, ${s - 5}%, ${8 + brightness * 60}%, 0.6) 40%,
+            hsla(${h + hSpread * 0.8}, ${Math.max(s - 20, 15)}%, ${6 + brightness * 30}%, 0.8) 70%,
+            hsla(${h + hSpread}, ${Math.max(s - 25, 10)}%, 4%, 1) 100%
           )
         `,
       }}
     >
-      {/* Depth blur layer */}
+      {/* Depth blur */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -289,40 +297,28 @@ export function BreathingPlayer({ exercise, onBack, contained = false }: Props) 
         }}
       />
 
-      {/* Parallax haze layer 1 */}
+      {/* Parallax haze 1 */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `
-            radial-gradient(
-              ellipse 120% 50% at 30% ${lightY + 10}%,
-              hsla(${h - 15}, ${s - 10}%, 15%, ${0.08 + brightness * 0.3}) 0%,
-              transparent 70%
-            )
-          `,
+          background: `radial-gradient(ellipse 120% 50% at 30% ${lightY + 10}%, hsla(${h - 15}, ${s - 10}%, 15%, ${0.08 + brightness * 0.3}) 0%, transparent 70%)`,
           transition: `all ${transitionDuration} ${transitionEasing}`,
         }}
       />
-      {/* Parallax haze layer 2 */}
+      {/* Parallax haze 2 */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `
-            radial-gradient(
-              ellipse 90% 40% at 70% ${lightY - 5}%,
-              hsla(${h + 50}, ${Math.max(s - 25, 12)}%, 18%, ${0.05 + brightness * 0.2}) 0%,
-              transparent 60%
-            )
-          `,
+          background: `radial-gradient(ellipse 90% 40% at 70% ${lightY - 5}%, hsla(${h + hSpread}, ${Math.max(s - 25, 12)}%, 18%, ${0.05 + brightness * 0.2}) 0%, transparent 60%)`,
           transition: `all ${transitionDuration} ${transitionEasing}`,
         }}
       />
 
-      {/* Micro-luminance pulse overlay */}
+      {/* Luminance pulse overlay */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `radial-gradient(circle at 50% 50%, hsla(${h}, ${s - 10}%, 50%, ${pulseIntensity}) 0%, transparent 60%)`,
+          background: `radial-gradient(circle at ${lightX}% ${lightY}%, hsla(${h}, ${s - 10}%, 50%, ${pulseIntensity}) 0%, transparent 60%)`,
           transition: `all ${transitionDuration} ${transitionEasing}`,
         }}
       />
@@ -338,134 +334,98 @@ export function BreathingPlayer({ exercise, onBack, contained = false }: Props) 
       />
 
       {/* Particles */}
-      {entered && (
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-          {particlesRef.current.map((pt) => {
-            const time = frameRef.current * 0.05;
-            const yOffset = time * pt.speed * particleDir * particleSpeed * 8;
-            const y = ((pt.baseY + yOffset) % 120 + 120) % 120 - 10;
-            const xSway = Math.sin(time * 0.3 * pt.speed + pt.id * 2.1) * pt.drift * 6;
-            return (
-              <circle
-                key={pt.id}
-                cx={`${pt.x + xSway}%`}
-                cy={`${y}%`}
-                r={pt.size}
-                fill={`hsla(${particleHue}, 40%, 70%, ${pt.opacity * (0.6 + brightness * 3)})`}
-              />
-            );
-          })}
-        </svg>
-      )}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+        {particlesRef.current.map((pt) => {
+          const yOffset = time * pt.speed * particleDir * pSpeed * 8;
+          const y = ((pt.baseY + yOffset) % 120 + 120) % 120 - 10;
+          const xSway = Math.sin(time * 0.3 * pt.speed + pt.id * 2.1) * pt.drift * 6 * particleDrift;
+          const particleOpacity = pt.opacity * (0.6 + brightness * 3) *
+            (currentPhase.type === "inhale" ? 0.7 + p * 0.6 : currentPhase.type === "exhale" ? 1.3 - p * 0.5 : 0.8);
+          return (
+            <circle
+              key={pt.id}
+              cx={`${pt.x + xSway}%`}
+              cy={`${y}%`}
+              r={pt.size * (0.8 + arcIntensity * 0.4)}
+              fill={`hsla(${particleHue}, 40%, 70%, ${particleOpacity})`}
+            />
+          );
+        })}
+      </svg>
 
-      {/* ─── Minimal UI ─── */}
+      {/* ─── UI Layer ─── */}
 
-      {/* Top bar */}
-      {entered && (
-        <div
-          className="absolute top-0 left-0 right-0 flex items-center justify-between p-5 z-10"
+      {/* Top bar: back + time remaining */}
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-5 z-10">
+        <button
+          onClick={handleEnd}
+          className="flex items-center gap-1 text-white/40 hover:text-white/70 text-xs"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <span className="text-[11px] text-white/35 font-light tabular-nums tracking-wide">
+          {timeRemainingStr} remaining
+        </span>
+        <span className="text-[10px] text-white/20 uppercase tracking-[0.2em] tabular-nums">
+          {cycleCount + 1}
+        </span>
+      </div>
+
+      {/* Center guidance */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
+        <span
+          className="text-xl font-light tracking-[0.15em] uppercase"
           style={{
-            opacity: uiVisible ? 0.7 : 0.25,
-            transition: "opacity 0.6s ease",
+            color: `hsla(${h - 5}, 30%, 85%, ${0.6 + brightness * 2})`,
+            transition: `color ${transitionDuration} ${transitionEasing}`,
+            textShadow: `0 0 40px hsla(${h}, 40%, 50%, ${brightness * 0.5})`,
           }}
         >
-          <button
-            onClick={(e) => { e.stopPropagation(); handleEnd(); }}
-            className="flex items-center gap-1 text-white/40 hover:text-white/70 text-xs"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
-          <span className="text-[10px] text-white/25 uppercase tracking-[0.2em] font-light tabular-nums">
-            {cycleCount + 1}
-          </span>
-        </div>
-      )}
-
-      {/* Center guidance — clinical language only */}
-      {entered && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none">
-          <span
-            className="text-xl font-light tracking-[0.15em] uppercase"
-            style={{
-              color: `hsla(${h - 5}, 30%, 85%, ${0.6 + brightness * 2})`,
-              transition: `color ${transitionDuration} ${transitionEasing}`,
-              textShadow: `0 0 40px hsla(${h}, 40%, 50%, ${brightness * 0.5})`,
-            }}
-          >
-            {currentPhase.type === "inhale" ? "Inhale" : currentPhase.type === "exhale" ? "Exhale" : "Hold"}
-          </span>
-          <span
-            className="text-sm font-extralight mt-2 tabular-nums"
-            style={{
-              color: `hsla(${h}, 20%, 70%, ${0.3 + brightness})`,
-              transition: `color ${transitionDuration} ${transitionEasing}`,
-            }}
-          >
-            {secondsLeft}
-          </span>
-        </div>
-      )}
-
-      {/* Breath ratio indicator — bottom center, 20% opacity */}
-      {entered && (
-        <div
-          className="absolute bottom-20 left-0 right-0 flex justify-center z-10 pointer-events-none"
+          {currentPhase.type === "inhale" ? "Inhale" : currentPhase.type === "exhale" ? "Exhale" : "Hold"}
+        </span>
+        <span
+          className="text-sm font-extralight mt-2 tabular-nums"
           style={{
-            opacity: uiVisible ? 0.2 : 0.12,
-            transition: "opacity 0.6s ease",
+            color: `hsla(${h}, 20%, 70%, ${0.3 + brightness})`,
+            transition: `color ${transitionDuration} ${transitionEasing}`,
           }}
         >
-          <span className="text-[10px] font-light tracking-[0.25em] text-white/50 tabular-nums">
-            {ratioStr}
-          </span>
-        </div>
-      )}
+          {secondsLeft}
+        </span>
+      </div>
 
-      {/* Entry screen */}
-      {showEntryButton && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-20"
-          style={{ background: `hsl(${h + 45}, ${Math.max(s - 25, 10)}%, 4%)` }}>
-          <h3 className="text-lg font-light text-white/70 tracking-wide mb-2">{exercise.name}</h3>
-          <p className="text-xs text-white/30 mb-2 max-w-[240px] text-center">{exercise.description}</p>
-          <span className="text-[10px] text-white/20 tracking-[0.2em] tabular-nums mb-8">{ratioStr}</span>
-          <button
-            onClick={handleStart}
-            className="w-16 h-16 rounded-full flex items-center justify-center backdrop-blur-sm"
-            style={{
-              background: `hsla(${h}, 30%, 20%, 0.4)`,
-              border: `1px solid hsla(${h}, 30%, 50%, 0.15)`,
-            }}
-          >
-            <Play className="h-6 w-6 ml-0.5 text-white/60" />
-          </button>
-          <button
-            onClick={onBack}
-            className="mt-6 text-[10px] uppercase tracking-[0.2em] text-white/25 hover:text-white/40"
-          >
-            Back
-          </button>
-        </div>
-      )}
+      {/* Breath ratio — bottom */}
+      <div className="absolute bottom-24 left-0 right-0 flex justify-center z-10 pointer-events-none opacity-20">
+        <span className="text-[10px] font-light tracking-[0.25em] text-white/50 tabular-nums">
+          {ratioStr}
+        </span>
+      </div>
 
-      {/* Tap to pause */}
-      {playing && uiVisible && entered && (
-        <div
-          className="absolute bottom-12 left-0 right-0 flex justify-center z-20"
-          style={{ opacity: 0.5, transition: "opacity 0.6s ease" }}
+      {/* Controls — always visible, slightly dimmed */}
+      <div className="absolute bottom-8 left-0 right-0 flex items-center justify-center gap-6 z-20">
+        <button
+          onClick={handleReset}
+          className="w-10 h-10 rounded-full flex items-center justify-center text-white/25 hover:text-white/50 transition-colors"
+          style={{ background: `hsla(${h}, 15%, 15%, 0.3)` }}
         >
-          <button
-            onClick={(e) => { e.stopPropagation(); setPlaying(false); }}
-            className="text-[10px] uppercase tracking-[0.2em] text-white/30 hover:text-white/50 px-4 py-2"
-          >
-            Tap to pause
-          </button>
-        </div>
-      )}
+          <RotateCcw className="h-4 w-4" />
+        </button>
+        <button
+          onClick={() => setPlaying(!playing)}
+          className="w-14 h-14 rounded-full flex items-center justify-center backdrop-blur-sm active:scale-95 transition-transform"
+          style={{
+            background: `hsla(${h}, 30%, 20%, 0.5)`,
+            border: `1px solid hsla(${h}, 30%, 50%, 0.2)`,
+          }}
+        >
+          {playing ? (
+            <Pause className="h-5 w-5 text-white/60" />
+          ) : (
+            <Play className="h-5 w-5 ml-0.5 text-white/60" />
+          )}
+        </button>
+        <div className="w-10" /> {/* spacer for centering */}
+      </div>
     </div>
   );
-}
-
-/* ─── Easing helpers ─── */
-function easeOutQuart(t: number): number {
-  return 1 - Math.pow(1 - t, 4);
 }
