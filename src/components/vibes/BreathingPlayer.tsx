@@ -264,7 +264,7 @@ export function BreathingPlayer({ exercise, onBack, contained = false }: Props) 
       className={`${contained ? "absolute" : "fixed"} inset-0 z-50 overflow-hidden select-none cursor-pointer`}
       onClick={entered ? showUi : undefined}
       style={{
-        opacity: entered ? 1 : entryOpacity,
+        opacity: entered ? 1 : (showEntryButton ? 1 : entryOpacity),
         transition: entered
           ? `background ${transitionDuration} ${transitionEasing}`
           : "opacity 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
