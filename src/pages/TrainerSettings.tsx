@@ -6,6 +6,7 @@ import { useCardioActivityTypes } from "@/hooks/useCardioActivityTypes";
 import { AddCardioActivityDialog } from "@/components/cardio/AddCardioActivityDialog";
 import { EditCardioActivityDialog } from "@/components/cardio/EditCardioActivityDialog";
 import { getIconComponent } from "@/components/cardio/cardioActivities";
+import { OnboardingPreviewSection } from "@/components/settings/OnboardingPreviewSection";
 import { useState } from "react";
 
 export default function TrainerSettings() {
@@ -74,6 +75,9 @@ export default function TrainerSettings() {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Onboarding Flows Preview */}
+        <OnboardingPreviewSection />
       </div>
 
       <AddCardioActivityDialog
