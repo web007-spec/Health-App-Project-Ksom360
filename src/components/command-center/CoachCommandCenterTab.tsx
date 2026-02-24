@@ -9,6 +9,11 @@ import { ParentLinkSection } from "./ParentLinkSection";
 import { CopilotAssistPanel } from "./CopilotAssistPanel";
 import { AIWriteFeedbackPanel } from "./AIWriteFeedbackPanel";
 import { AIProgressReportPanel } from "./AIProgressReportPanel";
+import { AIWorkoutBuilderPanel } from "./AIWorkoutBuilderPanel";
+import { AIMealPlanPanel } from "./AIMealPlanPanel";
+import { AIOnboardingSummaryPanel } from "./AIOnboardingSummaryPanel";
+import { AICoachChatPanel } from "./AICoachChatPanel";
+import { AIPhotoAnalysisPanel } from "./AIPhotoAnalysisPanel";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -101,6 +106,21 @@ export function CoachCommandCenterTab({ clientId, trainerId }: CoachCommandCente
 
       {/* G2) AI Progress Report */}
       <AIProgressReportPanel clientId={clientId} trainerId={trainerId} />
+
+      {/* G3) AI Workout Builder */}
+      <AIWorkoutBuilderPanel clientId={clientId} trainerId={trainerId} />
+
+      {/* G4) AI Meal Plan Generator */}
+      <AIMealPlanPanel clientId={clientId} trainerId={trainerId} />
+
+      {/* G5) AI Onboarding Brief */}
+      <AIOnboardingSummaryPanel clientId={clientId} trainerId={trainerId} />
+
+      {/* G6) AI Photo Analysis */}
+      <AIPhotoAnalysisPanel clientId={clientId} trainerId={trainerId} />
+
+      {/* G7) Coach AI Chat */}
+      <AICoachChatPanel clientId={clientId} trainerId={trainerId} />
 
       {/* H) Copilot Assist */}
       <CopilotAssistPanel clientId={clientId} trainerId={trainerId} />
