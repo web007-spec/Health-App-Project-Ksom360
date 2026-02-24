@@ -175,23 +175,19 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
 
           {/* Step: Enter Distance */}
           {step === "distance" && (
-            <div className="p-6 space-y-6 pb-8">
-              <p className="text-center text-2xl font-bold">Distance</p>
-              <div className="flex flex-col items-center gap-2">
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  value={targetValue}
-                  onChange={(e) => setTargetValue(e.target.value)}
-                  className="text-center text-3xl font-bold h-20 w-48 border-2"
-                  placeholder="0"
-                  autoFocus
-                />
-                <span className="text-sm text-muted-foreground font-medium">Miles</span>
-              </div>
-              <Button className="w-full h-12 text-base font-semibold" onClick={handleConfirmDistance} disabled={!targetValue}>
-                Continue
-              </Button>
+            <div className="p-6 flex flex-col items-center gap-4 pb-8">
+              <p className="text-center text-2xl font-bold text-white">Distance</p>
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={targetValue}
+                onChange={(e) => setTargetValue(e.target.value)}
+                className="text-center text-3xl font-bold h-20 w-48 border border-white/40 bg-white/10 text-white placeholder:text-white/40 focus-visible:ring-white/30 rounded-lg"
+                placeholder="0"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter" && targetValue) handleConfirmDistance(); }}
+              />
+              <span className="text-sm text-white/70 font-medium">Miles</span>
             </div>
           )}
 
