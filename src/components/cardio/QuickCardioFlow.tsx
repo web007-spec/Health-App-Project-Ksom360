@@ -270,14 +270,14 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
                   )}
                 </div>
                 <h3 className="text-2xl font-bold text-white">{selectedActivity?.name}</h3>
-                <p className="text-sm text-white/70">Scheduled</p>
+                <p className="text-sm text-white/50">Scheduled</p>
                 {targetType === "distance" && targetValue && (
-                  <p className="text-sm text-white/70 font-medium mt-1">
+                  <p className="text-lg text-white font-semibold mt-2">
                     {selectedActivity?.name} for {targetValue} miles
                   </p>
                 )}
                 {targetType === "time" && (timeHours || timeMinutes || timeSeconds) && (
-                  <p className="text-sm text-white/70 font-medium mt-1">
+                  <p className="text-lg text-white font-semibold mt-2">
                     {selectedActivity?.name} for {timeHours && timeHours !== "0" ? `${timeHours}h ` : ""}{timeMinutes && timeMinutes !== "0" ? `${timeMinutes}m ` : ""}{timeSeconds && timeSeconds !== "0" ? `${timeSeconds}s` : ""}
                   </p>
                 )}
