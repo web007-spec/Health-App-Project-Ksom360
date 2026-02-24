@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Wind, Play, ArrowLeft } from "lucide-react";
+import { Play, ArrowLeft } from "lucide-react";
 import { BREATHING_EXERCISES, type BreathingExercise } from "@/lib/breathingExercises";
 import { BreathingPlayer } from "@/components/vibes/BreathingPlayer";
 

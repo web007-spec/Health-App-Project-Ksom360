@@ -8,12 +8,42 @@ export interface BreathPhase {
 
 export type BreathingAnimation = "ocean" | "lotus" | "orbital" | "aurora" | "heartbeat";
 
+export type RestoreMode = "activate" | "regulate" | "downshift";
+
+export type MotionType =
+  | "diagonal-sweep"    // Aurora — diagonal light sweeps
+  | "horizon-drift"     // Ocean/Downshift — horizontal horizon movement
+  | "radial-gravity"    // Orbital — radial gravity field
+  | "radial-pulse"      // Heartbeat — soft radial pulse
+  | "ascent-arc"        // Morning Activation — bright ascent
+  | "balanced-breath"   // Center — balanced symmetric
+  | "deep-descent";     // Sleep — slow deep darkening
+
 /** Per-protocol environmental tone tuning */
 export interface ProtocolTone {
-  hueBase: number;      // primary hue (HSL)
-  hueSat: number;       // saturation %
-  warmth: number;       // 0 = cool, 1 = warm bias
-  luminanceSpeed: number; // 0.8–1.2 multiplier for luminance shift speed
+  hueBase: number;
+  hueSat: number;
+  warmth: number;
+  luminanceSpeed: number;
+}
+
+/** Per-protocol motion & visual identity */
+export interface MotionProfile {
+  motionType: MotionType;
+  /** Luminance shift amplitude (0–1 scale, e.g. 0.15 = 15%) */
+  luminanceAmplitude: number;
+  /** Particle density multiplier */
+  particleDensity: number;
+  /** Particle speed multiplier */
+  particleSpeedMul: number;
+  /** Particle drift amplitude multiplier */
+  particleDriftMul: number;
+  /** Light sweep angle in degrees (for diagonal-sweep) */
+  sweepAngle: number;
+  /** Secondary hue offset for gradient variety */
+  hueSpread: number;
+  /** Intensity arc category */
+  arcMode: RestoreMode;
 }
 
 export interface BreathingExercise {
@@ -24,6 +54,7 @@ export interface BreathingExercise {
   animation: BreathingAnimation;
   icon: string;
   tone: ProtocolTone;
+  motion: MotionProfile;
 }
 
 // Tone presets
@@ -32,6 +63,7 @@ const TONE_DEEP_BLUE: ProtocolTone = { hueBase: 215, hueSat: 50, warmth: 0.15, l
 const TONE_DARK_SLOW: ProtocolTone = { hueBase: 220, hueSat: 35, warmth: 0.1, luminanceSpeed: 0.8 };
 const TONE_NEUTRAL: ProtocolTone = { hueBase: 205, hueSat: 40, warmth: 0.25, luminanceSpeed: 1.0 };
 const TONE_TEAL: ProtocolTone = { hueBase: 185, hueSat: 42, warmth: 0.3, luminanceSpeed: 1.05 };
+const TONE_WARM_RISE: ProtocolTone = { hueBase: 35, hueSat: 55, warmth: 0.8, luminanceSpeed: 1.15 };
 
 export const BREATHING_EXERCISES: BreathingExercise[] = [
   {
@@ -46,6 +78,16 @@ export const BREATHING_EXERCISES: BreathingExercise[] = [
     animation: "ocean",
     icon: "🌊",
     tone: TONE_DEEP_BLUE,
+    motion: {
+      motionType: "horizon-drift",
+      luminanceAmplitude: 0.04,
+      particleDensity: 1.2,
+      particleSpeedMul: 0.7,
+      particleDriftMul: 1.8,
+      sweepAngle: 0,
+      hueSpread: 30,
+      arcMode: "downshift",
+    },
   },
   {
     id: "lotus-bloom",
@@ -59,6 +101,16 @@ export const BREATHING_EXERCISES: BreathingExercise[] = [
     animation: "lotus",
     icon: "🪷",
     tone: TONE_NEUTRAL,
+    motion: {
+      motionType: "balanced-breath",
+      luminanceAmplitude: 0.07,
+      particleDensity: 1.0,
+      particleSpeedMul: 1.0,
+      particleDriftMul: 1.0,
+      sweepAngle: 0,
+      hueSpread: 20,
+      arcMode: "regulate",
+    },
   },
   {
     id: "orbital",
@@ -72,6 +124,16 @@ export const BREATHING_EXERCISES: BreathingExercise[] = [
     animation: "orbital",
     icon: "🔮",
     tone: TONE_TEAL,
+    motion: {
+      motionType: "radial-gravity",
+      luminanceAmplitude: 0.08,
+      particleDensity: 1.4,
+      particleSpeedMul: 0.5,
+      particleDriftMul: 2.5,
+      sweepAngle: 0,
+      hueSpread: 40,
+      arcMode: "regulate",
+    },
   },
   {
     id: "aurora-flow",
@@ -85,6 +147,16 @@ export const BREATHING_EXERCISES: BreathingExercise[] = [
     animation: "aurora",
     icon: "🌌",
     tone: TONE_COOL,
+    motion: {
+      motionType: "diagonal-sweep",
+      luminanceAmplitude: 0.06,
+      particleDensity: 1.3,
+      particleSpeedMul: 0.8,
+      particleDriftMul: 2.0,
+      sweepAngle: 35,
+      hueSpread: 50,
+      arcMode: "downshift",
+    },
   },
   {
     id: "heartbeat",
@@ -98,6 +170,16 @@ export const BREATHING_EXERCISES: BreathingExercise[] = [
     animation: "heartbeat",
     icon: "💜",
     tone: TONE_NEUTRAL,
+    motion: {
+      motionType: "radial-pulse",
+      luminanceAmplitude: 0.07,
+      particleDensity: 0.8,
+      particleSpeedMul: 0.6,
+      particleDriftMul: 0.8,
+      sweepAngle: 0,
+      hueSpread: 15,
+      arcMode: "regulate",
+    },
   },
   {
     id: "box-breathing",
@@ -112,6 +194,16 @@ export const BREATHING_EXERCISES: BreathingExercise[] = [
     animation: "orbital",
     icon: "🧘",
     tone: TONE_NEUTRAL,
+    motion: {
+      motionType: "radial-gravity",
+      luminanceAmplitude: 0.07,
+      particleDensity: 1.0,
+      particleSpeedMul: 0.8,
+      particleDriftMul: 1.2,
+      sweepAngle: 0,
+      hueSpread: 25,
+      arcMode: "regulate",
+    },
   },
   {
     id: "478-relaxation",
@@ -125,6 +217,16 @@ export const BREATHING_EXERCISES: BreathingExercise[] = [
     animation: "aurora",
     icon: "😮‍💨",
     tone: TONE_DARK_SLOW,
+    motion: {
+      motionType: "deep-descent",
+      luminanceAmplitude: 0.035,
+      particleDensity: 0.7,
+      particleSpeedMul: 0.4,
+      particleDriftMul: 1.5,
+      sweepAngle: 15,
+      hueSpread: 20,
+      arcMode: "downshift",
+    },
   },
   {
     id: "calming-breath",
@@ -137,5 +239,30 @@ export const BREATHING_EXERCISES: BreathingExercise[] = [
     animation: "lotus",
     icon: "🍃",
     tone: TONE_DARK_SLOW,
+    motion: {
+      motionType: "deep-descent",
+      luminanceAmplitude: 0.03,
+      particleDensity: 0.6,
+      particleSpeedMul: 0.35,
+      particleDriftMul: 1.0,
+      sweepAngle: 10,
+      hueSpread: 15,
+      arcMode: "downshift",
+    },
   },
 ];
+
+/** Duration presets in seconds */
+export const DURATION_PRESETS = [30, 60, 120, 180, 300, 600] as const;
+
+/** Default durations per restore mode (seconds) */
+export const MODE_DEFAULT_DURATIONS: Record<RestoreMode, number> = {
+  activate: 60,
+  regulate: 180,
+  downshift: 300,
+};
+
+/** Map exercise to its recommended restore mode */
+export function getExerciseMode(ex: BreathingExercise): RestoreMode {
+  return ex.motion.arcMode;
+}
