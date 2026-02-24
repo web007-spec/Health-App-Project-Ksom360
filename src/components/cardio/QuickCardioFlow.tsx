@@ -263,17 +263,21 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
             <div className="flex flex-col min-h-[85vh]">
               <div className="flex-1 flex flex-col items-center justify-center gap-2">
                 <div className="w-24 h-24 flex items-center justify-center mb-2" style={{ clipPath: "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)", backgroundColor: "hsl(152 69% 53%)" }}>
-                  <ActivityIcon className="h-10 w-10 text-white" />
+                  {selectedActivity && activities.find(a => a.name === selectedActivity.name)?.icon_url ? (
+                    <img src={activities.find(a => a.name === selectedActivity.name)!.icon_url!} alt={selectedActivity.name} className="h-10 w-10 object-contain invert" />
+                  ) : (
+                    <ActivityIcon className="h-10 w-10 text-white" />
+                  )}
                 </div>
-                <h3 className="text-2xl font-bold text-foreground">{selectedActivity?.name}</h3>
-                <p className="text-sm text-muted-foreground">Scheduled</p>
+                <h3 className="text-2xl font-bold text-white">{selectedActivity?.name}</h3>
+                <p className="text-sm text-white/70">Scheduled</p>
                 {targetType === "distance" && targetValue && (
-                  <p className="text-sm text-foreground font-medium mt-1">
+                  <p className="text-sm text-white/70 font-medium mt-1">
                     {selectedActivity?.name} for {targetValue} miles
                   </p>
                 )}
                 {targetType === "time" && (timeHours || timeMinutes || timeSeconds) && (
-                  <p className="text-sm text-foreground font-medium mt-1">
+                  <p className="text-sm text-white/70 font-medium mt-1">
                     {selectedActivity?.name} for {timeHours && timeHours !== "0" ? `${timeHours}h ` : ""}{timeMinutes && timeMinutes !== "0" ? `${timeMinutes}m ` : ""}{timeSeconds && timeSeconds !== "0" ? `${timeSeconds}s` : ""}
                   </p>
                 )}
@@ -290,7 +294,7 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
                 <button onClick={handleMarkComplete} className="w-full text-center text-primary font-semibold text-sm py-2">
                   Mark as Complete
                 </button>
-                <Button className="w-full h-12 text-base font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-full" onClick={handleStart}>
+                <Button className="w-full h-12 text-base font-bold bg-destructive hover:bg-destructive/90 text-white rounded-full" onClick={handleStart}>
                   Start Now
                 </Button>
               </div>
