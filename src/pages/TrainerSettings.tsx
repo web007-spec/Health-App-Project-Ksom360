@@ -1,15 +1,12 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Activity, Plus, MoreVertical } from "lucide-react";
 import { useCardioActivityTypes } from "@/hooks/useCardioActivityTypes";
 import { AddCardioActivityDialog } from "@/components/cardio/AddCardioActivityDialog";
 import { EditCardioActivityDialog } from "@/components/cardio/EditCardioActivityDialog";
-import { getIconComponent, ICON_OPTIONS } from "@/components/cardio/cardioActivities";
+import { getIconComponent } from "@/components/cardio/cardioActivities";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
 
 export default function TrainerSettings() {
   const { activities, isLoading, addActivity, updateActivity, deleteActivity } = useCardioActivityTypes();
@@ -41,25 +38,31 @@ export default function TrainerSettings() {
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto" />
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2">
                 {activities.map((act) => {
                   const Icon = getIconComponent(act.icon_name);
                   const hasCustomIcon = !!act.icon_url;
                   return (
-                    <div
+                    <button
                       key={act.id}
-                      className="flex items-center gap-3 rounded-xl border border-border p-4 hover:bg-accent/50 transition-colors group cursor-pointer"
                       onClick={() => setEditingActivity(act)}
+                      className="w-full flex items-center gap-3"
                     >
-                      <div className="flex items-center justify-center h-11 w-11 rounded-full bg-destructive/10 text-destructive shrink-0 overflow-hidden">
-                        {hasCustomIcon ? (
-                          <img src={act.icon_url!} alt={act.name} className="h-7 w-7 object-contain" />
-                        ) : (
-                          <Icon className="h-5 w-5" />
-                        )}
+                      <div className="flex items-center rounded-full bg-destructive overflow-hidden shrink-0">
+                        <div className="flex items-center justify-center w-14 h-12">
+                          {hasCustomIcon ? (
+                            <img src={act.icon_url!} alt={act.name} className="h-6 w-6 object-contain" />
+                          ) : (
+                            <Icon className="h-6 w-6 text-destructive-foreground" />
+                          )}
+                        </div>
+                        <div className="h-8 w-px bg-white/30" />
+                        <div className="flex items-center justify-center w-10 h-12">
+                          <MoreVertical className="h-4 w-4 text-destructive-foreground" />
+                        </div>
                       </div>
-                      <span className="font-medium text-sm flex-1 truncate">{act.name}</span>
-                    </div>
+                      <span className="font-semibold text-sm flex-1 text-left truncate">{act.name}</span>
+                    </button>
                   );
                 })}
               </div>
