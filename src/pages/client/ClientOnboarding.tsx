@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ const profileSchema = z.object({
 export default function ClientOnboarding() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const clientId = useEffectiveClientId();
   const { engineMode } = useEngineMode();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,14 +48,14 @@ export default function ClientOnboarding() {
       const { error } = await supabase
         .from("profiles")
         .update({ full_name: profileData.full_name.trim() })
-        .eq("id", user?.id);
+        .eq("id", clientId);
       if (error) throw error;
 
       if (profileData.height || profileData.weight) {
         const { error: progressError } = await supabase
           .from("progress_entries")
           .insert({
-            client_id: user?.id!,
+            client_id: clientId!,
             weight: profileData.weight ? parseFloat(profileData.weight) : null,
             notes: profileData.height ? `Height: ${profileData.height}` : null,
           });
@@ -79,7 +81,7 @@ export default function ClientOnboarding() {
           onboarding_completed: true,
           onboarding_answers: answers as any,
         })
-        .eq("id", user?.id);
+        .eq("id", clientId);
       if (error) throw error;
 
       // If performance engine and fasting toggle answered, update feature settings
@@ -87,7 +89,7 @@ export default function ClientOnboarding() {
         await supabase
           .from("client_feature_settings")
           .update({ fasting_enabled: !!answers.include_fasting })
-          .eq("client_id", user?.id);
+          .eq("client_id", clientId);
       }
 
       setStep(6);
