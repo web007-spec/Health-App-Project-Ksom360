@@ -177,7 +177,7 @@ export default function VibesAdmin() {
         </div>
 
         <Tabs defaultValue="categories">
-          <TabsList className="flex-wrap">
+          <TabsList className="flex-wrap h-auto gap-1 mb-2">
             <TabsTrigger value="protocols">Fasting Protocols</TabsTrigger>
             <TabsTrigger value="breathing">Breathing</TabsTrigger>
             <TabsTrigger value="categories">Categories</TabsTrigger>
