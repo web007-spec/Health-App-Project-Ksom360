@@ -41,31 +41,24 @@ export default function TrainerSettings() {
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto" />
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {activities.map((act) => {
                   const Icon = getIconComponent(act.icon_name);
                   const hasCustomIcon = !!act.icon_url;
                   return (
                     <div
                       key={act.id}
-                      className="flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-accent/50 transition-colors group"
+                      className="flex items-center gap-3 rounded-xl border border-border p-4 hover:bg-accent/50 transition-colors group cursor-pointer"
+                      onClick={() => setEditingActivity(act)}
                     >
-                      <div className="flex items-center justify-center h-9 w-9 rounded-md bg-primary/10 text-primary shrink-0 overflow-hidden">
+                      <div className="flex items-center justify-center h-11 w-11 rounded-full bg-destructive/10 text-destructive shrink-0 overflow-hidden">
                         {hasCustomIcon ? (
-                          <img src={act.icon_url!} alt={act.name} className="h-6 w-6 object-contain" />
+                          <img src={act.icon_url!} alt={act.name} className="h-7 w-7 object-contain" />
                         ) : (
                           <Icon className="h-5 w-5" />
                         )}
                       </div>
-                          <span className="font-medium text-sm flex-1 truncate">{act.name}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => setEditingActivity(act)}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <span className="font-medium text-sm flex-1 truncate">{act.name}</span>
                     </div>
                   );
                 })}
