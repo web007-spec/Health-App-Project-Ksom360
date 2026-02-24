@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +24,7 @@ const profileSchema = z.object({
 
 export default function ClientOnboarding() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const clientId = useEffectiveClientId();
   const { engineMode } = useEngineMode();
@@ -36,7 +37,9 @@ export default function ClientOnboarding() {
     weight: "",
   });
 
-  const content = ENGINE_ONBOARDING[engineMode];
+  const forcedEngineMode = (location.state as { engineMode?: keyof typeof ENGINE_ONBOARDING } | null)?.engineMode;
+  const activeEngineMode = (forcedEngineMode ?? engineMode) as keyof typeof ENGINE_ONBOARDING;
+  const content = ENGINE_ONBOARDING[activeEngineMode];
   // Steps: 1-3 = intro screens, 4 = profile, 5 = engine questions, 6 = completion
   const totalSteps = 6;
   const progress = (step / totalSteps) * 100;
@@ -85,7 +88,7 @@ export default function ClientOnboarding() {
       if (error) throw error;
 
       // If performance engine and fasting toggle answered, update feature settings
-      if (engineMode === "performance" && answers.include_fasting !== undefined) {
+      if (activeEngineMode === "performance" && answers.include_fasting !== undefined) {
         await supabase
           .from("client_feature_settings")
           .update({ fasting_enabled: !!answers.include_fasting })

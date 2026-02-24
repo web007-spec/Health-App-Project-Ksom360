@@ -33,7 +33,7 @@ export function OnboardingPreviewSection() {
     createDemoClient.mutate(engine, {
       onSuccess: (data) => {
         localStorage.setItem("impersonatedClientId", data.client.id);
-        navigate("/client/onboarding");
+        navigate("/client/onboarding", { state: { engineMode: engine } });
       },
     });
   };
