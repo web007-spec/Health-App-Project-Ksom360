@@ -18,7 +18,7 @@ export interface RestoreProfileConfig {
   /** Guided session priority categories */
   sessionPriority: string[];
   /** Section descriptions */
-  sectionMeta: { home: string; guided: string; sleep: string; soundlab: string };
+  sectionMeta: { home: string; guided: string; breathe: string; sleep: string; soundlab: string };
 }
 
 const PERFORMANCE_CONFIG: RestoreProfileConfig = {
@@ -43,6 +43,7 @@ const PERFORMANCE_CONFIG: RestoreProfileConfig = {
   sectionMeta: {
     home: "Recovery picks",
     guided: "Breathwork & focus",
+    breathe: "Breathing exercises",
     sleep: "Deep recovery",
     soundlab: "Build your mix",
   },
@@ -70,6 +71,7 @@ const PRECISION_CONFIG: RestoreProfileConfig = {
   sectionMeta: {
     home: "Personalized picks",
     guided: "Breathwork & mindfulness",
+    breathe: "Breathing exercises",
     sleep: "Stories & long loops",
     soundlab: "Build your mix",
   },
