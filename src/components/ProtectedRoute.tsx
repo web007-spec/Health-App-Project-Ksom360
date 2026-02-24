@@ -1,10 +1,28 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: ("trainer" | "client")[];
+}
+
+/**
+ * Check synchronously if there's a cached session in localStorage.
+ * This lets us skip the loading spinner and redirect immediately
+ * when we know there's no session at all (e.g. after preview reloads).
+ */
+function hasCachedSession(): boolean | null {
+  try {
+    const storageKey = `sb-eexxmfuknqttujecbcho-auth-token`;
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    return !!(parsed?.access_token || parsed?.user);
+  } catch {
+    return null; // can't determine, wait for auth
+  }
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
@@ -13,10 +31,15 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/auth");
+      navigate("/auth", { replace: true });
       return;
     }
   }, [user, loading, navigate]);
+
+  // Fast path: if no cached session at all, redirect immediately
+  if (loading && hasCachedSession() === false) {
+    return <Navigate to="/auth" replace />;
+  }
 
   if (loading) {
     return (
