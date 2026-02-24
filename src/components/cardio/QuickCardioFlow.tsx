@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, ChevronRight, MoreVertical, Plus } from "lucide-react";
+import { ChevronLeft, Plus, MoreVertical } from "lucide-react";
 import { getIconComponent, type TargetType } from "./cardioActivities";
 import { useCardioActivityTypes } from "@/hooks/useCardioActivityTypes";
 import { AddCardioActivityDialog } from "./AddCardioActivityDialog";
@@ -15,11 +15,16 @@ interface QuickCardioFlowProps {
   onMarkComplete: (activity: string, targetType: TargetType, targetValue?: number) => void;
 }
 
+type Step = "pick" | "target" | "distance" | "time" | "detail";
+
 export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }: QuickCardioFlowProps) {
-  const [step, setStep] = useState<"pick" | "target" | "distance" | "time" | "detail">("pick");
+  const [step, setStep] = useState<Step>("pick");
   const [selectedActivity, setSelectedActivity] = useState<{ name: string; icon_name: string } | null>(null);
   const [targetType, setTargetType] = useState<TargetType>("none");
   const [targetValue, setTargetValue] = useState("");
+  const [timeHours, setTimeHours] = useState("");
+  const [timeMinutes, setTimeMinutes] = useState("");
+  const [timeSeconds, setTimeSeconds] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingActivity, setEditingActivity] = useState<{ id: string; name: string; icon_name: string } | null>(null);
 
@@ -30,6 +35,9 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
     setSelectedActivity(null);
     setTargetType("none");
     setTargetValue("");
+    setTimeHours("");
+    setTimeMinutes("");
+    setTimeSeconds("");
     onOpenChange(false);
   };
 
@@ -45,12 +53,20 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
     else setStep("detail");
   };
 
-  const handleConfirmTarget = () => setStep("detail");
+  const handleConfirmDistance = () => {
+    setStep("detail");
+  };
+
+  const handleConfirmTime = () => {
+    const totalMinutes = (parseInt(timeHours || "0") * 60) + parseInt(timeMinutes || "0") + (parseInt(timeSeconds || "0") / 60);
+    setTargetValue(totalMinutes.toString());
+    setStep("detail");
+  };
 
   const activityId = selectedActivity?.name.toLowerCase().replace(/\s+/g, "_") || "general";
 
   const handleStart = () => {
-    const val = targetValue ? parseFloat(targetValue) : undefined;
+    const val = targetType === "distance" ? (targetValue ? parseFloat(targetValue) : undefined) : (targetValue ? parseFloat(targetValue) : undefined);
     onStart(activityId, targetType, val);
     resetAndClose();
   };
@@ -84,7 +100,7 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
             )}
             <h2 className="text-lg font-bold flex-1">
               {step === "pick" && "Quick Cardio"}
-              {step === "target" && "Set Target"}
+              {step === "target" && selectedActivity?.name}
               {step === "distance" && "Distance"}
               {step === "time" && "Time"}
               {step === "detail" && selectedActivity?.name}
@@ -100,18 +116,18 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
                   <button
                     key={act.id}
                     onClick={() => handleSelectActivity(act)}
-                    className="w-full flex items-center gap-0 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white transition-colors overflow-hidden"
+                    className="w-full flex items-center gap-0 rounded-xl bg-destructive hover:bg-destructive/90 text-white transition-colors overflow-hidden"
                   >
-                    <div className="flex items-center justify-center w-16 h-14 bg-emerald-600/50">
+                    <div className="flex items-center justify-center w-16 h-14 bg-black/20">
                       {act.icon_url ? (
                         <img src={act.icon_url} alt={act.name} className="h-6 w-6 object-contain" />
                       ) : (
                         <Icon className="h-6 w-6" />
                       )}
                     </div>
-                    <div className="h-14 w-px bg-emerald-400/40" />
+                    <div className="h-14 w-px bg-white/20" />
                     <div
-                      className="flex items-center justify-center w-10 h-14 cursor-pointer hover:bg-emerald-700/30 transition-colors"
+                      className="flex items-center justify-center w-10 h-14 cursor-pointer hover:bg-black/20 transition-colors"
                       onClick={(e) => { e.stopPropagation(); setEditingActivity(act); }}
                     >
                       <MoreVertical className="h-4 w-4 opacity-70" />
@@ -120,7 +136,6 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
                   </button>
                 );
               })}
-              {/* Add button */}
               <button
                 onClick={() => setShowAddDialog(true)}
                 className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl border-2 border-dashed border-border hover:border-primary/50 text-muted-foreground hover:text-foreground transition-colors"
@@ -131,10 +146,12 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
             </div>
           )}
 
-          {/* Step: Choose Target Type */}
+          {/* Step: Target selection — overlay style */}
           {step === "target" && (
-            <div className="p-6 space-y-4 pb-8">
-              <p className="text-center text-base font-semibold text-foreground">Set a target for this cardio activity?</p>
+            <div className="p-6 space-y-5 pb-8">
+              <p className="text-center text-lg font-semibold text-foreground">
+                Set a target for this cardio activity?
+              </p>
               <div className="space-y-3">
                 {([
                   { type: "distance" as TargetType, label: "Distance" },
@@ -144,10 +161,9 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
                   <button
                     key={opt.type}
                     onClick={() => handleSelectTarget(opt.type)}
-                    className="w-full flex items-center justify-between p-4 rounded-xl border-2 border-border hover:border-primary/50 transition-colors"
+                    className="w-full p-4 rounded-2xl border border-white/30 bg-transparent text-center text-base font-medium text-foreground hover:bg-accent/30 transition-colors"
                   >
-                    <span className="text-base font-medium">{opt.label}</span>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    {opt.label}
                   </button>
                 ))}
               </div>
@@ -159,22 +175,72 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
             <div className="p-6 space-y-6 pb-8">
               <p className="text-center text-2xl font-bold">Distance</p>
               <div className="flex flex-col items-center gap-2">
-                <Input type="number" inputMode="decimal" value={targetValue} onChange={(e) => setTargetValue(e.target.value)} className="text-center text-3xl font-bold h-20 w-48 border-2" placeholder="0" autoFocus />
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  value={targetValue}
+                  onChange={(e) => setTargetValue(e.target.value)}
+                  className="text-center text-3xl font-bold h-20 w-48 border-2"
+                  placeholder="0"
+                  autoFocus
+                />
                 <span className="text-sm text-muted-foreground font-medium">Miles</span>
               </div>
-              <Button className="w-full h-12 text-base font-semibold" onClick={handleConfirmTarget} disabled={!targetValue}>Continue</Button>
+              <Button className="w-full h-12 text-base font-semibold" onClick={handleConfirmDistance} disabled={!targetValue}>
+                Continue
+              </Button>
             </div>
           )}
 
-          {/* Step: Enter Time */}
+          {/* Step: Enter Time — H:M:S */}
           {step === "time" && (
             <div className="p-6 space-y-6 pb-8">
               <p className="text-center text-2xl font-bold">Time</p>
-              <div className="flex flex-col items-center gap-2">
-                <Input type="number" inputMode="numeric" value={targetValue} onChange={(e) => setTargetValue(e.target.value)} className="text-center text-3xl font-bold h-20 w-48 border-2" placeholder="0" autoFocus />
-                <span className="text-sm text-muted-foreground font-medium">Minutes</span>
+              <div className="flex items-center justify-center gap-2">
+                <div className="flex flex-col items-center">
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    value={timeHours}
+                    onChange={(e) => setTimeHours(e.target.value)}
+                    className="text-center text-2xl font-bold h-16 w-20 border-2"
+                    placeholder="0"
+                    autoFocus
+                  />
+                  <span className="text-xs text-muted-foreground mt-1">Hours</span>
+                </div>
+                <span className="text-2xl font-bold pb-5">:</span>
+                <div className="flex flex-col items-center">
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    value={timeMinutes}
+                    onChange={(e) => setTimeMinutes(e.target.value)}
+                    className="text-center text-2xl font-bold h-16 w-20 border-2"
+                    placeholder="0"
+                  />
+                  <span className="text-xs text-muted-foreground mt-1">Minutes</span>
+                </div>
+                <span className="text-2xl font-bold pb-5">:</span>
+                <div className="flex flex-col items-center">
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    value={timeSeconds}
+                    onChange={(e) => setTimeSeconds(e.target.value)}
+                    className="text-center text-2xl font-bold h-16 w-20 border-2"
+                    placeholder="0"
+                  />
+                  <span className="text-xs text-muted-foreground mt-1">Seconds</span>
+                </div>
               </div>
-              <Button className="w-full h-12 text-base font-semibold" onClick={handleConfirmTarget} disabled={!targetValue}>Continue</Button>
+              <Button
+                className="w-full h-12 text-base font-semibold"
+                onClick={handleConfirmTime}
+                disabled={!timeHours && !timeMinutes && !timeSeconds}
+              >
+                Save
+              </Button>
             </div>
           )}
 
@@ -182,20 +248,37 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
           {step === "detail" && (
             <div className="p-6 flex flex-col items-center gap-6 pb-8 min-h-[400px]">
               <div className="flex-1 flex flex-col items-center justify-center gap-4">
-                <div className="w-24 h-24 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
-                  <ActivityIcon className="h-12 w-12 text-emerald-500" />
+                <div className="w-24 h-24 rounded-2xl bg-emerald-500/20 flex items-center justify-center" style={{ clipPath: "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)" , backgroundColor: "hsl(var(--chart-4) / 0.2)" }}>
+                  <div className="w-20 h-20 bg-emerald-500 flex items-center justify-center" style={{ clipPath: "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)" }}>
+                    <ActivityIcon className="h-10 w-10 text-white" />
+                  </div>
                 </div>
                 <h3 className="text-2xl font-bold">{selectedActivity?.name}</h3>
                 <p className="text-sm text-muted-foreground">Scheduled</p>
-                {targetType !== "none" && targetValue && (
+                {targetType !== "none" && (
                   <p className="text-sm text-primary font-semibold">
-                    Target: {targetValue} {targetType === "distance" ? "miles" : "min"}
+                    Target: {targetType === "time"
+                      ? `${timeHours || "0"}h ${timeMinutes || "0"}m ${timeSeconds || "0"}s`
+                      : `${targetValue} miles`
+                    }
                   </p>
+                )}
+                {targetType === "none" && (
+                  <button
+                    onClick={() => setStep("target")}
+                    className="text-sm text-primary font-semibold"
+                  >
+                    Set Target
+                  </button>
                 )}
               </div>
               <div className="w-full space-y-3">
-                <button onClick={handleMarkComplete} className="w-full text-center text-primary font-semibold text-sm py-2">Mark as Complete</button>
-                <Button className="w-full h-12 text-base font-bold bg-amber-500 hover:bg-amber-600 text-white" onClick={handleStart}>Start Now</Button>
+                <button onClick={handleMarkComplete} className="w-full text-center text-primary font-semibold text-sm py-2">
+                  Mark as Complete
+                </button>
+                <Button className="w-full h-12 text-base font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-full" onClick={handleStart}>
+                  Start Now
+                </Button>
               </div>
             </div>
           )}
