@@ -95,9 +95,9 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
         <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto p-0 bg-transparent border-none shadow-none [&>button]:hidden">
           <div className="rounded-t-2xl">
           {/* Header */}
-          <div className="flex items-center gap-3 p-4 border-b border-border">
+          <div className="flex items-center gap-3 p-4 border-b border-white/10">
             {step !== "pick" && (
-              <button onClick={goBack} className="p-1"><ChevronLeft className="h-5 w-5" /></button>
+              <button onClick={goBack} className="p-1"><ChevronLeft className="h-5 w-5 text-white" /></button>
             )}
             <h2 className="text-lg font-bold flex-1 text-white">
               {step === "pick" && "Quick Cardio"}
@@ -106,6 +106,15 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
               {step === "time" && "Time"}
               {step === "detail" && selectedActivity?.name}
             </h2>
+            {(step === "distance" || step === "time") && (
+              <button
+                onClick={step === "distance" ? handleConfirmDistance : handleConfirmTime}
+                disabled={step === "distance" ? !targetValue : (!timeHours && !timeMinutes && !timeSeconds)}
+                className="text-white font-bold text-base disabled:opacity-40"
+              >
+                Save
+              </button>
+            )}
           </div>
 
           {/* Step: Pick Activity */}
@@ -175,19 +184,30 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
 
           {/* Step: Enter Distance */}
           {step === "distance" && (
-            <div className="p-6 flex flex-col items-center gap-4 pb-8">
-              <p className="text-center text-2xl font-bold text-white">Distance</p>
-              <Input
-                type="number"
-                inputMode="decimal"
-                value={targetValue}
-                onChange={(e) => setTargetValue(e.target.value)}
-                className="text-center text-3xl font-bold h-20 w-48 border border-white/40 bg-white/10 text-white placeholder:text-white/40 focus-visible:ring-white/30 rounded-lg"
-                placeholder="0"
-                autoFocus
-                onKeyDown={(e) => { if (e.key === "Enter" && targetValue) handleConfirmDistance(); }}
-              />
-              <span className="text-sm text-white/70 font-medium">Miles</span>
+            <div className="flex flex-col flex-1">
+              <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6">
+                <p className="text-center text-2xl font-bold text-white">Distance</p>
+                <div className="text-center text-4xl font-bold h-20 w-48 border border-white/40 bg-white/10 text-white rounded-lg flex items-center justify-center">
+                  {targetValue || <span className="text-white/30">0</span>}
+                </div>
+                <span className="text-sm text-white/70 font-medium">Miles</span>
+              </div>
+              {/* Custom Numpad */}
+              <div className="bg-muted/90 backdrop-blur-sm rounded-t-2xl p-3 pb-6 grid grid-cols-3 gap-2">
+                {["1","2","3","4","5","6","7","8","9",".","0","⌫"].map((key) => (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      if (key === "⌫") setTargetValue((v) => v.slice(0, -1));
+                      else if (key === "." && targetValue.includes(".")) return;
+                      else setTargetValue((v) => v + key);
+                    }}
+                    className="h-14 rounded-xl bg-background text-foreground text-xl font-bold active:bg-accent transition-colors"
+                  >
+                    {key}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
