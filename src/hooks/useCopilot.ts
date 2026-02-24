@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { CopilotContext } from "@/lib/buildCopilotContext";
 
-export type CopilotUseCase = "plan_suggestion" | "level_up" | "insight_rephrase";
+export type CopilotUseCase = "plan_suggestion" | "level_up" | "insight_rephrase" | "insight_pin_suggest" | "custom_insight_suggest" | "nudge_message_suggest";
 
 interface UseCopilotOptions {
   clientId: string;

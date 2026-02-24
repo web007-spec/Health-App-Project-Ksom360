@@ -8,8 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Lightbulb, Pin, Plus, Trash2 } from "lucide-react";
+import { Lightbulb, Pin, Plus, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCopilot } from "@/hooks/useCopilot";
+import { buildCopilotContext } from "@/lib/buildCopilotContext";
+import type { EngineMode } from "@/lib/engineConfig";
 
 interface InsightCoachControlsProps {
   clientId: string;
@@ -24,6 +27,72 @@ export function InsightCoachControls({ clientId, trainerId, settings, toggleMuta
   const [pinText, setPinText] = useState("");
   const [customMessage, setCustomMessage] = useState("");
   const [customAction, setCustomAction] = useState("");
+
+  const engineMode = (settings?.engine_mode || "performance") as string;
+
+  const copilot = useCopilot({
+    clientId,
+    coachId: trainerId,
+    engineMode,
+  });
+
+  // Fetch client context for AI generation
+  const { data: contextData } = useQuery({
+    queryKey: ["insight-ai-context", clientId],
+    queryFn: async () => {
+      const { data: clientSettings } = await supabase
+        .from("client_feature_settings")
+        .select("engine_mode, current_level, parent_link_enabled, is_minor")
+        .eq("client_id", clientId)
+        .maybeSingle();
+
+      const { data: summary } = await supabase
+        .from("client_weekly_summaries")
+        .select("*")
+        .eq("client_id", clientId)
+        .maybeSingle();
+
+      const { data: latestEvent } = await supabase
+        .from("recommendation_events")
+        .select("score_total, status, lowest_factor")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const engine = (clientSettings?.engine_mode as string) || "performance";
+      return buildCopilotContext({
+        engineMode: engine as EngineMode,
+        currentLevel: clientSettings?.current_level || 1,
+        readinessScore: latestEvent?.score_total ?? (summary?.avg_score_7d ? Number(summary.avg_score_7d) : null),
+        status: latestEvent?.status || summary?.score_status || "moderate",
+        lowestFactor: latestEvent?.lowest_factor || summary?.lowest_factor_mode || null,
+        weeklyCompletionPct: summary?.completion_7d ? Number(summary.completion_7d) : null,
+        streakDays: null,
+        trendDirection: (summary?.trend_direction as "up" | "down" | "flat") || "flat",
+        parentLinkActive: !!(clientSettings?.is_minor && engine === "athletic" && clientSettings?.parent_link_enabled),
+      });
+    },
+  });
+
+  const handleAIGeneratePin = async () => {
+    if (!contextData) return;
+    const text = await copilot.generate("insight_pin_suggest", contextData);
+    if (text) setPinText(text);
+  };
+
+  const handleAIGenerateCustom = async () => {
+    if (!contextData) return;
+    const text = await copilot.generate("custom_insight_suggest", contextData);
+    if (text) {
+      // Parse MESSAGE: and ACTION: format
+      const messageMatch = text.match(/MESSAGE:\s*(.+?)(?:\n|ACTION:)/s);
+      const actionMatch = text.match(/ACTION:\s*(.+)/s);
+      if (messageMatch) setCustomMessage(messageMatch[1].trim());
+      if (actionMatch) setCustomAction(actionMatch[1].trim());
+      if (!messageMatch) setCustomMessage(text.trim());
+    }
+  };
 
   // Fetch custom insights
   const { data: customInsights = [] } = useQuery({
@@ -120,9 +189,25 @@ export function InsightCoachControls({ clientId, trainerId, settings, toggleMuta
 
         {/* Pin an insight */}
         <div className="space-y-2">
-          <Label className="text-sm font-medium flex items-center gap-2">
-            <Pin className="h-3.5 w-3.5" /> Pin Insight (24h override)
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Pin className="h-3.5 w-3.5" /> Pin Insight (24h override)
+            </Label>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs gap-1.5 text-primary"
+              onClick={handleAIGeneratePin}
+              disabled={copilot.isGenerating || !contextData}
+            >
+              {copilot.isGenerating ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Sparkles className="h-3 w-3" />
+              )}
+              AI Suggest
+            </Button>
+          </div>
           {isPinActive && (
             <p className="text-xs text-primary">Currently pinned: "{settings.pinned_insight_text}"</p>
           )}
@@ -148,9 +233,25 @@ export function InsightCoachControls({ clientId, trainerId, settings, toggleMuta
 
         {/* Add custom insight */}
         <div className="space-y-2">
-          <Label className="text-sm font-medium flex items-center gap-2">
-            <Plus className="h-3.5 w-3.5" /> Add Custom Insight
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Plus className="h-3.5 w-3.5" /> Add Custom Insight
+            </Label>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs gap-1.5 text-primary"
+              onClick={handleAIGenerateCustom}
+              disabled={copilot.isGenerating || !contextData}
+            >
+              {copilot.isGenerating ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Sparkles className="h-3 w-3" />
+              )}
+              AI Generate
+            </Button>
+          </div>
           <Textarea
             value={customMessage}
             onChange={(e) => setCustomMessage(e.target.value)}
