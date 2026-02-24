@@ -260,33 +260,33 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
 
           {/* Step: Activity Detail */}
           {step === "detail" && (
-            <div className="p-6 flex flex-col items-center gap-6 pb-8 min-h-[400px]">
-              <div className="flex-1 flex flex-col items-center justify-center gap-4">
-                <div className="w-24 h-24 rounded-2xl bg-emerald-500/20 flex items-center justify-center" style={{ clipPath: "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)" , backgroundColor: "hsl(var(--chart-4) / 0.2)" }}>
-                  <div className="w-20 h-20 bg-emerald-500 flex items-center justify-center" style={{ clipPath: "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)" }}>
-                    <ActivityIcon className="h-10 w-10 text-white" />
-                  </div>
+            <div className="flex flex-col min-h-[85vh]">
+              <div className="flex-1 flex flex-col items-center justify-center gap-2">
+                <div className="w-24 h-24 flex items-center justify-center mb-2" style={{ clipPath: "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)", backgroundColor: "hsl(152 69% 53%)" }}>
+                  <ActivityIcon className="h-10 w-10 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold">{selectedActivity?.name}</h3>
+                <h3 className="text-2xl font-bold text-foreground">{selectedActivity?.name}</h3>
                 <p className="text-sm text-muted-foreground">Scheduled</p>
-                {targetType !== "none" && (
-                  <p className="text-sm text-primary font-semibold">
-                    Target: {targetType === "time"
-                      ? `${timeHours || "0"}h ${timeMinutes || "0"}m ${timeSeconds || "0"}s`
-                      : `${targetValue} miles`
-                    }
+                {targetType === "distance" && targetValue && (
+                  <p className="text-sm text-foreground font-medium mt-1">
+                    {selectedActivity?.name} for {targetValue} miles
+                  </p>
+                )}
+                {targetType === "time" && (timeHours || timeMinutes || timeSeconds) && (
+                  <p className="text-sm text-foreground font-medium mt-1">
+                    {selectedActivity?.name} for {timeHours && timeHours !== "0" ? `${timeHours}h ` : ""}{timeMinutes && timeMinutes !== "0" ? `${timeMinutes}m ` : ""}{timeSeconds && timeSeconds !== "0" ? `${timeSeconds}s` : ""}
                   </p>
                 )}
                 {targetType === "none" && (
                   <button
                     onClick={() => setStep("target")}
-                    className="text-sm text-primary font-semibold"
+                    className="text-sm text-primary font-semibold mt-1"
                   >
                     Set Target
                   </button>
                 )}
               </div>
-              <div className="w-full space-y-3">
+              <div className="w-full space-y-3 p-6 pb-8">
                 <button onClick={handleMarkComplete} className="w-full text-center text-primary font-semibold text-sm py-2">
                   Mark as Complete
                 </button>
