@@ -116,23 +116,25 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
                   <button
                     key={act.id}
                     onClick={() => handleSelectActivity(act)}
-                    className="w-full flex items-center gap-0 rounded-xl bg-destructive hover:bg-destructive/90 text-white transition-colors overflow-hidden"
+                    className="w-full flex items-center gap-3"
                   >
-                    <div className="flex items-center justify-center w-16 h-14 bg-black/20">
-                      {act.icon_url ? (
-                        <img src={act.icon_url} alt={act.name} className="h-6 w-6 object-contain" />
-                      ) : (
-                        <Icon className="h-6 w-6" />
-                      )}
+                    <div className="flex items-center rounded-xl bg-destructive overflow-hidden shrink-0">
+                      <div className="flex items-center justify-center w-14 h-12">
+                        {act.icon_url ? (
+                          <img src={act.icon_url} alt={act.name} className="h-6 w-6 object-contain invert" />
+                        ) : (
+                          <Icon className="h-6 w-6 text-white" />
+                        )}
+                      </div>
+                      <div className="h-8 w-px bg-white/30" />
+                      <div
+                        className="flex items-center justify-center w-10 h-12 cursor-pointer hover:bg-black/10 transition-colors"
+                        onClick={(e) => { e.stopPropagation(); setEditingActivity(act); }}
+                      >
+                        <MoreVertical className="h-4 w-4 text-white" />
+                      </div>
                     </div>
-                    <div className="h-14 w-px bg-white/20" />
-                    <div
-                      className="flex items-center justify-center w-10 h-14 cursor-pointer hover:bg-black/20 transition-colors"
-                      onClick={(e) => { e.stopPropagation(); setEditingActivity(act); }}
-                    >
-                      <MoreVertical className="h-4 w-4 opacity-70" />
-                    </div>
-                    <span className="text-sm font-semibold flex-1 text-left pl-2">{act.name}</span>
+                    <span className="text-base font-semibold text-foreground">{act.name}</span>
                   </button>
                 );
               })}
