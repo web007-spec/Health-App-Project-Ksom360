@@ -132,7 +132,7 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
                     <div className="flex items-center rounded-full bg-destructive overflow-hidden shrink-0">
                       <div className="flex items-center justify-center w-14 h-12">
                         {act.icon_url ? (
-                          <img src={act.icon_url} alt={act.name} className="h-6 w-6 object-contain invert" />
+                          <img src={act.icon_url} alt={act.name} className="h-6 w-6 object-contain" />
                         ) : (
                           <Icon className="h-6 w-6 text-white" />
                         )}
@@ -264,7 +264,7 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
               <div className="flex-1 flex flex-col items-center justify-center gap-2">
                 <div className="w-24 h-24 flex items-center justify-center mb-2" style={{ clipPath: "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)", backgroundColor: "hsl(var(--destructive))" }}>
                   {selectedActivity && activities.find(a => a.name === selectedActivity.name)?.icon_url ? (
-                    <img src={activities.find(a => a.name === selectedActivity.name)!.icon_url!} alt={selectedActivity.name} className="h-10 w-10 object-contain invert" />
+                    <img src={activities.find(a => a.name === selectedActivity.name)!.icon_url!} alt={selectedActivity.name} className="h-10 w-10 object-contain" />
                   ) : (
                     <ActivityIcon className="h-10 w-10 text-white" />
                   )}
