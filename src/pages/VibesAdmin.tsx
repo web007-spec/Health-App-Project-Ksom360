@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, Music, GripVertical, Star, Headphones, Moon, Tag, Timer, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Pencil, Trash2, Music, GripVertical, Star, Headphones, Moon, Tag, Timer, ChevronDown, ChevronUp, Wind } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import { AddSoundDialog } from "@/components/vibes/admin/AddSoundDialog";
 import { ManageGuidedSessionDialog } from "@/components/vibes/admin/ManageGuidedSessionDialog";
 import { ManageSleepStoryDialog } from "@/components/vibes/admin/ManageSleepStoryDialog";
 import { Card, CardContent } from "@/components/ui/card";
+import { AdminBreathingTab } from "@/components/vibes/admin/AdminBreathingTab";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -176,8 +177,9 @@ export default function VibesAdmin() {
         </div>
 
         <Tabs defaultValue="categories">
-          <TabsList>
+          <TabsList className="flex-wrap">
             <TabsTrigger value="protocols">Fasting Protocols</TabsTrigger>
+            <TabsTrigger value="breathing">Breathing</TabsTrigger>
             <TabsTrigger value="categories">Categories</TabsTrigger>
             <TabsTrigger value="tags">Tags</TabsTrigger>
             <TabsTrigger value="sounds">Sounds</TabsTrigger>
@@ -298,6 +300,10 @@ export default function VibesAdmin() {
                 </div>
               ));
             })()}
+          </TabsContent>
+
+          <TabsContent value="breathing" className="space-y-4">
+            <AdminBreathingTab />
           </TabsContent>
 
           <TabsContent value="categories" className="space-y-4">
