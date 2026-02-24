@@ -93,13 +93,13 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
     <>
       <Sheet open={open} onOpenChange={(v) => { if (!v) resetAndClose(); }}>
         <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto p-0 bg-transparent border-none shadow-none [&>button]:hidden">
-          <div className="bg-background rounded-t-2xl">
+          <div className="rounded-t-2xl">
           {/* Header */}
           <div className="flex items-center gap-3 p-4 border-b border-border">
             {step !== "pick" && (
               <button onClick={goBack} className="p-1"><ChevronLeft className="h-5 w-5" /></button>
             )}
-            <h2 className="text-lg font-bold flex-1">
+            <h2 className="text-lg font-bold flex-1 text-white">
               {step === "pick" && "Quick Cardio"}
               {step === "target" && selectedActivity?.name}
               {step === "distance" && "Distance"}
@@ -135,7 +135,7 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
                         <MoreVertical className="h-4 w-4 text-white" />
                       </div>
                     </div>
-                    <span className="text-base font-semibold text-foreground">{act.name}</span>
+                    <span className="text-base font-semibold text-white">{act.name}</span>
                   </button>
                 );
               })}
