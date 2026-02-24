@@ -262,7 +262,7 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
           {step === "detail" && (
             <div className="flex flex-col min-h-[85vh]">
               <div className="flex-1 flex flex-col items-center justify-center gap-2">
-                <div className="w-24 h-24 flex items-center justify-center mb-2" style={{ clipPath: "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)", backgroundColor: "hsl(152 69% 53%)" }}>
+                <div className="w-24 h-24 flex items-center justify-center mb-2" style={{ clipPath: "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)", backgroundColor: "hsl(var(--destructive))" }}>
                   {selectedActivity && activities.find(a => a.name === selectedActivity.name)?.icon_url ? (
                     <img src={activities.find(a => a.name === selectedActivity.name)!.icon_url!} alt={selectedActivity.name} className="h-10 w-10 object-contain invert" />
                   ) : (
