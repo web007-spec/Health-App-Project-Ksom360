@@ -68,6 +68,26 @@ This will be shown to the client as a system insight after coach approval.`;
       return `${base}
 Rephrase the following insight message to better match the client's engine tone, level band, and current status. Keep the core meaning intact. Do NOT add medical advice or freeform recommendations. Return only the rephrased message.`;
 
+    case "insight_pin_suggest":
+      return `${base}
+Generate a short, impactful daily insight message (1-2 sentences) that a coach can pin to this client's dashboard for 24 hours. The insight should:
+1. Be specific to the client's current status, lowest factor, and engine mode
+2. Include a motivational or actionable element
+3. Match the engine tone perfectly
+Return ONLY the insight text, nothing else.`;
+
+    case "custom_insight_suggest":
+      return `${base}
+Generate a custom daily insight with an action line for this client. Return in this exact format:
+MESSAGE: [1-2 sentence insight matching the engine tone and client context]
+ACTION: [short actionable task for today, e.g. "Drink 3L water today"]
+Base the insight on the client's lowest scoring factor, current status, and trend direction.`;
+
+    case "nudge_message_suggest":
+      return `${base}
+Generate a short push notification message (max 100 characters) to nudge this client based on their current status and lowest factor. The message should feel personal and motivating, not generic. Match the engine tone.
+Return ONLY the notification text, nothing else.`;
+
     default:
       return base;
   }
@@ -86,9 +106,18 @@ serve(async (req) => {
 
     const systemPrompt = buildSystemPrompt(use_case, context || {});
 
-    const userMessage = use_case === "insight_rephrase" && original_text
-      ? `Rephrase this insight: "${original_text}"`
-      : `Generate the ${use_case === "plan_suggestion" ? "plan adjustment suggestion" : "level-up message"} based on the client context provided.`;
+    let userMessage: string;
+    if (use_case === "insight_rephrase" && original_text) {
+      userMessage = `Rephrase this insight: "${original_text}"`;
+    } else if (use_case === "insight_pin_suggest") {
+      userMessage = "Generate a pinnable daily insight for this client based on their context.";
+    } else if (use_case === "custom_insight_suggest") {
+      userMessage = "Generate a custom insight with an action line for this client.";
+    } else if (use_case === "nudge_message_suggest") {
+      userMessage = "Generate a short nudge notification message for this client.";
+    } else {
+      userMessage = `Generate the ${use_case === "plan_suggestion" ? "plan adjustment suggestion" : "level-up message"} based on the client context provided.`;
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
