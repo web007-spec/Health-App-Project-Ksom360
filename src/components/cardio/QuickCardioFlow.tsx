@@ -27,6 +27,7 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
   const [timeSeconds, setTimeSeconds] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingActivity, setEditingActivity] = useState<{ id: string; name: string; icon_name: string } | null>(null);
+  const [activeTimeField, setActiveTimeField] = useState<"hours" | "minutes" | "seconds">("hours");
 
   const { activities, addActivity, updateActivity, deleteActivity } = useCardioActivityTypes();
 
@@ -213,53 +214,47 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
 
           {/* Step: Enter Time — H:M:S */}
           {step === "time" && (
-            <div className="p-6 space-y-6 pb-8">
-              <p className="text-center text-2xl font-bold">Time</p>
-              <div className="flex items-center justify-center gap-2">
-                <div className="flex flex-col items-center">
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    value={timeHours}
-                    onChange={(e) => setTimeHours(e.target.value)}
-                    className="text-center text-2xl font-bold h-16 w-20 border-2"
-                    placeholder="0"
-                    autoFocus
-                  />
-                  <span className="text-xs text-muted-foreground mt-1">Hours</span>
-                </div>
-                <span className="text-2xl font-bold pb-5">:</span>
-                <div className="flex flex-col items-center">
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    value={timeMinutes}
-                    onChange={(e) => setTimeMinutes(e.target.value)}
-                    className="text-center text-2xl font-bold h-16 w-20 border-2"
-                    placeholder="0"
-                  />
-                  <span className="text-xs text-muted-foreground mt-1">Minutes</span>
-                </div>
-                <span className="text-2xl font-bold pb-5">:</span>
-                <div className="flex flex-col items-center">
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    value={timeSeconds}
-                    onChange={(e) => setTimeSeconds(e.target.value)}
-                    className="text-center text-2xl font-bold h-16 w-20 border-2"
-                    placeholder="0"
-                  />
-                  <span className="text-xs text-muted-foreground mt-1">Seconds</span>
+            <div className="flex flex-col flex-1">
+              <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6">
+                <p className="text-center text-2xl font-bold text-white">Time</p>
+                <div className="flex items-center justify-center gap-2">
+                  {([
+                    { key: "hours" as const, value: timeHours, label: "Hours" },
+                    { key: "minutes" as const, value: timeMinutes, label: "Minutes" },
+                    { key: "seconds" as const, value: timeSeconds, label: "Seconds" },
+                  ]).map((field, i) => (
+                    <div key={field.key} className="flex items-center gap-2">
+                      {i > 0 && <span className="text-2xl font-bold text-white pb-5">:</span>}
+                      <div className="flex flex-col items-center">
+                        <button
+                          onClick={() => setActiveTimeField(field.key)}
+                          className={`text-center text-3xl font-bold h-16 w-20 border rounded-lg flex items-center justify-center text-white ${activeTimeField === field.key ? "border-white bg-white/15" : "border-white/30 bg-white/5"}`}
+                        >
+                          {field.value || <span className="text-white/30">0</span>}
+                        </button>
+                        <span className="text-xs text-white/70 mt-1">{field.label}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <Button
-                className="w-full h-12 text-base font-semibold"
-                onClick={handleConfirmTime}
-                disabled={!timeHours && !timeMinutes && !timeSeconds}
-              >
-                Save
-              </Button>
+              {/* Custom Numpad */}
+              <div className="bg-muted/90 backdrop-blur-sm rounded-t-2xl p-3 pb-6 grid grid-cols-3 gap-2">
+                {["1","2","3","4","5","6","7","8","9",".","0","⌫"].map((key) => (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      const setter = activeTimeField === "hours" ? setTimeHours : activeTimeField === "minutes" ? setTimeMinutes : setTimeSeconds;
+                      if (key === "⌫") setter((v) => v.slice(0, -1));
+                      else if (key === ".") return;
+                      else setter((v) => v + key);
+                    }}
+                    className="h-14 rounded-xl bg-background text-foreground text-xl font-bold active:bg-accent transition-colors"
+                  >
+                    {key}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
