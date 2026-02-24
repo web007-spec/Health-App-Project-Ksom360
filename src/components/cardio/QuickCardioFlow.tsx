@@ -152,7 +152,7 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
           {/* Step: Target selection — overlay style */}
           {step === "target" && (
             <div className="p-6 space-y-5 pb-8">
-              <p className="text-center text-lg font-semibold text-foreground">
+              <p className="text-center text-lg font-semibold text-white">
                 Set a target for this cardio activity?
               </p>
               <div className="space-y-3">
@@ -164,7 +164,7 @@ export function QuickCardioFlow({ open, onOpenChange, onStart, onMarkComplete }:
                   <button
                     key={opt.type}
                     onClick={() => handleSelectTarget(opt.type)}
-                    className="w-full p-4 rounded-2xl border border-white/30 bg-transparent text-center text-base font-medium text-foreground hover:bg-accent/30 transition-colors"
+                    className="w-full p-4 rounded-2xl border border-white/30 bg-transparent text-center text-base font-medium text-white hover:bg-white/10 transition-colors"
                   >
                     {opt.label}
                   </button>
