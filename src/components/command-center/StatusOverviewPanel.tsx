@@ -15,6 +15,12 @@ const STATUS_COLORS: Record<string, string> = {
   needs_support: "bg-red-500/15 text-red-400 border-red-500/30",
 };
 
+const ENGINE_COLORS: Record<string, string> = {
+  metabolic: "bg-teal-500/15 text-teal-400 border-teal-500/40",
+  performance: "bg-orange-500/15 text-orange-400 border-orange-500/40",
+  athletic: "bg-blue-500/15 text-blue-400 border-blue-500/40",
+};
+
 const STATUS_LABELS: Record<string, string> = {
   strong: "Strong",
   moderate: "Moderate",
@@ -85,7 +91,7 @@ export function StatusOverviewPanel({ clientId }: StatusOverviewPanelProps) {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <div className="rounded-lg border border-border p-3 space-y-1">
             <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Engine</p>
-            <Badge variant="outline" className="text-xs capitalize">
+            <Badge variant="outline" className={`text-xs capitalize font-semibold ${ENGINE_COLORS[engineMode] || ""}`}>
               {ENGINE_LABELS[engineMode] || engineMode}
             </Badge>
           </div>
