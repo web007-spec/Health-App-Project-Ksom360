@@ -41,7 +41,7 @@ const nutritionItems = [
 ];
 
 const onDemandItems = [
-  { title: "Resource Collections", url: "/resource-collections", icon: FileText },
+  { title: "Resources", url: "/resource-collections", icon: FileText },
   { title: "Workout Collections", url: "/workout-collections", icon: Play },
   { title: "On-demand Workouts", url: "/ondemand-workouts", icon: Dumbbell },
   { title: "Workout Labels", url: "/workout-labels", icon: Tags },

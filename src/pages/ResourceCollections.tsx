@@ -4,12 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Package } from "lucide-react";
+import { Plus, Search, Package, Filter, Folder, MoreVertical, Trash2, FileText, Link as LinkIcon, FileCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { CreateResourceDialog } from "@/components/CreateResourceDialog";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,22 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ResourceCollections() {
   const { user } = useAuth();
@@ -26,29 +43,47 @@ export default function ResourceCollections() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createCollectionOpen, setCreateCollectionOpen] = useState(false);
+  const [createResourceOpen, setCreateResourceOpen] = useState(false);
   const [collectionName, setCollectionName] = useState("");
   const [collectionDescription, setCollectionDescription] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
 
-  const { data: collections, isLoading } = useQuery({
-    queryKey: ["resource-collections", user?.id],
+  // Fetch individual resources
+  const { data: resources, isLoading: resourcesLoading } = useQuery({
+    queryKey: ["resources", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("resource_collections")
-        .select(`
-          *,
-          collection_sections(count)
-        `)
+        .from("resources")
+        .select("*")
         .eq("trainer_id", user?.id)
         .order("created_at", { ascending: false });
-
       if (error) throw error;
       return data;
     },
     enabled: !!user?.id,
   });
 
-  const createMutation = useMutation({
+  // Fetch collections
+  const { data: collections, isLoading: collectionsLoading } = useQuery({
+    queryKey: ["resource-collections", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("resource_collections")
+        .select(`
+          *,
+          collection_sections(count),
+          client_collection_access(count)
+        `)
+        .eq("trainer_id", user?.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const createCollectionMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase
         .from("resource_collections")
@@ -65,7 +100,7 @@ export default function ResourceCollections() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["resource-collections"] });
       toast({ title: "Collection created successfully" });
-      setCreateDialogOpen(false);
+      setCreateCollectionOpen(false);
       setCollectionName("");
       setCollectionDescription("");
       navigate(`/resource-collections/${data.id}`);
@@ -75,93 +110,210 @@ export default function ResourceCollections() {
     },
   });
 
-  const filteredCollections = collections?.filter((collection) =>
-    collection.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const deleteResourceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("resources").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["resources"] });
+      toast({ title: "Resource deleted" });
+      setDeleteTarget(null);
+    },
+    onError: () => {
+      toast({ title: "Failed to delete resource", variant: "destructive" });
+    },
+  });
+
+  const filteredResources = resources?.filter((r) =>
+    r.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const filteredCollections = collections?.filter((c) =>
+    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleCollectionSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!collectionName.trim()) {
       toast({ title: "Please enter a collection name", variant: "destructive" });
       return;
     }
-    createMutation.mutate();
+    createCollectionMutation.mutate();
   };
+
+  const getResourceIcon = (type: string) => {
+    switch (type) {
+      case "link": return <LinkIcon className="h-4 w-4" />;
+      case "document": return <FileText className="h-4 w-4" />;
+      case "form": return <FileCheck className="h-4 w-4" />;
+      default: return <FileText className="h-4 w-4" />;
+    }
+  };
+
+  const isLoading = resourcesLoading || collectionsLoading;
 
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold">Resource Collections</h1>
-            <p className="text-muted-foreground mt-2">
-              Group resources together and share with clients
-            </p>
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Resources</h1>
+          <div className="flex gap-2">
+            <Button onClick={() => setCreateResourceOpen(true)} className="bg-primary hover:bg-primary/90">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Resource
+            </Button>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Collection
+        </div>
+
+        {/* Search + Filter */}
+        <div className="flex gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search resources..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Button variant="outline" className="gap-2">
+            <Filter className="h-4 w-4" />
+            Filter
           </Button>
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search collections..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
         {isLoading ? (
-          <div className="text-center py-12">Loading collections...</div>
-        ) : !filteredCollections?.length ? (
-          <Card className="text-center py-12">
-            <CardContent className="pt-6">
-              <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No collections yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Create your first resource collection to organize content
-              </p>
-              <Button onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Collection
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="text-center py-12 text-muted-foreground">Loading resources...</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCollections.map((collection) => (
-              <Card
-                key={collection.id}
-                className="cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => navigate(`/resource-collections/${collection.id}`)}
-              >
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="line-clamp-1">{collection.name}</span>
-                    {collection.is_published && (
-                      <Badge variant="default">Published</Badge>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {collection.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {collection.description}
+          <>
+            {/* Resources Grid */}
+            <div>
+              <h2 className="text-lg font-semibold mb-4">Resources</h2>
+              {!filteredResources?.length ? (
+                <Card className="text-center py-12">
+                  <CardContent className="pt-6">
+                    <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No resources yet</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Add links, documents, and media to share with clients
                     </p>
-                  )}
-                </CardContent>
-                <CardFooter className="text-sm text-muted-foreground">
-                  {collection.collection_sections?.[0]?.count || 0} sections
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+                    <Button onClick={() => setCreateResourceOpen(true)}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Resource
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {filteredResources.map((resource) => (
+                    <div
+                      key={resource.id}
+                      className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/50 transition-colors group cursor-pointer"
+                    >
+                      {/* Thumbnail */}
+                      <div className="h-12 w-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                        {resource.cover_image_url ? (
+                          <img src={resource.cover_image_url} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                            {getResourceIcon(resource.type)}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{resource.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {resource.url || resource.file_path || "—"}
+                        </p>
+                      </div>
+
+                      {/* Delete */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(resource);
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Divider */}
+            <hr className="border-border" />
+
+            {/* Collections Section */}
+            <div>
+              <h2 className="text-lg font-semibold mb-4">Collections</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {filteredCollections?.map((collection) => (
+                  <Card
+                    key={collection.id}
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => navigate(`/resource-collections/${collection.id}`)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Folder className="h-5 w-5 text-primary" />
+                        <span className="font-medium truncate flex-1">{collection.name}</span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => navigate(`/resource-collections/${collection.id}`)}>
+                              Open
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Available for <span className="font-semibold text-foreground">{collection.client_collection_access?.[0]?.count || 0}</span> clients
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Resources: <span className="font-semibold text-foreground">{collection.collection_sections?.[0]?.count || 0}</span>
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {/* Create New Collection card */}
+                <Card
+                  className="cursor-pointer hover:shadow-md transition-shadow border-dashed"
+                  onClick={() => setCreateCollectionOpen(true)}
+                >
+                  <CardContent className="p-4 flex flex-col items-center justify-center h-full min-h-[120px]">
+                    <Plus className="h-6 w-6 text-muted-foreground mb-2" />
+                    <span className="text-sm text-muted-foreground">Create New Collection</span>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </>
         )}
 
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        {/* Create Resource Dialog */}
+        <CreateResourceDialog open={createResourceOpen} onOpenChange={setCreateResourceOpen} />
+
+        {/* Create Collection Dialog */}
+        <Dialog open={createCollectionOpen} onOpenChange={setCreateCollectionOpen}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Create Resource Collection</DialogTitle>
@@ -169,7 +321,7 @@ export default function ResourceCollections() {
                 Group resources together to share with your clients
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleCollectionSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Collection Name *</Label>
                 <Input
@@ -180,7 +332,6 @@ export default function ResourceCollections() {
                   required
                 />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="description">Description (Optional)</Label>
                 <Textarea
@@ -191,23 +342,35 @@ export default function ResourceCollections() {
                   rows={3}
                 />
               </div>
-
               <div className="flex gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setCreateDialogOpen(false)}
-                >
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setCreateCollectionOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? "Creating..." : "Create Collection"}
+                <Button type="submit" className="flex-1" disabled={createCollectionMutation.isPending}>
+                  {createCollectionMutation.isPending ? "Creating..." : "Create Collection"}
                 </Button>
               </div>
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Delete confirmation */}
+        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete resource?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete "{deleteTarget?.name}".
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => deleteTarget && deleteResourceMutation.mutate(deleteTarget.id)}>
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
