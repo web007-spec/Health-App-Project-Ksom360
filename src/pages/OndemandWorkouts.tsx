@@ -10,6 +10,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CreateOndemandWorkoutDialog } from "@/components/CreateOndemandWorkoutDialog";
+import { EditOndemandWorkoutDialog } from "@/components/EditOndemandWorkoutDialog";
 
 export default function OndemandWorkouts() {
   const { user } = useAuth();
@@ -17,6 +18,7 @@ export default function OndemandWorkouts() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editingWorkout, setEditingWorkout] = useState<any>(null);
 
   const { data: workouts, isLoading } = useQuery({
     queryKey: ["ondemand-workouts", user?.id],
@@ -135,7 +137,7 @@ export default function OndemandWorkouts() {
                     </div>
                   </CardContent>
                   <CardFooter className="p-4 pt-0">
-                    <Button variant="outline" size="sm" className="w-full">
+                    <Button variant="outline" size="sm" className="w-full" onClick={() => setEditingWorkout(workout)}>
                       Edit
                     </Button>
                   </CardFooter>
@@ -149,6 +151,14 @@ export default function OndemandWorkouts() {
           open={createDialogOpen}
           onOpenChange={setCreateDialogOpen}
         />
+
+        {editingWorkout && (
+          <EditOndemandWorkoutDialog
+            open={!!editingWorkout}
+            onOpenChange={(open) => { if (!open) setEditingWorkout(null); }}
+            workout={editingWorkout}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
