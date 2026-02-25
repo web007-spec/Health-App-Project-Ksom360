@@ -7,12 +7,14 @@ import { useAuth } from "@/hooks/useAuth";
  */
 export function useEffectiveClientId() {
   const { user, userRole } = useAuth();
-  
-  // Only trainers can impersonate
-  if (userRole === "trainer") {
-    const impersonatedId = localStorage.getItem("impersonatedClientId");
-    if (impersonatedId) return impersonatedId;
+
+  const impersonatedId = localStorage.getItem("impersonatedClientId");
+
+  // Allow impersonation when trainer role is confirmed OR still loading (null)
+  // to avoid race conditions where role has not resolved yet.
+  if (impersonatedId && (userRole === "trainer" || userRole === null)) {
+    return impersonatedId;
   }
-  
+
   return user?.id;
 }
