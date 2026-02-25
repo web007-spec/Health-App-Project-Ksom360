@@ -4,15 +4,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, Trash2, GripVertical, Play } from "lucide-react";
+import { Plus, Play, Dumbbell } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CreateCategoryDialog } from "@/components/CreateCategoryDialog";
 import { AddWorkoutToCategoryDialog } from "@/components/AddWorkoutToCategoryDialog";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { CollectionHeader } from "@/components/workout-collections/CollectionHeader";
+import { CategoryCard } from "@/components/workout-collections/CategoryCard";
+import { CategoryDetailView } from "@/components/workout-collections/CategoryDetailView";
 import {
   DndContext,
   closestCenter,
@@ -26,101 +27,19 @@ import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-
-function SortableCategory({ category, onDelete, onAddWorkout }: any) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
-    id: category.id,
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <Card ref={setNodeRef} style={style} className="mb-4">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <div className="flex items-center gap-3 flex-1">
-          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
-            <GripVertical className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <div className="flex-1">
-            <CardTitle className="text-lg">{category.name}</CardTitle>
-            {category.description && (
-              <p className="text-sm text-muted-foreground">{category.description}</p>
-            )}
-            <p className="text-sm text-muted-foreground mt-1">
-              {category.category_workouts?.length || 0} workouts
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" onClick={() => onAddWorkout(category.id)}>
-            <Plus className="h-4 w-4 mr-1" />
-            Add Workout
-          </Button>
-          <Button size="sm" variant="destructive" onClick={() => onDelete(category.id)}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {category.category_workouts?.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {category.category_workouts.map((cw: any) => {
-              const workout = cw.ondemand_workouts;
-              const labels =
-                workout.workout_workout_labels?.map((l: any) => l.workout_labels) || [];
-              const levelLabel = labels.find((l: any) => l?.category === "level");
-
-              return (
-                <Card key={cw.id} className="overflow-hidden">
-                  {workout.thumbnail_url ? (
-                    <img
-                      src={workout.thumbnail_url}
-                      alt={workout.name}
-                      className="w-full h-24 object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-24 bg-muted flex items-center justify-center">
-                      <Play className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                  )}
-                  <CardContent className="p-2">
-                    <p className="font-medium text-xs line-clamp-2">{workout.name}</p>
-                    {levelLabel && (
-                      <Badge variant="secondary" className="mt-1 text-xs">
-                        {levelLabel.value}
-                      </Badge>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground text-center py-8">
-            No workouts yet. Click "Add Workout" to get started.
-          </p>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function WorkoutCollectionDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createCategoryOpen, setCreateCategoryOpen] = useState(false);
   const [addWorkoutOpen, setAddWorkoutOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("overview");
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -185,18 +104,40 @@ export default function WorkoutCollectionDetail() {
     },
   });
 
+  const toggleCategoryActive = useMutation({
+    mutationFn: async ({ categoryId, isActive }: { categoryId: string; isActive: boolean }) => {
+      const { error } = await supabase
+        .from("workout_collection_categories")
+        .update({ is_active: isActive })
+        .eq("id", categoryId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workout-collection", id] });
+    },
+  });
+
+  const changeCategoryLayout = useMutation({
+    mutationFn: async ({ categoryId, layout }: { categoryId: string; layout: string }) => {
+      const { error } = await supabase
+        .from("workout_collection_categories")
+        .update({ card_layout: layout })
+        .eq("id", categoryId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workout-collection", id] });
+      toast({ title: "Layout updated" });
+    },
+  });
+
   const reorderCategories = useMutation({
     mutationFn: async (categories: any[]) => {
-      const updates = categories.map((category, index) => ({
-        id: category.id,
-        order_index: index,
-      }));
-
-      for (const update of updates) {
+      for (let i = 0; i < categories.length; i++) {
         await supabase
           .from("workout_collection_categories")
-          .update({ order_index: update.order_index })
-          .eq("id", update.id);
+          .update({ order_index: i })
+          .eq("id", categories[i].id);
       }
     },
     onSuccess: () => {
@@ -208,11 +149,10 @@ export default function WorkoutCollectionDetail() {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const categories = collection?.workout_collection_categories || [];
-    const oldIndex = categories.findIndex((c: any) => c.id === active.id);
-    const newIndex = categories.findIndex((c: any) => c.id === over.id);
-
-    const reordered = arrayMove(categories, oldIndex, newIndex);
+    const cats = categories;
+    const oldIndex = cats.findIndex((c: any) => c.id === active.id);
+    const newIndex = cats.findIndex((c: any) => c.id === over.id);
+    const reordered = arrayMove(cats, oldIndex, newIndex);
     reorderCategories.mutate(reordered);
   };
 
@@ -224,73 +164,110 @@ export default function WorkoutCollectionDetail() {
   if (isLoading) return <DashboardLayout><div className="p-6">Loading...</div></DashboardLayout>;
   if (!collection) return <DashboardLayout><div className="p-6">Collection not found</div></DashboardLayout>;
 
-  const categories =
-    collection.workout_collection_categories?.sort(
-      (a: any, b: any) => a.order_index - b.order_index
-    ) || [];
+  const categories = (collection.workout_collection_categories || []).sort(
+    (a: any, b: any) => a.order_index - b.order_index
+  );
+
+  const activeCategory = activeCategoryId
+    ? categories.find((c: any) => c.id === activeCategoryId)
+    : null;
+
+  // If we have drilled into a category, show its detail view
+  if (activeCategory) {
+    return (
+      <DashboardLayout>
+        <div className="p-6 space-y-4">
+          <CategoryDetailView
+            category={activeCategory}
+            collectionId={id!}
+            collectionName={collection.name}
+            onBack={() => setActiveCategoryId(null)}
+            onAddWorkout={handleAddWorkout}
+          />
+
+          <AddWorkoutToCategoryDialog
+            categoryId={selectedCategory!}
+            open={addWorkoutOpen}
+            onOpenChange={setAddWorkoutOpen}
+          />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/workout-collections")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold">{collection.name}</h1>
-              {collection.description && (
-                <p className="text-muted-foreground mt-1">{collection.description}</p>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="published">Published</Label>
-              <Switch
-                id="published"
-                checked={collection.is_published}
-                onCheckedChange={(checked) => togglePublished.mutate(checked)}
-              />
-            </div>
-            <Button onClick={() => setCreateCategoryOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Category
-            </Button>
-          </div>
-        </div>
+        <CollectionHeader
+          collection={collection}
+          onTogglePublished={(val) => togglePublished.mutate(val === "published")}
+        />
 
-        {categories.length === 0 ? (
-          <Card className="text-center py-12">
-            <CardContent className="pt-6">
-              <Play className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No categories yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Create categories to organize your workouts (like Netflix seasons)
-              </p>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="clients">Clients</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="mt-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Categories ({categories.length})</h2>
               <Button onClick={() => setCreateCategoryOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
-                Add Category
+                Create New Category
               </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext
-              items={categories.map((c: any) => c.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              {categories.map((category: any) => (
-                <SortableCategory
-                  key={category.id}
-                  category={category}
-                  onDelete={(categoryId: string) => deleteCategory.mutate(categoryId)}
-                  onAddWorkout={handleAddWorkout}
-                />
-              ))}
-            </SortableContext>
-          </DndContext>
-        )}
+            </div>
+
+            {categories.length === 0 ? (
+              <Card className="text-center py-12">
+                <CardContent className="pt-6">
+                  <Play className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No categories yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Create categories to organize your workouts
+                  </p>
+                  <Button onClick={() => setCreateCategoryOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create New Category
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext
+                  items={categories.map((c: any) => c.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-2">
+                    {categories.map((category: any) => (
+                      <CategoryCard
+                        key={category.id}
+                        category={category}
+                        onDelete={(cId) => deleteCategory.mutate(cId)}
+                        onAddWorkout={handleAddWorkout}
+                        onToggleActive={(cId, isActive) =>
+                          toggleCategoryActive.mutate({ categoryId: cId, isActive })
+                        }
+                        onChangeLayout={(cId, layout) =>
+                          changeCategoryLayout.mutate({ categoryId: cId, layout })
+                        }
+                        onNavigate={(cId) => setActiveCategoryId(cId)}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            )}
+          </TabsContent>
+
+          <TabsContent value="clients" className="mt-4">
+            <Card className="text-center py-12">
+              <CardContent className="pt-6 text-muted-foreground">
+                Client assignment management coming soon
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
         <CreateCategoryDialog
           collectionId={id!}

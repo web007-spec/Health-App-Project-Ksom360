@@ -5301,6 +5301,7 @@ export type Database = {
       }
       workout_collection_categories: {
         Row: {
+          card_layout: string
           collection_id: string
           cover_image_url: string | null
           created_at: string
@@ -5311,6 +5312,7 @@ export type Database = {
           order_index: number
         }
         Insert: {
+          card_layout?: string
           collection_id: string
           cover_image_url?: string | null
           created_at?: string
@@ -5321,6 +5323,7 @@ export type Database = {
           order_index: number
         }
         Update: {
+          card_layout?: string
           collection_id?: string
           cover_image_url?: string | null
           created_at?: string

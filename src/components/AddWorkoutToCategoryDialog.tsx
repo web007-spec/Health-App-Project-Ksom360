@@ -10,11 +10,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Play, Dumbbell } from "lucide-react";
+import { Play, Dumbbell, Search, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface AddWorkoutToCategoryDialogProps {
   categoryId: string;
@@ -29,8 +30,10 @@ export function AddWorkoutToCategoryDialog({
 }: AddWorkoutToCategoryDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedWorkouts, setSelectedWorkouts] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: workouts } = useQuery({
     queryKey: ["ondemand-workouts", user?.id],
@@ -68,10 +71,23 @@ export function AddWorkoutToCategoryDialog({
     enabled: !!categoryId && open,
   });
 
+  const { data: allCategoryWorkouts } = useQuery({
+    queryKey: ["category-workout-ids", categoryId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("category_workouts")
+        .select("workout_id")
+        .eq("category_id", categoryId);
+      if (error) throw error;
+      return data?.map((cw) => cw.workout_id) || [];
+    },
+    enabled: !!categoryId && open,
+  });
+
   const addMutation = useMutation({
     mutationFn: async () => {
       const maxOrder = existingWorkouts?.[0]?.order_index ?? -1;
-      
+
       const inserts = selectedWorkouts.map((workoutId, index) => ({
         category_id: categoryId,
         workout_id: workoutId,
@@ -83,9 +99,11 @@ export function AddWorkoutToCategoryDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workout-collection"] });
+      queryClient.invalidateQueries({ queryKey: ["category-workout-ids", categoryId] });
       toast({ title: `${selectedWorkouts.length} workout(s) added successfully` });
       onOpenChange(false);
       setSelectedWorkouts([]);
+      setSearchQuery("");
     },
     onError: () => {
       toast({ title: "Failed to add workouts", variant: "destructive" });
@@ -100,6 +118,18 @@ export function AddWorkoutToCategoryDialog({
     );
   };
 
+  // Filter out already-added workouts and apply search
+  const availableWorkouts = workouts?.filter((w) => {
+    const alreadyAdded = allCategoryWorkouts?.includes(w.id);
+    const matchesSearch = w.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return !alreadyAdded && matchesSearch;
+  });
+
+  const selectAll = () => {
+    if (!availableWorkouts) return;
+    setSelectedWorkouts(availableWorkouts.map((w) => w.id));
+  };
+
   const handleSubmit = () => {
     if (selectedWorkouts.length === 0) {
       toast({ title: "Please select at least one workout", variant: "destructive" });
@@ -110,97 +140,136 @@ export function AddWorkoutToCategoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] max-h-[85vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Add Workouts to Category</DialogTitle>
+          <DialogTitle>Choose your On-demand Workouts</DialogTitle>
           <DialogDescription>
-            Select workouts to add to this category
+            Add workouts to display under this Category
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
-          {!workouts?.length ? (
+
+        {/* Search + Filter + Select All */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by keyword or name"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Button variant="outline" size="sm" onClick={selectAll}>
+            Select all
+          </Button>
+        </div>
+
+        <p className="text-sm font-medium text-primary">
+          All Workouts ({availableWorkouts?.length || 0})
+        </p>
+
+        {/* Scrollable workout list */}
+        <div className="flex-1 overflow-y-auto space-y-1 min-h-0 -mx-6 px-6">
+          {!availableWorkouts?.length ? (
             <p className="text-center text-muted-foreground py-8">
-              No workouts available. Create on-demand workouts first.
+              No workouts available.
             </p>
           ) : (
-            workouts.map((workout) => {
+            availableWorkouts.map((workout) => {
               const labels =
                 workout.workout_workout_labels?.map((l: any) => l.workout_labels) || [];
               const levelLabel = labels.find((l: any) => l?.category === "level");
               const durationLabel = labels.find((l: any) => l?.category === "duration");
+              const otherLabels = labels.filter(
+                (l: any) => l && l.category !== "level" && l.category !== "duration"
+              );
 
               return (
-                <Card
+                <div
                   key={workout.id}
-                  className="cursor-pointer hover:bg-accent"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent cursor-pointer border border-transparent hover:border-border"
                   onClick={() => toggleWorkout(workout.id)}
                 >
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <Checkbox
-                      checked={selectedWorkouts.includes(workout.id)}
-                      onCheckedChange={() => toggleWorkout(workout.id)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    {workout.thumbnail_url ? (
+                  {workout.thumbnail_url ? (
+                    <div className="relative w-20 h-14 rounded overflow-hidden flex-shrink-0">
                       <img
                         src={workout.thumbnail_url}
                         alt={workout.name}
-                        className="w-16 h-16 object-cover rounded"
+                        className="w-full h-full object-cover"
                       />
-                    ) : (
-                      <div className="w-16 h-16 bg-muted flex items-center justify-center rounded">
-                        {workout.type === "video" ? (
-                          <Play className="h-6 w-6 text-muted-foreground" />
-                        ) : (
-                          <Dumbbell className="h-6 w-6 text-muted-foreground" />
-                        )}
+                      {workout.type === "video" && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                          <Play className="h-4 w-4 text-white fill-white" />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-20 h-14 bg-muted flex items-center justify-center rounded flex-shrink-0">
+                      {workout.type === "video" ? (
+                        <Play className="h-5 w-5 text-muted-foreground" />
+                      ) : (
+                        <Dumbbell className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{workout.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {durationLabel?.value || ""}{durationLabel && levelLabel ? " · " : ""}{levelLabel?.value || ""}
+                    </p>
+                    {otherLabels.length > 0 && (
+                      <div className="flex gap-1 flex-wrap mt-1">
+                        {otherLabels.map((l: any) => (
+                          <Badge key={l.id} variant="outline" className="text-[10px] px-1.5 py-0 uppercase">
+                            {l.value}
+                          </Badge>
+                        ))}
                       </div>
                     )}
-                    <div className="flex-1">
-                      <p className="font-medium">{workout.name}</p>
-                      <div className="flex gap-2 mt-1">
-                        {levelLabel && (
-                          <Badge variant="secondary" className="text-xs">
-                            {levelLabel.value}
-                          </Badge>
-                        )}
-                        {durationLabel && (
-                          <Badge variant="outline" className="text-xs">
-                            {durationLabel.value}
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                    <Badge variant="default" className="capitalize">
-                      {workout.type}
-                    </Badge>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <Checkbox
+                    checked={selectedWorkouts.includes(workout.id)}
+                    onCheckedChange={() => toggleWorkout(workout.id)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
               );
             })
           )}
         </div>
 
-        <div className="flex gap-2 pt-4">
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-3 border-t border-border">
           <Button
-            type="button"
-            variant="outline"
-            className="flex-1"
+            variant="ghost"
+            size="sm"
+            className="text-primary gap-1"
             onClick={() => {
               onOpenChange(false);
-              setSelectedWorkouts([]);
+              navigate("/ondemand-workouts");
             }}
           >
-            Cancel
+            <Plus className="h-4 w-4" />
+            Add New On-Demand Workout
           </Button>
-          <Button
-            type="button"
-            className="flex-1"
-            onClick={handleSubmit}
-            disabled={addMutation.isPending || selectedWorkouts.length === 0}
-          >
-            {addMutation.isPending ? "Adding..." : `Add ${selectedWorkouts.length} Workout(s)`}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                onOpenChange(false);
+                setSelectedWorkouts([]);
+                setSearchQuery("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={addMutation.isPending || selectedWorkouts.length === 0}
+            >
+              {addMutation.isPending ? "Adding..." : `Add`}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
