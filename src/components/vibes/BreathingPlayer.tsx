@@ -4,8 +4,6 @@ import type { BreathingExercise, RestoreMode, MotionProfile, ProtocolTone } from
 import { BreathingEntryScreen } from "./BreathingEntryScreen";
 import { BreathingSessionSummary } from "./BreathingSessionSummary";
 import { BreathingAnimationLayer } from "./BreathingAnimationLayer";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface Props {
@@ -49,15 +47,12 @@ function getArcIntensity(arcMode: RestoreMode, cycleCount: number, totalCycles: 
   const progress = Math.min(cycleCount / totalCycles, 1);
 
   if (arcMode === "activate") {
-    // Build: 0.6 → 1.2 peak at ~80%, slight resolve at end
     if (progress < 0.8) return 0.6 + progress * 0.75;
     return 1.2 - (progress - 0.8) * 1.0;
   }
   if (arcMode === "downshift") {
-    // Reverse: 0.8 → 0.3 deepening
     return 0.8 - progress * 0.5;
   }
-  // regulate: steady
   return 1.0;
 }
 
@@ -82,31 +77,11 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
   const frameRef = useRef(0);
   const sessionStartRef = useRef(0);
 
-  // Refs for synchronous video scrubbing (avoids React render delay)
-  const phaseIndexRef = useRef(0);
-  const phaseElapsedRef = useRef(0);
-
   // Music state
   const [musicLoading, setMusicLoading] = useState(false);
   const [musicEnabled, setMusicEnabled] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const musicUrlRef = useRef<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const videoDurationRef = useRef(0);
-
-  // Fetch background video for this exercise
-  const { data: videoUrl } = useQuery({
-    queryKey: ["breathing-exercise-video", exercise.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("breathing_exercise_videos")
-        .select("video_url")
-        .eq("exercise_id", exercise.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data?.video_url ?? null;
-    },
-  });
 
   const currentPhase = phases[phaseIndex];
   const rawProgress = phaseElapsed / currentPhase.seconds;
@@ -118,74 +93,29 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
 
   const arcIntensity = getArcIntensity(effectiveMode, cycleCount, estimatedTotalCycles);
 
-  // Limit scrub span so long videos don't jump large chunks per tick (visual skipping)
-  const inhalePhaseSeconds = phases.find((p) => p.type === "inhale")?.seconds ?? Math.max(cycleLength / 2, 1);
-  const exhalePhaseSeconds = phases.find((p) => p.type === "exhale")?.seconds ?? Math.max(cycleLength / 2, 1);
-  const tickDelta = 0.05;
-  const maxSeekStepPerTick = 0.12;
-  const maxSmoothScrubSpan = Math.max(
-    1,
-    Math.min(
-      inhalePhaseSeconds * (maxSeekStepPerTick / tickDelta),
-      exhalePhaseSeconds * (maxSeekStepPerTick / tickDelta)
-    )
-  );
-
   /* ─── Tick engine ─── */
   const tick = useCallback(() => {
     const delta = 0.05;
-    const currentPi = phaseIndexRef.current;
-    const phase = phases[currentPi];
 
-    let nextPi = currentPi;
-    let nextElapsed = phaseElapsedRef.current + delta;
-
-    if (nextElapsed >= phase.seconds) {
-      nextElapsed = 0;
-      nextPi = currentPi + 1;
-      if (nextPi >= phases.length) {
-        nextPi = 0;
-        setCycleCount((c) => c + 1);
+    setPhaseElapsed((prev) => {
+      const next = prev + delta;
+      if (next >= phases[phaseIndex].seconds) {
+        setPhaseIndex((pi) => {
+          const nextPi = pi + 1;
+          if (nextPi >= phases.length) {
+            setCycleCount((c) => c + 1);
+            return 0;
+          }
+          return nextPi;
+        });
+        return 0;
       }
-    }
+      return next;
+    });
 
-    // Update refs first so video scrub and UI state share the same tick boundary
-    phaseIndexRef.current = nextPi;
-    phaseElapsedRef.current = nextElapsed;
-
-    // Keep React UI in sync with the same computed values
-    setPhaseIndex(nextPi);
-    setPhaseElapsed(nextElapsed);
     setSessionElapsed((prev) => prev + delta);
     frameRef.current++;
-
-    // Synchronous video scrub — phase-accurate
-    const video = videoRef.current;
-    const vDur = videoDurationRef.current;
-    if (video && vDur > 0) {
-      if (!video.paused) video.pause();
-
-      const scrubPhase = phases[nextPi];
-      const progress = nextElapsed / scrubPhase.seconds;
-      const playableEnd = Math.max(0, vDur - 0.001);
-      const scrubSpan = Math.min(playableEnd, maxSmoothScrubSpan);
-
-      let targetTime: number;
-      if (scrubPhase.type === "inhale") {
-        targetTime = progress * scrubSpan;
-      } else if (scrubPhase.type === "hold") {
-        targetTime = scrubSpan;
-      } else {
-        targetTime = scrubSpan * (1 - progress);
-      }
-
-      const clamped = Math.max(0, Math.min(playableEnd, targetTime));
-      // Only seek when difference is noticeable — avoids stuttery micro-seeks
-      if (Math.abs(video.currentTime - clamped) > 0.03) {
-        video.currentTime = clamped;
-      }
-    }
-  }, [phases, maxSmoothScrubSpan]);
+  }, [phases, phaseIndex]);
 
   useEffect(() => {
     if (playing && stage === "playing") {
@@ -197,7 +127,6 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
   }, [playing, stage, tick]);
 
   // Music: fetch and play
-  // Create a silent audio element immediately on user gesture to unlock autoplay
   const initAudioOnGesture = useCallback(() => {
     if (audioRef.current) return;
     const audio = new Audio();
@@ -215,7 +144,6 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
       audio.volume = 0;
       musicUrlRef.current = url;
       await audio.play();
-      // Fade in over 2s
       let vol = 0;
       const fadeIn = setInterval(() => {
         vol = Math.min(vol + 0.02, 0.35);
@@ -270,8 +198,6 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
     }
   }, [playing, stage]);
 
-  // Video scrubbing now handled synchronously inside tick()
-
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -290,8 +216,6 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
     setCycleCount(0);
     setPhaseIndex(0);
     setPhaseElapsed(0);
-    phaseIndexRef.current = 0;
-    phaseElapsedRef.current = 0;
     initAudioOnGesture();
     setStage("playing");
     setPlaying(true);
@@ -309,8 +233,6 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
     setCycleCount(0);
     setPhaseIndex(0);
     setPhaseElapsed(0);
-    phaseIndexRef.current = 0;
-    phaseElapsedRef.current = 0;
   };
 
   const handleEnd = () => {
@@ -366,7 +288,6 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
   const pulseIntensity =
     currentPhase.type === "hold" ? 0 : Math.sin(p * Math.PI) * 0.015 * arcIntensity;
 
-  // Motion-type-specific light position
   const h = tone.hueBase;
   const s = tone.hueSat;
   const time = frameRef.current * 0.05;
@@ -413,16 +334,13 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
     }
   }
 
-  // Radial-pulse specific: pulsing size
   const ellipseW = motion.motionType === "radial-pulse" ? 60 + Math.sin(time * 0.8) * 15 * arcIntensity : 80;
   const ellipseH = motion.motionType === "radial-pulse" ? 45 + Math.sin(time * 0.8) * 10 * arcIntensity : 60;
 
-  // Particles
   const pSpeed = motion.particleSpeedMul * arcIntensity;
   const particleDir = currentPhase.type === "inhale" ? -1 : currentPhase.type === "exhale" ? 1 : -0.15;
   const particleDrift = motion.particleDriftMul;
 
-  // Depth blur
   const depthBlur =
     currentPhase.type === "inhale" ? 1.5 - p * 1.5 : currentPhase.type === "exhale" ? p * 2 : 0.5;
 
@@ -456,123 +374,84 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
         `,
       }}
     >
-      {videoUrl ? (
-        <>
-           {/* Custom video — scrubbed to follow breathing phases */}
-           <video
-             ref={videoRef}
-             src={videoUrl}
-             muted
-             playsInline
-             preload="auto"
-              onLoadedMetadata={(e) => {
-                videoDurationRef.current = e.currentTarget.duration;
-                e.currentTarget.pause();
-                e.currentTarget.currentTime = 0;
-              }}
-              onPlay={(e) => e.currentTarget.pause()}
-             className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-             style={{
-               filter: `brightness(${
-                 currentPhase.type === "inhale"
-                   ? 0.55 + p * 0.35
-                   : currentPhase.type === "exhale"
-                   ? 0.9 - p * 0.35
-                   : 0.85
-               })`,
-               transition: `filter ${transitionDuration} ${transitionEasing}`,
-             }}
-           />
-          {/* Subtle vignette overlay on custom video */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: `radial-gradient(ellipse 80% 70% at 50% 50%, transparent 30%, hsla(0, 0%, 0%, 0.6) 100%)`,
-            }}
-          />
-        </>
-      ) : (
-        <>
-          {/* Default animation layers */}
-          {/* Depth blur */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backdropFilter: `blur(${depthBlur}px)`,
-              WebkitBackdropFilter: `blur(${depthBlur}px)`,
-              transition: `backdrop-filter ${transitionDuration} ${transitionEasing}`,
-            }}
-          />
+      {/* Default animation layers */}
+      {/* Depth blur */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backdropFilter: `blur(${depthBlur}px)`,
+          WebkitBackdropFilter: `blur(${depthBlur}px)`,
+          transition: `backdrop-filter ${transitionDuration} ${transitionEasing}`,
+        }}
+      />
 
-          {/* Parallax haze 1 */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: `radial-gradient(ellipse 120% 50% at 30% ${lightY + 10}%, hsla(${h - 15}, ${s - 10}%, 15%, ${0.08 + brightness * 0.3}) 0%, transparent 70%)`,
-              transition: `all ${transitionDuration} ${transitionEasing}`,
-            }}
-          />
-          {/* Parallax haze 2 */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: `radial-gradient(ellipse 90% 40% at 70% ${lightY - 5}%, hsla(${h + hSpread}, ${Math.max(s - 25, 12)}%, 18%, ${0.05 + brightness * 0.2}) 0%, transparent 60%)`,
-              transition: `all ${transitionDuration} ${transitionEasing}`,
-            }}
-          />
+      {/* Parallax haze 1 */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(ellipse 120% 50% at 30% ${lightY + 10}%, hsla(${h - 15}, ${s - 10}%, 15%, ${0.08 + brightness * 0.3}) 0%, transparent 70%)`,
+          transition: `all ${transitionDuration} ${transitionEasing}`,
+        }}
+      />
+      {/* Parallax haze 2 */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(ellipse 90% 40% at 70% ${lightY - 5}%, hsla(${h + hSpread}, ${Math.max(s - 25, 12)}%, 18%, ${0.05 + brightness * 0.2}) 0%, transparent 60%)`,
+          transition: `all ${transitionDuration} ${transitionEasing}`,
+        }}
+      />
 
-          {/* Luminance pulse overlay */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: `radial-gradient(circle at ${lightX}% ${lightY}%, hsla(${h}, ${s - 10}%, 50%, ${pulseIntensity}) 0%, transparent 60%)`,
-              transition: `all ${transitionDuration} ${transitionEasing}`,
-            }}
-          />
+      {/* Luminance pulse overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(circle at ${lightX}% ${lightY}%, hsla(${h}, ${s - 10}%, 50%, ${pulseIntensity}) 0%, transparent 60%)`,
+          transition: `all ${transitionDuration} ${transitionEasing}`,
+        }}
+      />
 
-          {/* Horizon anchor */}
-          <div
-            className="absolute bottom-0 left-0 right-0 pointer-events-none"
-            style={{
-              height: "30%",
-              background: `linear-gradient(to top, hsla(${h + 10}, 30%, 8%, 0.1) 0%, transparent 100%)`,
-              opacity: 0.1,
-            }}
-          />
+      {/* Horizon anchor */}
+      <div
+        className="absolute bottom-0 left-0 right-0 pointer-events-none"
+        style={{
+          height: "30%",
+          background: `linear-gradient(to top, hsla(${h + 10}, 30%, 8%, 0.1) 0%, transparent 100%)`,
+          opacity: 0.1,
+        }}
+      />
 
-          {/* Particles */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-            {particlesRef.current.map((pt) => {
-              const yOffset = time * pt.speed * particleDir * pSpeed * 8;
-              const y = ((pt.baseY + yOffset) % 120 + 120) % 120 - 10;
-              const xSway = Math.sin(time * 0.3 * pt.speed + pt.id * 2.1) * pt.drift * 6 * particleDrift;
-              const particleOpacity = pt.opacity * (0.6 + brightness * 3) *
-                (currentPhase.type === "inhale" ? 0.7 + p * 0.6 : currentPhase.type === "exhale" ? 1.3 - p * 0.5 : 0.8);
-              return (
-                <circle
-                  key={pt.id}
-                  cx={`${pt.x + xSway}%`}
-                  cy={`${y}%`}
-                  r={pt.size * (0.8 + arcIntensity * 0.4)}
-                  fill={`hsla(${particleHue}, 40%, 70%, ${particleOpacity})`}
-                />
-              );
-            })}
-          </svg>
+      {/* Particles */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+        {particlesRef.current.map((pt) => {
+          const yOffset = time * pt.speed * particleDir * pSpeed * 8;
+          const y = ((pt.baseY + yOffset) % 120 + 120) % 120 - 10;
+          const xSway = Math.sin(time * 0.3 * pt.speed + pt.id * 2.1) * pt.drift * 6 * particleDrift;
+          const particleOpacity = pt.opacity * (0.6 + brightness * 3) *
+            (currentPhase.type === "inhale" ? 0.7 + p * 0.6 : currentPhase.type === "exhale" ? 1.3 - p * 0.5 : 0.8);
+          return (
+            <circle
+              key={pt.id}
+              cx={`${pt.x + xSway}%`}
+              cy={`${y}%`}
+              r={pt.size * (0.8 + arcIntensity * 0.4)}
+              fill={`hsla(${particleHue}, 40%, 70%, ${particleOpacity})`}
+            />
+          );
+        })}
+      </svg>
 
-          {/* ─── Animation Layer ─── */}
-          <BreathingAnimationLayer
-            animation={exercise.animation}
-            progress={mappedProgress}
-            phaseType={currentPhase.type}
-            hue={h}
-            sat={s}
-            brightness={brightness}
-            arcIntensity={arcIntensity}
-            time={time}
-          />
-        </>
-      )}
+      {/* ─── Animation Layer ─── */}
+      <BreathingAnimationLayer
+        animation={exercise.animation}
+        progress={mappedProgress}
+        phaseType={currentPhase.type}
+        hue={h}
+        sat={s}
+        brightness={brightness}
+        arcIntensity={arcIntensity}
+        time={time}
+      />
 
       {/* ─── UI Layer ─── */}
 
@@ -627,7 +506,7 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
         </span>
       </div>
 
-      {/* Controls — always visible, slightly dimmed */}
+      {/* Controls */}
       <div className="absolute bottom-8 left-0 right-0 flex items-center justify-center gap-6 z-20">
         <button
           onClick={handleReset}
