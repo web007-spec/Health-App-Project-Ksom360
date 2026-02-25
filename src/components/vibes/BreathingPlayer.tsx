@@ -82,6 +82,10 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
   const frameRef = useRef(0);
   const sessionStartRef = useRef(0);
 
+  // Refs for synchronous video scrubbing (avoids React render delay)
+  const phaseIndexRef = useRef(0);
+  const phaseElapsedRef = useRef(0);
+
   // Music state
   const [musicLoading, setMusicLoading] = useState(false);
   const [musicEnabled, setMusicEnabled] = useState(true);
@@ -123,16 +127,43 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
           const nextPi = pi + 1;
           if (nextPi >= phases.length) {
             setCycleCount((c) => c + 1);
+            phaseIndexRef.current = 0;
             return 0;
           }
+          phaseIndexRef.current = nextPi;
           return nextPi;
         });
+        phaseElapsedRef.current = 0;
         return 0;
       }
+      phaseElapsedRef.current = next;
       return next;
     });
     setSessionElapsed((prev) => prev + 0.05);
     frameRef.current++;
+
+    // Synchronous video scrub — zero delay
+    const video = videoRef.current;
+    const vDur = videoDurationRef.current;
+    if (video && vDur > 0) {
+      if (!video.paused) video.pause();
+      const pi = phaseIndexRef.current;
+      const pe = phaseElapsedRef.current;
+      const phase = phases[pi];
+      const progress = pe / phase.seconds;
+      const segLen = Math.min(vDur, 10);
+      const halfSeg = segLen / 2;
+
+      let targetTime: number;
+      if (phase.type === "inhale") {
+        targetTime = progress * halfSeg;
+      } else if (phase.type === "hold") {
+        targetTime = halfSeg;
+      } else {
+        targetTime = halfSeg * (1 - progress);
+      }
+      video.currentTime = targetTime % vDur;
+    }
   }, [phases, phaseIndex]);
 
   useEffect(() => {
@@ -218,36 +249,7 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
     }
   }, [playing, stage]);
 
-  // Scrub video currentTime to follow breathing phases
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !videoUrl || stage !== "playing") return;
-
-    // Hard-lock: never allow free-running playback
-    if (!video.paused) video.pause();
-
-    const vDur = videoDurationRef.current;
-    if (vDur <= 0) return;
-
-    // Map breathing progress to a video time position
-    // Use a segment of the video (up to 10s or full duration, whichever is shorter)
-    const segLen = Math.min(vDur, 10);
-    const halfSeg = segLen / 2;
-
-    let targetTime: number;
-    if (currentPhase.type === "inhale") {
-      // Scrub forward from 0 → halfSeg
-      targetTime = rawProgress * halfSeg;
-    } else if (currentPhase.type === "hold") {
-      // Stay at peak (freeze on one frame)
-      targetTime = halfSeg;
-    } else {
-      // Exhale: scrub backward from halfSeg → 0
-      targetTime = halfSeg * (1 - rawProgress);
-    }
-
-    video.currentTime = targetTime % vDur;
-  }, [rawProgress, currentPhase.type, videoUrl, stage]);
+  // Video scrubbing now handled synchronously inside tick()
 
   // Cleanup on unmount
   useEffect(() => {
@@ -267,6 +269,8 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
     setCycleCount(0);
     setPhaseIndex(0);
     setPhaseElapsed(0);
+    phaseIndexRef.current = 0;
+    phaseElapsedRef.current = 0;
     initAudioOnGesture();
     setStage("playing");
     setPlaying(true);
@@ -284,6 +288,8 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
     setCycleCount(0);
     setPhaseIndex(0);
     setPhaseElapsed(0);
+    phaseIndexRef.current = 0;
+    phaseElapsedRef.current = 0;
   };
 
   const handleEnd = () => {
