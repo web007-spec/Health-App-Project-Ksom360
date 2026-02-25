@@ -192,7 +192,7 @@ export function CreateResourceDialog({ open, onOpenChange }: CreateResourceDialo
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[560px] p-0 gap-0 overflow-visible">
+      <DialogContent className="sm:max-w-[560px] p-0 gap-0 overflow-visible max-h-[90vh] overflow-y-auto">
         {step === "pick" ? (
           /* ─── Step 1: Type Picker ─── */
           <div className="p-6 space-y-5">
@@ -347,10 +347,21 @@ export function CreateResourceDialog({ open, onOpenChange }: CreateResourceDialo
 
                   {file ? (
                     <div className="flex items-center gap-3 p-4 border rounded-lg bg-muted/30">
-                      <FileText className="h-6 w-6 text-muted-foreground shrink-0" />
+                      {file.name.toLowerCase().endsWith(".pdf") ? (
+                        <div className="h-12 w-12 rounded-md bg-muted flex flex-col items-center justify-center shrink-0 relative">
+                          <FileText className="h-6 w-6 text-muted-foreground" />
+                          <span className="text-[8px] font-bold text-destructive bg-destructive/10 px-1 rounded absolute -bottom-0.5">PDF</span>
+                        </div>
+                      ) : (
+                        <FileText className="h-6 w-6 text-muted-foreground shrink-0" />
+                      )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{file.name}</p>
-                        <p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                        <p className="text-xs text-muted-foreground">
+                          {file.size < 1024 * 1024
+                            ? `${(file.size / 1024).toFixed(0)} KB`
+                            : `${(file.size / 1024 / 1024).toFixed(2)} MB`}
+                        </p>
                       </div>
                       <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setFile(null)}>
                         <X className="h-4 w-4" />
@@ -377,6 +388,43 @@ export function CreateResourceDialog({ open, onOpenChange }: CreateResourceDialo
                       </p>
                     </div>
                   )}
+
+                  {/* Cover image for document */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cover Image (Optional)</Label>
+                    <input
+                      ref={coverInputRef}
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleCoverSelect}
+                    />
+                    {coverPreview ? (
+                      <div className="relative w-40">
+                        <img src={coverPreview} alt="Cover" className="w-full h-28 object-cover rounded-lg border" />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="icon"
+                          className="absolute top-1.5 right-1.5 h-5 w-5 rounded-full"
+                          onClick={() => { setCoverFile(null); setCoverPreview(null); }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => coverInputRef.current?.click()}
+                        className="w-40 h-28 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-primary/30 transition-colors"
+                      >
+                        <Image className="h-6 w-6 text-muted-foreground/40" />
+                        <p className="text-xs text-muted-foreground text-center">
+                          Drag and drop or{" "}
+                          <span className="text-primary font-medium">Choose file</span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
 
