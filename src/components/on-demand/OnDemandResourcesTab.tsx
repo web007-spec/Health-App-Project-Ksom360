@@ -60,48 +60,135 @@ export function OnDemandResourcesTab({ collections, searchQuery, isLoading }: On
             </div>
 
             {collection.collection_sections?.map((section: any) => {
-              const layoutClass =
-                section.layout_type === "list"
-                  ? "grid-cols-1"
-                  : section.layout_type === "small_cards"
-                  ? "grid-cols-2"
-                  : "grid-cols-1";
+              const normalizeLayout = (layout?: string) => {
+                switch (layout) {
+                  case "large":
+                    return "large_cards";
+                  case "narrow":
+                    return "narrow_cards";
+                  case "small":
+                    return "small_cards";
+                  case "list":
+                    return "list";
+                  default:
+                    return layout || "large_cards";
+                }
+              };
+
+              const layoutType = normalizeLayout(section.layout_type);
 
               return (
                 <div key={section.id} className="space-y-3">
                   <h3 className="text-sm font-semibold text-foreground">{section.name}</h3>
-                  <div className={`grid ${layoutClass} gap-3`}>
-                    {section.section_resources?.map((sr: any) => {
-                      const resource = sr.resources;
-                      return (
-                        <Card
-                          key={sr.id}
-                          className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
-                          onClick={() => resource.url && window.open(resource.url, "_blank")}
-                        >
-                          {section.layout_type !== "list" && (
+
+                  {layoutType === "list" && (
+                    <div className="space-y-2">
+                      {section.section_resources?.map((sr: any) => {
+                        const resource = sr.resources;
+                        return (
+                          <Card
+                            key={sr.id}
+                            className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                            onClick={() => resource.url && window.open(resource.url, "_blank")}
+                          >
+                            <CardContent className="p-3">
+                              <div className="flex items-center gap-3">
+                                {resource.cover_image_url ? (
+                                  <img src={resource.cover_image_url} alt={resource.name} className="w-10 h-10 rounded-lg object-cover" />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                    {getResourceIcon(resource.type)}
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold line-clamp-1 text-sm">{resource.name}</h4>
+                                </div>
+                                <Badge variant="secondary" className="capitalize text-xs shrink-0">{resource.type}</Badge>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {layoutType === "small_cards" && (
+                    <div className="grid grid-cols-3 gap-3">
+                      {section.section_resources?.map((sr: any) => {
+                        const resource = sr.resources;
+                        return (
+                          <div
+                            key={sr.id}
+                            className="flex flex-col items-center gap-1.5 cursor-pointer"
+                            onClick={() => resource.url && window.open(resource.url, "_blank")}
+                          >
+                            {resource.cover_image_url ? (
+                              <img src={resource.cover_image_url} alt={resource.name} className="w-16 h-16 rounded-xl object-cover" />
+                            ) : (
+                              <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center">
+                                {getResourceIcon(resource.type)}
+                              </div>
+                            )}
+                            <h4 className="font-semibold line-clamp-2 text-[11px] text-center">{resource.name}</h4>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {layoutType === "narrow_cards" && (
+                    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                      {section.section_resources?.map((sr: any) => {
+                        const resource = sr.resources;
+                        return (
+                          <Card
+                            key={sr.id}
+                            className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow flex-shrink-0 w-36"
+                            onClick={() => resource.url && window.open(resource.url, "_blank")}
+                          >
+                            {resource.cover_image_url ? (
+                              <img src={resource.cover_image_url} alt={resource.name} className="w-full h-24 object-cover" />
+                            ) : (
+                              <div className="w-full h-24 bg-muted flex items-center justify-center">
+                                {getResourceIcon(resource.type)}
+                              </div>
+                            )}
+                            <CardContent className="p-2">
+                              <h4 className="font-semibold line-clamp-2 text-xs">{resource.name}</h4>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {layoutType === "large_cards" && (
+                    <div className="grid grid-cols-1 gap-3">
+                      {section.section_resources?.map((sr: any) => {
+                        const resource = sr.resources;
+                        return (
+                          <Card
+                            key={sr.id}
+                            className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                            onClick={() => resource.url && window.open(resource.url, "_blank")}
+                          >
                             <CardHeader className="p-0">
                               {resource.cover_image_url ? (
-                                <img src={resource.cover_image_url} alt={resource.name} className="w-full h-28 object-cover" />
+                                <img src={resource.cover_image_url} alt={resource.name} className="w-full h-32 object-cover" />
                               ) : (
-                                <div className="w-full h-28 bg-muted flex items-center justify-center">
+                                <div className="w-full h-32 bg-muted flex items-center justify-center">
                                   {getResourceIcon(resource.type)}
                                 </div>
                               )}
                             </CardHeader>
-                          )}
-                          <CardContent className="p-3">
-                            <div className="flex items-start justify-between gap-2">
+                            <CardContent className="p-3">
                               <h4 className="font-semibold line-clamp-2 text-sm">{resource.name}</h4>
-                              {section.layout_type === "list" && (
-                                <Badge variant="secondary" className="capitalize text-xs shrink-0">{resource.type}</Badge>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}
