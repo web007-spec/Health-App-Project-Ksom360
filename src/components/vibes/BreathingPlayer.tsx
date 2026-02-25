@@ -472,7 +472,7 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
           {musicLoading && (
             <span className="text-[9px] text-white/25 animate-pulse">generating music…</span>
           )}
-          <span className="text-[11px] text-white/35 font-light tabular-nums tracking-wide">
+          <span className="text-[11px] text-white/60 font-light tabular-nums tracking-wide">
             {timeRemainingStr} remaining
           </span>
         </div>
@@ -486,7 +486,7 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
         <span
           className="text-xl font-light tracking-[0.15em] uppercase"
           style={{
-            color: `hsla(${h - 5}, 30%, 85%, ${0.6 + brightness * 2})`,
+            color: `hsla(${h - 5}, 35%, 92%, ${0.85 + brightness * 1.5})`,
             transition: `color ${transitionDuration} ${transitionEasing}`,
             textShadow: `0 0 40px hsla(${h}, 40%, 50%, ${brightness * 0.5})`,
           }}
@@ -496,7 +496,7 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
         <span
           className="text-sm font-extralight mt-2 tabular-nums"
           style={{
-            color: `hsla(${h}, 20%, 70%, ${0.3 + brightness})`,
+            color: `hsla(${h}, 25%, 85%, ${0.6 + brightness})`,
             transition: `color ${transitionDuration} ${transitionEasing}`,
           }}
         >
@@ -505,8 +505,8 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
       </div>
 
       {/* Breath ratio — bottom */}
-      <div className="absolute bottom-24 left-0 right-0 flex justify-center z-10 pointer-events-none opacity-20">
-        <span className="text-[10px] font-light tracking-[0.25em] text-white/50 tabular-nums">
+      <div className="absolute bottom-24 left-0 right-0 flex justify-center z-10 pointer-events-none opacity-50">
+        <span className="text-[10px] font-light tracking-[0.25em] text-white/70 tabular-nums">
           {ratioStr}
         </span>
       </div>
