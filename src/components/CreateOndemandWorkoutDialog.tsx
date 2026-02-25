@@ -129,7 +129,7 @@ export function CreateOndemandWorkoutDialog({
           video_url: workoutType === "video" ? videoUrl : null,
           thumbnail_url: finalThumbnailUrl,
           trainer_id: user!.id,
-          source_workout_id: selectedWorkoutId,
+          workout_plan_id: selectedWorkoutId,
         })
         .select()
         .single();
