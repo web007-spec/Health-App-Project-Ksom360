@@ -1,109 +1,131 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
-
-export type RestoreProfileType = "performance" | "precision";
+import { useEngineMode } from "@/hooks/useEngineMode";
+import type { EngineMode } from "@/lib/engineConfig";
 
 export interface RestoreProfileConfig {
-  profileType: RestoreProfileType;
+  engineMode: EngineMode;
   /** Accent HSL values for tinting UI */
   accent: string;
   accentMuted: string;
   accentGlow: string;
-  /** Copy tone adaptations */
-  greeting: Record<"morning" | "midday" | "evening" | "night", { title: string; sub: string }>;
-  moodTips: Record<"energized" | "calm" | "stressed" | "tired", string>;
-  /** Brainwave priority order */
-  brainwavePriority: string[];
-  /** Guided session priority categories */
-  sessionPriority: string[];
-  /** Section descriptions */
-  sectionMeta: { home: string; guided: string; breathe: string; sleep: string; soundlab: string };
+  /** Headlines */
+  headline: string;
+  subtitle: string;
+  /** Quick Start outcome labels */
+  quickStartLabel: string;
+  /** Module descriptions */
+  moduleMeta: {
+    breathing: string;
+    soundlab: string;
+    sleep: string;
+  };
+  /** Tone-adapted copy */
+  breathingTone: {
+    sectionTitle: string;
+    sectionSub: string;
+  };
+  soundLabTone: {
+    headline: string;
+    sub: string;
+  };
+  sleepTone: {
+    headline: string;
+    sub: string;
+  };
 }
 
-const PERFORMANCE_CONFIG: RestoreProfileConfig = {
-  profileType: "performance",
-  accent: "260,45%,38%",
-  accentMuted: "260,30%,25%",
-  accentGlow: "260,60%,70%",
-  greeting: {
-    morning: { title: "Rise & Conquer", sub: "Prime your nervous system" },
-    midday: { title: "Stay Locked In", sub: "Sharpen your edge" },
-    evening: { title: "Recover Hard", sub: "Downregulate for tomorrow" },
-    night: { title: "Deep Recovery", sub: "Maximize overnight repair" },
-  },
-  moodTips: {
-    energized: "Channel that fire — a focus session or high-beta brainwave will amplify it.",
-    calm: "Great baseline. Layer in breathwork to lock this state before training.",
-    stressed: "Activate your parasympathetic — try a guided breathwork reset.",
-    tired: "Recovery is performance. A sleep story or theta loop is your move.",
-  },
-  brainwavePriority: ["beta", "alpha", "gamma", "theta", "delta"],
-  sessionPriority: ["focus", "breathwork", "wind_down", "sleep"],
-  sectionMeta: {
-    home: "Recovery picks",
-    guided: "Breathwork & focus",
-    breathe: "Breathing exercises",
-    sleep: "Deep recovery",
-    soundlab: "Build your mix",
-  },
-};
-
-const PRECISION_CONFIG: RestoreProfileConfig = {
-  profileType: "precision",
+const METABOLIC_CONFIG: RestoreProfileConfig = {
+  engineMode: "metabolic",
   accent: "220,50%,42%",
   accentMuted: "220,30%,28%",
-  accentGlow: "220,60%,68%",
-  greeting: {
-    morning: { title: "Good Morning", sub: "Set your intention for today" },
-    midday: { title: "Mindful Pause", sub: "Return to center" },
-    evening: { title: "Wind Down", sub: "Gently ease into the evening" },
-    night: { title: "Good Night", sub: "Rest deeply tonight" },
+  accentGlow: "220,55%,60%",
+  headline: "Restore & Regulation",
+  subtitle: "Stabilize. Regulate. Recover.",
+  quickStartLabel: "Regulation Session",
+  moduleMeta: {
+    breathing: "Cortisol regulation protocols",
+    soundlab: "Ambient environments for stability",
+    sleep: "Deep rest for metabolic recovery",
   },
-  moodTips: {
-    energized: "Beautiful energy — try a focus session or build an upbeat ambient mix.",
-    calm: "Perfect state for breathwork or a gentle wind-down session.",
-    stressed: "Take a breath — we recommend a guided breathwork session.",
-    tired: "Rest up — a sleep story or gentle long loop might be just what you need.",
+  breathingTone: {
+    sectionTitle: "Breathing Protocols",
+    sectionSub: "Structured breath regulation for cortisol management and nervous system stability.",
   },
-  brainwavePriority: ["alpha", "theta", "delta", "beta", "gamma"],
-  sessionPriority: ["breathwork", "wind_down", "sleep", "focus"],
-  sectionMeta: {
-    home: "Personalized picks",
-    guided: "Breathwork & mindfulness",
-    breathe: "Breathing exercises",
-    sleep: "Stories & long loops",
-    soundlab: "Build your mix",
+  soundLabTone: {
+    headline: "Build Your Recovery Mix",
+    sub: "Layer sound environments for regulation and rest.",
+  },
+  sleepTone: {
+    headline: "Sleep Stories",
+    sub: "Guided wind-down sessions for deep metabolic recovery.",
   },
 };
 
-const PROFILE_CONFIGS: Record<RestoreProfileType, RestoreProfileConfig> = {
+const PERFORMANCE_CONFIG: RestoreProfileConfig = {
+  engineMode: "performance",
+  accent: "220,50%,42%",
+  accentMuted: "220,30%,28%",
+  accentGlow: "220,55%,60%",
+  headline: "Recovery & Readiness",
+  subtitle: "Regulate. Refocus. Recover.",
+  quickStartLabel: "Recovery Session",
+  moduleMeta: {
+    breathing: "Reset and refocus protocols",
+    soundlab: "Recovery environments for focus",
+    sleep: "Deep rest for performance recovery",
+  },
+  breathingTone: {
+    sectionTitle: "Breathing Protocols",
+    sectionSub: "Structured breath regulation for recovery and nervous system optimization.",
+  },
+  soundLabTone: {
+    headline: "Build Your Recovery Mix",
+    sub: "Layer sound environments for focus or sleep.",
+  },
+  sleepTone: {
+    headline: "Sleep Stories",
+    sub: "Guided wind-down sessions for deep rest.",
+  },
+};
+
+const ATHLETIC_CONFIG: RestoreProfileConfig = {
+  engineMode: "athletic",
+  accent: "200,45%,40%",
+  accentMuted: "200,30%,28%",
+  accentGlow: "200,50%,58%",
+  headline: "Recovery Lab",
+  subtitle: "Recover. Reset. Reload.",
+  quickStartLabel: "Recovery Protocol",
+  moduleMeta: {
+    breathing: "Between-session recovery",
+    soundlab: "Pre-game and cooldown environments",
+    sleep: "Rest protocols for game readiness",
+  },
+  breathingTone: {
+    sectionTitle: "Recovery Protocols",
+    sectionSub: "Controlled activation and recovery breathing for between sessions.",
+  },
+  soundLabTone: {
+    headline: "Build Your Recovery Mix",
+    sub: "Layer sound environments for pre-game focus or post-game cooldown.",
+  },
+  sleepTone: {
+    headline: "Sleep Stories",
+    sub: "Guided wind-down sessions for game-day recovery.",
+  },
+};
+
+const ENGINE_CONFIGS: Record<EngineMode, RestoreProfileConfig> = {
+  metabolic: METABOLIC_CONFIG,
   performance: PERFORMANCE_CONFIG,
-  precision: PRECISION_CONFIG,
+  athletic: ATHLETIC_CONFIG,
 };
 
 export function useRestoreProfile() {
-  const clientId = useEffectiveClientId();
-
-  const { data: profileType = "performance" as RestoreProfileType, isLoading } = useQuery({
-    queryKey: ["restore-profile-type", clientId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("client_feature_settings")
-        .select("restore_profile_type")
-        .eq("client_id", clientId)
-        .maybeSingle();
-      if (error) throw error;
-      const val = (data as any)?.restore_profile_type;
-      return (val === "precision" ? "precision" : "performance") as RestoreProfileType;
-    },
-    enabled: !!clientId,
-    staleTime: 5 * 60 * 1000,
-  });
+  const { engineMode, isLoading } = useEngineMode();
 
   return {
-    profileType,
-    config: PROFILE_CONFIGS[profileType],
+    profileType: engineMode,
+    config: ENGINE_CONFIGS[engineMode],
     isLoading,
   };
 }
