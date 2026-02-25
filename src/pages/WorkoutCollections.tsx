@@ -149,6 +149,7 @@ export default function WorkoutCollections() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [collectionName, setCollectionName] = useState("");
   const [collectionType, setCollectionType] = useState("");
+  const [showTypePreview, setShowTypePreview] = useState(true);
 
   const { data: collections, isLoading } = useQuery({
     queryKey: ["workout-collections", user?.id],
@@ -285,11 +286,57 @@ export default function WorkoutCollections() {
                   id="type"
                   value={collectionType}
                   onChange={(e) => setCollectionType(e.target.value)}
-                  placeholder="Add a short label, e.g. Workouts, Yoga, HIIT"
+                  placeholder="Add a label for the Collection Type"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Add a short label that will show above the Collection Name on the list of On-demand Collections.
-                </p>
+                {showTypePreview && (
+                  <div className="mt-3 rounded-xl bg-muted/50 border p-4 space-y-3">
+                    <p className="text-sm font-semibold text-foreground">Collection Type</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Add a short label that will show above the Collection Name on the list of On-demand Collections.
+                    </p>
+                    {/* Phone mockup preview */}
+                    <div className="flex justify-center pt-1">
+                      <div className="w-48 bg-foreground rounded-[1.6rem] p-[6px] shadow-xl">
+                        <div className="w-full bg-background rounded-[1.2rem] overflow-hidden">
+                          {/* Notch */}
+                          <div className="flex justify-center pt-1.5 pb-1">
+                            <div className="w-16 h-1 rounded-full bg-muted-foreground/20" />
+                          </div>
+                          {/* Screen content */}
+                          <div className="px-3 pb-3 space-y-2">
+                            <p className="text-xs font-bold text-foreground">On-demand</p>
+                            <div className="rounded-lg overflow-hidden bg-muted relative h-24 flex items-end">
+                              <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 to-transparent" />
+                              <div className="relative p-2 space-y-0.5">
+                                <span className="inline-block text-[8px] font-semibold uppercase tracking-wider text-primary-foreground/80 bg-primary/60 rounded px-1 py-0.5">
+                                  {collectionType || "WORKOUTS"}
+                                </span>
+                                <p className="text-[10px] font-bold text-primary-foreground">
+                                  {collectionName || "Fitness at Home"}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="h-4 rounded bg-muted/80 w-3/4" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setShowTypePreview(false)}
+                        className="text-sm font-medium text-primary hover:underline"
+                      >
+                        Got it
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {!showTypePreview && (
+                  <p className="text-xs text-muted-foreground">
+                    Add a short label that will show above the Collection Name on the list of On-demand Collections.
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-2 pt-2">
