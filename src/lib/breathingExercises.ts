@@ -55,6 +55,8 @@ export interface BreathingExercise {
   icon: string;
   tone: ProtocolTone;
   motion: MotionProfile;
+  /** ElevenLabs music prompt for ambient background track */
+  musicPrompt: string;
 }
 
 // Tone presets
@@ -88,6 +90,7 @@ export const BREATHING_EXERCISES: BreathingExercise[] = [
       hueSpread: 30,
       arcMode: "downshift",
     },
+    musicPrompt: "Slow ambient ocean waves with deep sub bass drone, gentle whale song undertones, ethereal pad chords in D minor, meditative and calming, lo-fi underwater atmosphere",
   },
   {
     id: "lotus-bloom",
@@ -111,6 +114,7 @@ export const BREATHING_EXERCISES: BreathingExercise[] = [
       hueSpread: 20,
       arcMode: "regulate",
     },
+    musicPrompt: "Gentle minimalist piano with soft reverb, warm analog synth pads, slow breathing rhythm, zen garden atmosphere, balanced and centered, key of G major",
   },
   {
     id: "orbital",
@@ -134,6 +138,7 @@ export const BREATHING_EXERCISES: BreathingExercise[] = [
       hueSpread: 40,
       arcMode: "regulate",
     },
+    musicPrompt: "Spacious ambient electronic with subtle gravity-like sub oscillations, crystalline bell tones, floating in zero gravity atmosphere, teal and cosmic, slow evolving textures",
   },
   {
     id: "aurora-flow",
@@ -157,6 +162,7 @@ export const BREATHING_EXERCISES: BreathingExercise[] = [
       hueSpread: 50,
       arcMode: "downshift",
     },
+    musicPrompt: "Northern lights inspired ambient with sweeping cool-toned synth pads, gentle ice crystal chimes, aurora borealis soundscape, ethereal and transcendent, slow diagonal sweeping motion in sound",
   },
   {
     id: "heartbeat",
@@ -180,6 +186,7 @@ export const BREATHING_EXERCISES: BreathingExercise[] = [
       hueSpread: 15,
       arcMode: "regulate",
     },
+    musicPrompt: "Soft heartbeat rhythm with warm analog synth pulse, gentle bass drum at 60bpm mimicking resting heart rate, soothing harmonic overtones, intimate and organic, velvet texture",
   },
   {
     id: "box-breathing",
@@ -204,6 +211,7 @@ export const BREATHING_EXERCISES: BreathingExercise[] = [
       hueSpread: 25,
       arcMode: "regulate",
     },
+    musicPrompt: "Disciplined minimal ambient with precise repeating motifs, clean sine wave tones, structured yet calming, military precision meets meditation, steady and controlled atmosphere",
   },
   {
     id: "478-relaxation",
@@ -227,6 +235,7 @@ export const BREATHING_EXERCISES: BreathingExercise[] = [
       hueSpread: 20,
       arcMode: "downshift",
     },
+    musicPrompt: "Deep dark ambient drone with extremely slow evolving textures, distant thunder rumbles, heavy weighted exhale-like sub bass, descending into sleep, pitch black void atmosphere",
   },
   {
     id: "calming-breath",
@@ -249,6 +258,7 @@ export const BREATHING_EXERCISES: BreathingExercise[] = [
       hueSpread: 15,
       arcMode: "downshift",
     },
+    musicPrompt: "Ultra gentle sleep descent ambient with soft wind through leaves, warm blanket-like pad chords, gradually slowing tempo, whispered lullaby texture, deep rest and comfort",
   },
 ];
 
