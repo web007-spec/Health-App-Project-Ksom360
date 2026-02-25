@@ -9,7 +9,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Share2, X, ImagePlus, Dumbbell } from "lucide-react";
+import { Search, Share2, X, ImagePlus, Dumbbell, Upload, Video, Loader2 } from "lucide-react";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
 
 interface CreateOndemandWorkoutDialogProps {
   open: boolean;
@@ -30,6 +31,9 @@ export function CreateOndemandWorkoutDialog({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoFileName, setVideoFileName] = useState<string | null>(null);
+  const [videoUploading, setVideoUploading] = useState(false);
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
@@ -107,7 +111,25 @@ export function CreateOndemandWorkoutDialog({
   const createMutation = useMutation({
     mutationFn: async () => {
       let finalThumbnailUrl = thumbnailUrl || null;
+      let finalVideoUrl = videoUrl || null;
       let libraryCreated = false;
+
+      // Upload video file if selected
+      if (videoFile && user) {
+        setVideoUploading(true);
+        const ext = videoFile.name.split(".").pop();
+        const path = `${user.id}/${Date.now()}-video.${ext}`;
+        const { error: uploadErr } = await supabase
+          .from("ondemand_workouts")
+          .select("id")
+          .limit(0); // no-op just to check auth
+        const { error: vidUploadErr } = await supabaseClient.storage
+          .from("workout-videos")
+          .upload(path, videoFile, { contentType: videoFile.type, upsert: false });
+        if (vidUploadErr) throw vidUploadErr;
+        const { data: { publicUrl } } = supabaseClient.storage.from("workout-videos").getPublicUrl(path);
+        finalVideoUrl = publicUrl;
+      }
 
       // Upload thumbnail file if selected
       if (thumbnailFile && user) {
@@ -127,7 +149,7 @@ export function CreateOndemandWorkoutDialog({
           name,
           description,
           type: workoutType,
-          video_url: workoutType === "video" ? videoUrl : null,
+          video_url: workoutType === "video" ? finalVideoUrl : null,
           thumbnail_url: finalThumbnailUrl,
           trainer_id: user!.id,
           workout_plan_id: selectedWorkoutId,
@@ -230,10 +252,12 @@ export function CreateOndemandWorkoutDialog({
           ? "Workout added and on-demand library created"
           : "Workout added successfully",
       });
+      setVideoUploading(false);
       onOpenChange(false);
       resetForm();
     },
     onError: () => {
+      setVideoUploading(false);
       toast({ title: "Failed to create workout", variant: "destructive" });
     },
   });
@@ -242,6 +266,9 @@ export function CreateOndemandWorkoutDialog({
     setName("");
     setDescription("");
     setVideoUrl("");
+    setVideoFile(null);
+    setVideoFileName(null);
+    setVideoUploading(false);
     setThumbnailUrl("");
     setThumbnailFile(null);
     setThumbnailPreview(null);
@@ -352,17 +379,72 @@ export function CreateOndemandWorkoutDialog({
             />
           </div>
 
-          {/* Video URL (only for video type) */}
+          {/* Add Video (only for video type) */}
           {workoutType === "video" && (
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
-                Video URL
+                Add Video
               </p>
-              <Input
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="https://youtube.com/watch?v=..."
-              />
+              <div className="bg-muted/50 rounded-lg p-3">
+                {videoFile || videoUrl ? (
+                  <div className="flex items-center gap-3 bg-background rounded-md border border-border p-3">
+                    <div className="h-14 w-20 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                      <Video className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-foreground truncate">
+                        {videoFileName || videoUrl}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {videoFile ? `${(videoFile.size / (1024 * 1024)).toFixed(1)} MB` : "External link"}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => { setVideoFile(null); setVideoFileName(null); setVideoUrl(""); }}
+                      className="text-muted-foreground hover:text-destructive p-1"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <input
+                      type="file"
+                      accept="video/*"
+                      className="hidden"
+                      id="video-upload-input"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setVideoFile(file);
+                        setVideoFileName(file.name);
+                      }}
+                    />
+                    <label
+                      htmlFor="video-upload-input"
+                      className="flex items-center gap-3 cursor-pointer bg-background rounded-md border border-dashed border-border p-4 hover:border-primary/50 transition-colors"
+                    >
+                      <div className="h-14 w-20 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                        <Upload className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm text-foreground">Upload a video file</p>
+                        <p className="text-xs text-muted-foreground">MP4, MOV, AVI — from your computer</p>
+                      </div>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-px bg-border" />
+                      <span className="text-xs text-muted-foreground">or paste a link</span>
+                      <div className="flex-1 h-px bg-border" />
+                    </div>
+                    <Input
+                      value={videoUrl}
+                      onChange={(e) => setVideoUrl(e.target.value)}
+                      placeholder="Youtube / Vimeo Link"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -539,9 +621,11 @@ export function CreateOndemandWorkoutDialog({
           <Button
             className="min-w-[120px]"
             onClick={handleSubmit}
-            disabled={createMutation.isPending || !name.trim()}
+            disabled={createMutation.isPending || videoUploading || !name.trim()}
           >
-            {createMutation.isPending ? "Adding..." : "Add Workout"}
+            {createMutation.isPending || videoUploading ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Adding...</>
+            ) : "Add Workout"}
           </Button>
         </div>
       </DialogContent>
