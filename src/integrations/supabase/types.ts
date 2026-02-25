@@ -247,6 +247,45 @@ export type Database = {
           },
         ]
       }
+      breathing_exercise_music: {
+        Row: {
+          created_at: string
+          exercise_id: string
+          id: string
+          track_id: string
+          trainer_id: string
+        }
+        Insert: {
+          created_at?: string
+          exercise_id: string
+          id?: string
+          track_id: string
+          trainer_id: string
+        }
+        Update: {
+          created_at?: string
+          exercise_id?: string
+          id?: string
+          track_id?: string
+          trainer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "breathing_exercise_music_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "breathing_music_tracks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "breathing_exercise_music_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       breathing_music_tracks: {
         Row: {
           created_at: string

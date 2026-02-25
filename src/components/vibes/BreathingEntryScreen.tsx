@@ -54,8 +54,24 @@ export function BreathingEntryScreen({ exercise, mode, onStart, onBack, containe
     },
   });
 
-  // Auto-select first track if available and not explicitly set
-  const effectiveMusicUrl = noMusic ? null : (selectedTrackUrl ?? tracks[0]?.file_url ?? null);
+  // Check for pinned track for this exercise
+  const { data: pinnedTrackId } = useQuery({
+    queryKey: ["breathing-exercise-music", exercise.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("breathing_exercise_music")
+        .select("track_id")
+        .eq("exercise_id", exercise.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.track_id ?? null;
+    },
+  });
+
+  // If there's a pinned track, use it as default; otherwise fall back to first active track
+  const pinnedTrack = pinnedTrackId ? tracks.find((t) => t.id === pinnedTrackId) : null;
+  const defaultTrackUrl = pinnedTrack?.file_url ?? tracks[0]?.file_url ?? null;
+  const effectiveMusicUrl = noMusic ? null : (selectedTrackUrl ?? defaultTrackUrl);
 
   return (
     <div
