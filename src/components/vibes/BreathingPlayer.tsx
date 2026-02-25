@@ -154,19 +154,19 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
 
       const scrubPhase = phases[nextPi];
       const progress = nextElapsed / scrubPhase.seconds;
-      const segLen = Math.min(vDur, 10);
-      const halfSeg = segLen / 2;
+      const playableEnd = Math.max(0, vDur - 0.001);
+      const scrubSpan = playableEnd;
 
       let targetTime: number;
       if (scrubPhase.type === "inhale") {
-        targetTime = progress * halfSeg;
+        targetTime = progress * scrubSpan;
       } else if (scrubPhase.type === "hold") {
-        targetTime = halfSeg;
+        targetTime = scrubSpan;
       } else {
-        targetTime = halfSeg * (1 - progress);
+        targetTime = scrubSpan * (1 - progress);
       }
 
-      video.currentTime = targetTime % vDur;
+      video.currentTime = Math.max(0, Math.min(playableEnd, targetTime));
     }
   }, [phases]);
 
