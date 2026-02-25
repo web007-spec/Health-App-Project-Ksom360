@@ -192,7 +192,7 @@ export function CreateResourceDialog({ open, onOpenChange }: CreateResourceDialo
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[560px] p-0 gap-0 overflow-visible max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[560px] p-0 gap-0 overflow-hidden">
         {step === "pick" ? (
           /* ─── Step 1: Type Picker ─── */
           <div className="p-6 space-y-5">
@@ -222,26 +222,24 @@ export function CreateResourceDialog({ open, onOpenChange }: CreateResourceDialo
           </div>
         ) : (
           /* ─── Step 2: Details Form ─── */
-          <form onSubmit={handleSubmit} className="relative pt-8">
-            {/* Floating icon badge — sits on top edge */}
-            <div className="absolute -top-6 left-6 z-10 h-12 w-12 rounded-full bg-primary flex items-center justify-center shadow-lg">
-              <span className="text-primary-foreground">{typeIcon}</span>
-            </div>
-
-            <div className="px-6 pb-0">
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setStep("pick")}
-                  className="flex items-center gap-1.5 text-primary hover:text-primary/80 transition-colors text-sm font-medium"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  {typeLabel}
-                </button>
+          <form onSubmit={handleSubmit} className="max-h-[80vh] overflow-y-auto">
+            {/* Header with back + icon */}
+            <div className="px-6 pt-5 pb-3 flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center shrink-0">
+                <span className="text-primary-foreground">{typeIcon}</span>
               </div>
+              <button
+                type="button"
+                onClick={() => setStep("pick")}
+                className="flex items-center gap-1.5 text-primary hover:text-primary/80 transition-colors text-sm font-medium"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                {typeLabel}
+              </button>
             </div>
 
-            <div className="px-6 pb-6 pt-4 space-y-5">
+
+            <div className="px-6 pb-6 space-y-5">
               {/* Link type: just URL field */}
               {resourceType === "link" && (
                 <div className="space-y-5">
