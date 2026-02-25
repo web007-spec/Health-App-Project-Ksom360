@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
 import logoSrc from "@/assets/logo.png";
 import {
@@ -27,6 +27,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
   const { user, userRole, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const effectiveClientId = useEffectiveClientId();
   const isImpersonating = userRole === "trainer" && effectiveClientId !== user?.id;
 
@@ -92,6 +93,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
 
   const handleBackToTrainer = () => {
     localStorage.removeItem("impersonatedClientId");
+    queryClient.clear();
     navigate("/");
   };
 
