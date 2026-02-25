@@ -88,6 +88,7 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const musicUrlRef = useRef<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoDurationRef = useRef(0);
 
   // Fetch background video for this exercise
   const { data: videoUrl } = useQuery({
@@ -217,16 +218,32 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
     }
   }, [playing, stage]);
 
-  // Pause/resume video with session
+  // Scrub video currentTime to follow breathing phases
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
-    if (playing && stage === "playing") {
-      video.play().catch(() => {});
+    if (!video || !videoUrl || stage !== "playing") return;
+    const vDur = videoDurationRef.current;
+    if (vDur <= 0) return;
+
+    // Map breathing progress to a video time position
+    // Use a segment of the video (up to 10s or full duration, whichever is shorter)
+    const segLen = Math.min(vDur, 10);
+    const halfSeg = segLen / 2;
+
+    let targetTime: number;
+    if (currentPhase.type === "inhale") {
+      // Scrub forward from 0 → halfSeg
+      targetTime = rawProgress * halfSeg;
+    } else if (currentPhase.type === "hold") {
+      // Stay at peak
+      targetTime = halfSeg;
     } else {
-      video.pause();
+      // Exhale: scrub backward from halfSeg → 0
+      targetTime = halfSeg * (1 - rawProgress);
     }
-  }, [playing, stage, videoUrl]);
+
+    video.currentTime = targetTime % vDur;
+  }, [rawProgress, currentPhase.type, videoUrl, stage]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -410,33 +427,28 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
     >
       {videoUrl ? (
         <>
-          {/* Custom video replaces all default visuals — synced to breathing */}
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-            style={{
-              transform: `scale(${
-                currentPhase.type === "inhale"
-                  ? 1 + p * 0.08
-                  : currentPhase.type === "exhale"
-                  ? 1.08 - p * 0.08
-                  : 1.08
-              })`,
-              filter: `brightness(${
-                currentPhase.type === "inhale"
-                  ? 0.55 + p * 0.35
-                  : currentPhase.type === "exhale"
-                  ? 0.9 - p * 0.35
-                  : 0.85
-              })`,
-              transition: `transform ${transitionDuration} ${transitionEasing}, filter ${transitionDuration} ${transitionEasing}`,
-            }}
-          />
+           {/* Custom video — scrubbed to follow breathing phases */}
+           <video
+             ref={videoRef}
+             src={videoUrl}
+             muted
+             playsInline
+             preload="auto"
+             onLoadedMetadata={(e) => {
+               videoDurationRef.current = e.currentTarget.duration;
+             }}
+             className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+             style={{
+               filter: `brightness(${
+                 currentPhase.type === "inhale"
+                   ? 0.55 + p * 0.35
+                   : currentPhase.type === "exhale"
+                   ? 0.9 - p * 0.35
+                   : 0.85
+               })`,
+               transition: `filter ${transitionDuration} ${transitionEasing}`,
+             }}
+           />
           {/* Subtle vignette overlay on custom video */}
           <div
             className="absolute inset-0 pointer-events-none"
