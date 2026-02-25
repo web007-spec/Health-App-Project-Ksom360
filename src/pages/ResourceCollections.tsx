@@ -232,6 +232,17 @@ export default function ResourceCollections() {
     }
   };
 
+  const getYouTubeThumbnail = (url: string | null) => {
+    if (!url) return null;
+    const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
+    return m?.[1] ? `https://img.youtube.com/vi/${m[1]}/hqdefault.jpg` : null;
+  };
+
+  const getResourceThumbnail = (resource: any) => {
+    if (resource.cover_image_url) return resource.cover_image_url;
+    return getYouTubeThumbnail(resource.url);
+  };
+
   const isLoading = resourcesLoading || collectionsLoading;
 
   return (
@@ -291,8 +302,8 @@ export default function ResourceCollections() {
                     >
                       {/* Thumbnail */}
                       <div className="h-12 w-12 rounded-md overflow-hidden flex-shrink-0">
-                        {resource.cover_image_url ? (
-                          <img src={resource.cover_image_url} alt="" className="h-full w-full object-cover" />
+                        {getResourceThumbnail(resource) ? (
+                          <img src={getResourceThumbnail(resource)!} alt="" className="h-full w-full object-cover" />
                         ) : (
                           <div className="h-full w-full flex items-center justify-center bg-primary/10 rounded-lg">
                             {getResourceIcon(resource.type)}
