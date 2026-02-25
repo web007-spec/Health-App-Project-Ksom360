@@ -190,6 +190,18 @@ export default function WorkoutCollectionDetail() {
             onAddWorkout={handleAddWorkout}
           />
 
+          <AddWorkoutTypePicker
+            open={typePickerOpen}
+            onOpenChange={setTypePickerOpen}
+            onSelectRegular={() => {
+              setSelectedCategory(typePickerCategoryId);
+              setAddWorkoutOpen(true);
+            }}
+            onSelectVideo={() => {
+              navigate("/ondemand-workouts?create=video");
+            }}
+          />
+
           <AddWorkoutToCategoryDialog
             categoryId={selectedCategory!}
             open={addWorkoutOpen}
