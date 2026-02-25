@@ -16,6 +16,7 @@ import { CollectionHeader } from "@/components/workout-collections/CollectionHea
 import { CategoryCard } from "@/components/workout-collections/CategoryCard";
 import { CategoryDetailView } from "@/components/workout-collections/CategoryDetailView";
 import { AddWorkoutTypePicker } from "@/components/AddWorkoutTypePicker";
+import { CreateOndemandWorkoutDialog } from "@/components/CreateOndemandWorkoutDialog";
 import {
   DndContext,
   closestCenter,
@@ -45,6 +46,7 @@ export default function WorkoutCollectionDetail() {
   const [activeTab, setActiveTab] = useState("overview");
   const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [typePickerCategoryId, setTypePickerCategoryId] = useState<string | null>(null);
+  const [createRegularOpen, setCreateRegularOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -195,11 +197,18 @@ export default function WorkoutCollectionDetail() {
             onOpenChange={setTypePickerOpen}
             onSelectRegular={() => {
               setSelectedCategory(typePickerCategoryId);
-              setAddWorkoutOpen(true);
+              setCreateRegularOpen(true);
             }}
             onSelectVideo={() => {
               navigate("/ondemand-workouts?create=video");
             }}
+          />
+
+          <CreateOndemandWorkoutDialog
+            open={createRegularOpen}
+            onOpenChange={setCreateRegularOpen}
+            presetType="regular"
+            categoryId={selectedCategory}
           />
 
           <AddWorkoutToCategoryDialog
@@ -329,11 +338,18 @@ export default function WorkoutCollectionDetail() {
           onOpenChange={setTypePickerOpen}
           onSelectRegular={() => {
             setSelectedCategory(typePickerCategoryId);
-            setAddWorkoutOpen(true);
+            setCreateRegularOpen(true);
           }}
           onSelectVideo={() => {
             navigate("/ondemand-workouts?create=video");
           }}
+        />
+
+        <CreateOndemandWorkoutDialog
+          open={createRegularOpen}
+          onOpenChange={setCreateRegularOpen}
+          presetType="regular"
+          categoryId={selectedCategory}
         />
 
         <AddWorkoutToCategoryDialog
