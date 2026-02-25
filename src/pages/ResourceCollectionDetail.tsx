@@ -78,7 +78,14 @@ function SortableSection({ section, onDelete, onAddResource, onChangeLayout, onR
   const [isOpen, setIsOpen] = useState(true);
   const [formatOpen, setFormatOpen] = useState(false);
   const [selectedLayout, setSelectedLayout] = useState(normalizeLayoutType(section.layout_type));
+  const initialNameRef = useRef(section.name);
   const [editingSectionName, setEditingSectionName] = useState(section.name);
+
+  // Only sync from props if the DB name changed externally (not from our own edit)
+  if (section.name !== initialNameRef.current && section.name !== editingSectionName) {
+    initialNameRef.current = section.name;
+    setEditingSectionName(section.name);
+  }
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -165,11 +172,13 @@ function SortableSection({ section, onDelete, onAddResource, onChangeLayout, onR
             }}
             onBlur={() => {
               if (editingSectionName && editingSectionName !== section.name) {
+                initialNameRef.current = editingSectionName;
                 onRenameSection?.(section.id, editingSectionName, true);
               }
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && editingSectionName) {
+                initialNameRef.current = editingSectionName;
                 onRenameSection?.(section.id, editingSectionName, true);
                 (e.target as HTMLInputElement).blur();
               }
