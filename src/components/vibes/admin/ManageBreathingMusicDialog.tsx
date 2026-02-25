@@ -164,7 +164,8 @@ export function ManageBreathingMusicDialog({
               />
               <Button
                 size="sm"
-                className="w-full sm:w-auto"
+                variant="default"
+                className="w-full sm:w-auto gap-1"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
               >
