@@ -105,6 +105,12 @@ const FEATURES = [
     description: "Show synced sport schedule events (games, practices) on the client's dashboard",
     icon: Activity,
   },
+  {
+    key: "restore_enabled",
+    label: "Restore",
+    description: "Enable the Restore recovery hub (soundscapes, breathing, guided sessions, sleep)",
+    icon: Activity,
+  },
 ] as const;
 
 // Strict Mode sub-settings shown when fasting is enabled

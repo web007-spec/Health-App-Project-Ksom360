@@ -22,6 +22,7 @@ export interface ClientFeatureSettings {
   fasting_strict_mode: boolean;
   eating_window_hours: number;
   sport_schedule_enabled: boolean;
+  restore_enabled: boolean;
   greeting_emoji: string;
   greeting_subtitle: string;
   fasting_card_subtitle: string;
@@ -58,6 +59,7 @@ const DEFAULT_SETTINGS: ClientFeatureSettings = {
   fasting_strict_mode: false,
   eating_window_hours: 8,
   sport_schedule_enabled: true,
+  restore_enabled: false,
   greeting_emoji: "👋",
   greeting_subtitle: "Let's do this",
   fasting_card_subtitle: "Fasting is the foundation of your KSOM360 plan.",

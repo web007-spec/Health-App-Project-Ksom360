@@ -618,6 +618,7 @@ export type Database = {
           quiet_hours_end: string | null
           quiet_hours_start: string | null
           require_coach_approval_plans: boolean
+          restore_enabled: boolean
           restore_profile_type: string
           selected_protocol_id: string | null
           selected_quick_plan_id: string | null
@@ -703,6 +704,7 @@ export type Database = {
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
           require_coach_approval_plans?: boolean
+          restore_enabled?: boolean
           restore_profile_type?: string
           selected_protocol_id?: string | null
           selected_quick_plan_id?: string | null
@@ -788,6 +790,7 @@ export type Database = {
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
           require_coach_approval_plans?: boolean
+          restore_enabled?: boolean
           restore_profile_type?: string
           selected_protocol_id?: string | null
           selected_quick_plan_id?: string | null
