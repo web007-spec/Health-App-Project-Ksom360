@@ -38,8 +38,33 @@ export function CreateResourceDialog({ open, onOpenChange }: CreateResourceDialo
   const [addAnother, setAddAnother] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [autoThumbnail, setAutoThumbnail] = useState<string | null>(null);
+  const [detectedType, setDetectedType] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const getYouTubeId = (u: string) => {
+    const m = u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
+    return m?.[1] ?? null;
+  };
+
+  const handleUrlChange = (val: string) => {
+    setUrl(val);
+    const ytId = getYouTubeId(val);
+    if (ytId) {
+      setAutoThumbnail(`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`);
+      setDetectedType("youtube");
+      if (!coverFile && !coverPreview) {
+        setCoverPreview(`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`);
+      }
+    } else if (val.trim()) {
+      setAutoThumbnail(null);
+      setDetectedType(null);
+    } else {
+      setAutoThumbnail(null);
+      setDetectedType(null);
+    }
+  };
 
   const uploadFile = async (f: File, folder: string): Promise<string> => {
     const ext = f.name.split(".").pop();
@@ -100,6 +125,8 @@ export function CreateResourceDialog({ open, onOpenChange }: CreateResourceDialo
     setFile(null);
     setCoverFile(null);
     setCoverPreview(null);
+    setAutoThumbnail(null);
+    setDetectedType(null);
     setResourceType("link");
     setStep("pick");
     setAddAnother(false);
@@ -215,19 +242,77 @@ export function CreateResourceDialog({ open, onOpenChange }: CreateResourceDialo
             <div className="px-6 pb-6 pt-4 space-y-5">
               {/* Link type: just URL field */}
               {resourceType === "link" && (
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Link</Label>
-                  <div className="relative">
-                    <Input
-                      type="url"
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                      placeholder="https://example.com"
-                      className="pr-10"
-                      autoFocus
-                    />
-                    <ExternalLink className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Link</Label>
+                    <div className="relative">
+                      <Input
+                        type="url"
+                        value={url}
+                        onChange={(e) => handleUrlChange(e.target.value)}
+                        placeholder="https://example.com"
+                        className="pr-10"
+                        autoFocus
+                      />
+                      <ExternalLink className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    </div>
                   </div>
+
+                  {url.trim() && (
+                    <>
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Resource Name</Label>
+                        <Input
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="Resource Name"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cover Image (Optional)</Label>
+                        <input
+                          ref={coverInputRef}
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleCoverSelect}
+                        />
+                        {coverPreview ? (
+                          <div className="relative w-60">
+                            <img src={coverPreview} alt="Cover" className="w-full h-36 object-cover rounded-lg border" />
+                            {detectedType === "youtube" && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="h-12 w-12 rounded-full bg-white/90 flex items-center justify-center shadow">
+                                  <div className="w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[14px] border-l-foreground ml-1" />
+                                </div>
+                              </div>
+                            )}
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="icon"
+                              className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full"
+                              onClick={() => { setCoverFile(null); setCoverPreview(null); setAutoThumbnail(null); }}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => coverInputRef.current?.click()}
+                            className="w-40 h-28 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-primary/30 transition-colors"
+                          >
+                            <Image className="h-6 w-6 text-muted-foreground/40" />
+                            <p className="text-xs text-muted-foreground text-center">
+                              Drag and drop or{" "}
+                              <span className="text-primary font-medium">Choose file</span>
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
