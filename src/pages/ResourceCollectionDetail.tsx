@@ -42,6 +42,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const normalizeLayoutType = (layout?: string | null) => {
+  switch (layout) {
+    case "large":
+      return "large_cards";
+    case "narrow":
+      return "narrow_cards";
+    case "small":
+      return "small_cards";
+    case "list":
+      return "list";
+    default:
+      return layout || "large_cards";
+  }
+};
+
 function SortableSection({ section, onDelete, onAddResource, onChangeLayout }: any) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: section.id,
@@ -59,6 +74,8 @@ function SortableSection({ section, onDelete, onAddResource, onChangeLayout }: a
     { value: "list", label: "List View" },
   ];
 
+  const normalizedLayoutType = normalizeLayoutType(section.layout_type);
+
   return (
     <Card ref={setNodeRef} style={style} className="mb-4">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
@@ -74,7 +91,7 @@ function SortableSection({ section, onDelete, onAddResource, onChangeLayout }: a
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={section.layout_type} onValueChange={(value) => onChangeLayout(section.id, value)}>
+          <Select value={normalizedLayoutType} onValueChange={(value) => onChangeLayout(section.id, value)}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
@@ -98,17 +115,17 @@ function SortableSection({ section, onDelete, onAddResource, onChangeLayout }: a
       <CardContent>
         {section.section_resources?.length > 0 ? (
           <div className={
-            section.layout_type === "list"
+            normalizedLayoutType === "list"
               ? "space-y-2"
-              : section.layout_type === "small_cards"
+              : normalizedLayoutType === "small_cards"
               ? "grid grid-cols-3 md:grid-cols-6 gap-3"
-              : section.layout_type === "narrow_cards"
+              : normalizedLayoutType === "narrow_cards"
               ? "flex gap-3 overflow-x-auto pb-2 scrollbar-hide"
               : "grid grid-cols-1 md:grid-cols-2 gap-3"
           }>
             {section.section_resources.map((sr: any) => {
               const resource = sr.resources;
-              if (section.layout_type === "list") {
+              if (normalizedLayoutType === "list") {
                 return (
                   <div key={sr.id} className="flex items-center gap-3 p-3 border rounded-lg">
                     {resource?.cover_image_url ? (
@@ -123,7 +140,7 @@ function SortableSection({ section, onDelete, onAddResource, onChangeLayout }: a
                   </div>
                 );
               }
-              if (section.layout_type === "small_cards") {
+              if (normalizedLayoutType === "small_cards") {
                 return (
                   <div key={sr.id} className="flex flex-col items-center gap-1.5">
                     {resource?.cover_image_url ? (
@@ -137,7 +154,7 @@ function SortableSection({ section, onDelete, onAddResource, onChangeLayout }: a
                   </div>
                 );
               }
-              if (section.layout_type === "narrow_cards") {
+              if (normalizedLayoutType === "narrow_cards") {
                 return (
                   <Card key={sr.id} className="overflow-hidden flex-shrink-0 w-36">
                     {resource?.cover_image_url ? (
@@ -473,15 +490,43 @@ export default function ResourceCollectionDetail() {
 
   const updateLayout = useMutation({
     mutationFn: async ({ sectionId, layout }: { sectionId: string; layout: string }) => {
+      const normalizedLayout = normalizeLayoutType(layout);
       const { error } = await supabase
         .from("collection_sections")
-        .update({ layout_type: layout as any })
+        .update({ layout_type: normalizedLayout as any })
         .eq("id", sectionId);
       if (error) throw error;
+      return { sectionId, layout: normalizedLayout };
+    },
+    onMutate: async ({ sectionId, layout }) => {
+      const normalizedLayout = normalizeLayoutType(layout);
+      await queryClient.cancelQueries({ queryKey: ["resource-collection", id] });
+      const previousCollection = queryClient.getQueryData(["resource-collection", id]);
+
+      queryClient.setQueryData(["resource-collection", id], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          collection_sections: old.collection_sections?.map((section: any) =>
+            section.id === sectionId ? { ...section, layout_type: normalizedLayout } : section
+          ),
+        };
+      });
+
+      return { previousCollection };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousCollection) {
+        queryClient.setQueryData(["resource-collection", id], context.previousCollection);
+      }
+      toast({ title: "Failed to update layout", variant: "destructive" });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["resource-collection", id] });
       toast({ title: "Layout updated" });
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["resource-collection", id] });
+      await queryClient.refetchQueries({ queryKey: ["resource-collection", id], exact: true });
     },
   });
 
@@ -505,7 +550,9 @@ export default function ResourceCollectionDetail() {
   if (isLoading) return <DashboardLayout><div className="p-6">Loading...</div></DashboardLayout>;
   if (!collection) return <DashboardLayout><div className="p-6">Collection not found</div></DashboardLayout>;
 
-  const sections = collection.collection_sections?.sort((a: any, b: any) => a.order_index - b.order_index) || [];
+  const sections = collection.collection_sections
+    ?.map((section: any) => ({ ...section, layout_type: normalizeLayoutType(section.layout_type) }))
+    .sort((a: any, b: any) => a.order_index - b.order_index) || [];
   const totalResources = sections.reduce((sum: number, s: any) => sum + (s.section_resources?.length || 0), 0);
 
   return (
