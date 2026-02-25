@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Play } from "lucide-react";
+import { Plus, Search, Filter, Play, FolderDown, ChevronUp, ChevronDown, FileVideo, LayoutGrid } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +19,127 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+
+function HeroBanner({ onAddNew }: { onAddNew: () => void }) {
+  const [visible, setVisible] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  if (!visible) {
+    return (
+      <button
+        onClick={() => setVisible(true)}
+        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
+      >
+        Show Banner <ChevronDown className="h-3.5 w-3.5" />
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/60 dark:from-blue-950/30 dark:to-blue-900/20 border border-blue-200/50 dark:border-blue-800/30 p-6 md:p-8 relative overflow-hidden">
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Left content */}
+        <div className="flex-1 space-y-3">
+          <p className="text-xs font-bold tracking-widest uppercase text-foreground/70">Workout Collections</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground">Netflix-style Training Portal</h2>
+          <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
+            Create an on-demand searchable workout directory with different categories
+            that your clients can browse anytime
+          </p>
+
+          <div className="flex items-center gap-3 pt-3">
+            <Button onClick={onAddNew} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Add New Collection
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="border-primary/30 text-primary hover:bg-primary/10"
+              onClick={() => setSearchOpen(!searchOpen)}
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" className="gap-2 text-muted-foreground">
+              <Filter className="h-4 w-4" />
+              Filter
+            </Button>
+          </div>
+        </div>
+
+        {/* Right phone mockup */}
+        <div className="hidden md:flex items-center justify-center">
+          <div className="relative">
+            {/* Phone frame */}
+            <div className="w-44 h-72 bg-foreground rounded-[1.5rem] p-2 shadow-2xl">
+              <div className="w-full h-full bg-background rounded-[1.1rem] overflow-hidden flex flex-col">
+                {/* Phone header */}
+                <div className="p-3 flex items-center justify-between">
+                  <span className="text-[10px] font-semibold text-foreground">Workout Collection</span>
+                  <Search className="h-3 w-3 text-muted-foreground" />
+                </div>
+                {/* Phone content placeholder */}
+                <div className="flex-1 px-2 pb-2 space-y-1.5">
+                  <div className="w-full h-16 rounded-lg bg-blue-200/50 dark:bg-blue-800/30 flex items-center justify-center">
+                    <Play className="h-5 w-5 text-blue-500/60" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div className="h-10 rounded bg-amber-200/50 dark:bg-amber-800/30" />
+                    <div className="h-10 rounded bg-teal-200/50 dark:bg-teal-800/30" />
+                    <div className="h-10 rounded bg-violet-200/50 dark:bg-violet-800/30" />
+                    <div className="h-10 rounded bg-rose-200/50 dark:bg-rose-800/30" />
+                    <div className="h-10 rounded bg-muted/60" />
+                    <div className="h-10 rounded bg-muted/60" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Small overlay card */}
+            <div className="absolute -right-8 top-14 w-28 bg-background rounded-lg shadow-lg border p-2 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] font-semibold text-foreground">Categories</span>
+                <Search className="h-2.5 w-2.5 text-muted-foreground" />
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                <div className="h-7 rounded bg-purple-200/60 dark:bg-purple-800/30" />
+                <div className="h-7 rounded bg-amber-200/60 dark:bg-amber-800/30" />
+                <div className="h-7 rounded bg-emerald-200/60 dark:bg-emerald-800/30" />
+                <div className="h-7 rounded bg-blue-200/60 dark:bg-blue-800/30" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Hide Banner toggle */}
+      <button
+        onClick={() => setVisible(false)}
+        className="absolute bottom-3 right-4 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+      >
+        Hide Banner <ChevronUp className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
+function EmptyState({ onAddNew }: { onAddNew: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="flex items-center gap-1 mb-2 text-muted-foreground/50">
+        <FileVideo className="h-8 w-8" />
+        <LayoutGrid className="h-9 w-9" />
+        <FileVideo className="h-8 w-8" />
+      </div>
+      <FolderDown className="h-14 w-14 text-muted-foreground/40 mb-4" />
+      <p className="text-muted-foreground text-sm">
+        First, create your on-demand workouts
+      </p>
+      <p className="text-muted-foreground text-sm">
+        Then add them to your new Collections
+      </p>
+    </div>
+  );
+}
 
 export default function WorkoutCollections() {
   const { user } = useAuth();
@@ -94,45 +215,14 @@ export default function WorkoutCollections() {
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold">Workout Collections</h1>
-            <p className="text-muted-foreground mt-2">
-              Create Netflix-style on-demand workout collections
-            </p>
-          </div>
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Collection
-          </Button>
-        </div>
+        <h1 className="text-3xl font-bold text-foreground">Workout Collections</h1>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search collections..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+        <HeroBanner onAddNew={() => setCreateDialogOpen(true)} />
 
         {isLoading ? (
-          <div className="text-center py-12">Loading collections...</div>
+          <div className="text-center py-12 text-muted-foreground">Loading collections...</div>
         ) : !filteredCollections?.length ? (
-          <Card className="text-center py-12">
-            <CardContent className="pt-6">
-              <Play className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No collections yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Create your first workout collection to get started
-              </p>
-              <Button onClick={() => setCreateDialogOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Collection
-              </Button>
-            </CardContent>
-          </Card>
+          <EmptyState onAddNew={() => setCreateDialogOpen(true)} />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCollections.map((collection) => (
