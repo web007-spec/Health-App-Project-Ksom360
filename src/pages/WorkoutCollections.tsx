@@ -305,7 +305,8 @@ export default function WorkoutCollections() {
                           {/* Screen content */}
                           <div className="px-3 pb-3 space-y-2">
                             <p className="text-xs font-bold text-foreground">On-demand</p>
-                            <div className="rounded-lg overflow-hidden bg-muted relative h-24 flex items-end">
+                            <div className="rounded-lg overflow-hidden relative h-24 flex items-end">
+                              <img src="/images/pushup-preview.jpg" alt="Workout preview" className="absolute inset-0 w-full h-full object-cover" />
                               <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 to-transparent" />
                               <div className="relative p-2 space-y-0.5">
                                 <span className="inline-block text-[8px] font-semibold uppercase tracking-wider text-primary-foreground/80 bg-primary/60 rounded px-1 py-0.5">
