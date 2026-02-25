@@ -175,7 +175,7 @@ export default function WorkoutCollections() {
         .from("workout_collections")
         .insert({
           name: collectionName,
-          description: collectionType || null,
+          collection_type: collectionType || null,
           trainer_id: user!.id,
         })
         .select()

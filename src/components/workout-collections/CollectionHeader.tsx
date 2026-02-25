@@ -16,6 +16,7 @@ interface CollectionHeaderProps {
     id: string;
     name: string;
     description: string | null;
+    collection_type: string | null;
     cover_image_url: string | null;
     is_published: boolean;
   };
@@ -27,18 +28,20 @@ export function CollectionHeader({ collection, onTogglePublished }: CollectionHe
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const typeLabel = collection.description || "";
+  const typeLabel = collection.collection_type || "";
+  const descLabel = collection.description || "";
 
   const [editingField, setEditingField] = useState<"name" | "type" | "desc" | null>(null);
   const [editName, setEditName] = useState(collection.name);
   const [editType, setEditType] = useState(typeLabel);
-  const [editDesc, setEditDesc] = useState("");
+  const [editDesc, setEditDesc] = useState(descLabel);
   const [uploading, setUploading] = useState(false);
 
   const saveField = async (field: string, value: string) => {
     const updateData: Record<string, string | null> = {};
     if (field === "name") updateData.name = value;
-    if (field === "type") updateData.description = value || null;
+    if (field === "type") updateData.collection_type = value || null;
+    if (field === "desc") updateData.description = value || null;
 
     const { error } = await supabase
       .from("workout_collections")
@@ -172,10 +175,25 @@ export function CollectionHeader({ collection, onTogglePublished }: CollectionHe
                 </h1>
               )}
 
-              {/* Description placeholder */}
-              <p className="text-sm text-muted-foreground mt-1 cursor-pointer hover:text-foreground transition-colors">
-                Add collection description
-              </p>
+              {/* Description - editable */}
+              {editingField === "desc" ? (
+                <input
+                  autoFocus
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  onBlur={() => saveField("desc", editDesc)}
+                  onKeyDown={(e) => handleKeyDown(e, "desc", editDesc)}
+                  className="text-sm text-muted-foreground bg-transparent border border-primary/30 rounded px-1.5 py-0.5 outline-none focus:ring-1 focus:ring-primary w-full mt-1"
+                  placeholder="Add collection description"
+                />
+              ) : (
+                <p
+                  onClick={() => { setEditDesc(descLabel); setEditingField("desc"); }}
+                  className="text-sm text-muted-foreground mt-1 cursor-pointer hover:text-foreground transition-colors"
+                >
+                  {descLabel || "Add collection description"}
+                </p>
+              )}
             </div>
 
             <Select

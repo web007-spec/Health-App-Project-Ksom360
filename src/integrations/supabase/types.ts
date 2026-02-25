@@ -5345,6 +5345,7 @@ export type Database = {
       }
       workout_collections: {
         Row: {
+          collection_type: string | null
           cover_image_url: string | null
           created_at: string
           description: string | null
@@ -5355,6 +5356,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          collection_type?: string | null
           cover_image_url?: string | null
           created_at?: string
           description?: string | null
@@ -5365,6 +5367,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          collection_type?: string | null
           cover_image_url?: string | null
           created_at?: string
           description?: string | null
