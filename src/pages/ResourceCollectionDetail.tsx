@@ -41,6 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CollectionPhonePreview } from "@/components/resource-collections/CollectionPhonePreview";
 
 const normalizeLayoutType = (layout?: string | null) => {
   switch (layout) {
@@ -591,48 +592,62 @@ export default function ResourceCollectionDetail() {
             <TabsTrigger value="clients">Clients</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="resources" className="space-y-6 mt-4">
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">
-                Resource limit: {totalResources}/25
-              </p>
-              <Button onClick={() => setCreateSectionOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Section
-              </Button>
-            </div>
-
-            {sections.length === 0 ? (
-              <Card className="text-center py-12">
-                <CardContent className="pt-6">
-                  <LayoutGrid className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No sections yet</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Create sections to organize your resources
+          <TabsContent value="resources" className="mt-4">
+            <div className="flex gap-6">
+              {/* Main content */}
+              <div className="flex-1 space-y-6 min-w-0">
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-muted-foreground">
+                    Resource limit: {totalResources}/25
                   </p>
                   <Button onClick={() => setCreateSectionOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Section
                   </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={sections.map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
-                  {sections.map((section: any) => (
-                    <SortableSection
-                      key={section.id}
-                      section={section}
-                      onDelete={(sectionId: string) => deleteSection.mutate(sectionId)}
-                      onAddResource={handleAddResource}
-                      onChangeLayout={(sectionId: string, layout: string) =>
-                        updateLayout.mutate({ sectionId, layout })
-                      }
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
-            )}
+                </div>
+
+                {sections.length === 0 ? (
+                  <Card className="text-center py-12">
+                    <CardContent className="pt-6">
+                      <LayoutGrid className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No sections yet</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Create sections to organize your resources
+                      </p>
+                      <Button onClick={() => setCreateSectionOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Section
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={sections.map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
+                      {sections.map((section: any) => (
+                        <SortableSection
+                          key={section.id}
+                          section={section}
+                          onDelete={(sectionId: string) => deleteSection.mutate(sectionId)}
+                          onAddResource={handleAddResource}
+                          onChangeLayout={(sectionId: string, layout: string) =>
+                            updateLayout.mutate({ sectionId, layout })
+                          }
+                        />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
+                )}
+              </div>
+
+              {/* Phone preview — hidden on small screens */}
+              <div className="hidden lg:block w-[310px] shrink-0">
+                <CollectionPhonePreview
+                  collectionName={collection.name}
+                  coverImageUrl={(collection as any).cover_image_url}
+                  sections={sections}
+                />
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="clients" className="mt-4">
