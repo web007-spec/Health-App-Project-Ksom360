@@ -118,6 +118,19 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
 
   const arcIntensity = getArcIntensity(effectiveMode, cycleCount, estimatedTotalCycles);
 
+  // Limit scrub span so long videos don't jump large chunks per tick (visual skipping)
+  const inhalePhaseSeconds = phases.find((p) => p.type === "inhale")?.seconds ?? Math.max(cycleLength / 2, 1);
+  const exhalePhaseSeconds = phases.find((p) => p.type === "exhale")?.seconds ?? Math.max(cycleLength / 2, 1);
+  const tickDelta = 0.05;
+  const maxSeekStepPerTick = 0.12;
+  const maxSmoothScrubSpan = Math.max(
+    1,
+    Math.min(
+      inhalePhaseSeconds * (maxSeekStepPerTick / tickDelta),
+      exhalePhaseSeconds * (maxSeekStepPerTick / tickDelta)
+    )
+  );
+
   /* ─── Tick engine ─── */
   const tick = useCallback(() => {
     const delta = 0.05;
@@ -155,7 +168,7 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
       const scrubPhase = phases[nextPi];
       const progress = nextElapsed / scrubPhase.seconds;
       const playableEnd = Math.max(0, vDur - 0.001);
-      const scrubSpan = playableEnd;
+      const scrubSpan = Math.min(playableEnd, maxSmoothScrubSpan);
 
       let targetTime: number;
       if (scrubPhase.type === "inhale") {
@@ -168,11 +181,11 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
 
       const clamped = Math.max(0, Math.min(playableEnd, targetTime));
       // Only seek when difference is noticeable — avoids stuttery micro-seeks
-      if (Math.abs(video.currentTime - clamped) > 0.08) {
+      if (Math.abs(video.currentTime - clamped) > 0.03) {
         video.currentTime = clamped;
       }
     }
-  }, [phases]);
+  }, [phases, maxSmoothScrubSpan]);
 
   useEffect(() => {
     if (playing && stage === "playing") {
