@@ -16,9 +16,11 @@ import { RestoreForYouTab } from "@/components/vibes/RestoreForYouTab";
 import { RestoreGuidedTab } from "@/components/vibes/RestoreGuidedTab";
 import { RestoreSleepTab } from "@/components/vibes/RestoreSleepTab";
 import { RestoreBreathingTab } from "@/components/vibes/RestoreBreathingTab";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Navigate } from "react-router-dom";
+import { useClientFeatureSettings } from "@/hooks/useClientFeatureSettings";
 
 export default function ClientVibes() {
+  const { settings } = useClientFeatureSettings();
   const mixer = useAudioMixer();
   const [searchParams] = useSearchParams();
   const [mixRefreshKey, setMixRefreshKey] = useState(0);
@@ -88,6 +90,10 @@ export default function ClientVibes() {
   const handleMixSaved = useCallback(() => {
     setMixRefreshKey((k) => k + 1);
   }, []);
+
+  if (!settings.restore_enabled) {
+    return <Navigate to="/client/dashboard" replace />;
+  }
 
   return (
     <ClientLayout>
