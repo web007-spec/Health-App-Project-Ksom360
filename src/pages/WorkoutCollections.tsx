@@ -281,7 +281,19 @@ export default function WorkoutCollections() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="type" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Type</Label>
+                <div className="flex items-center gap-1.5">
+                  <Label htmlFor="type" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Type</Label>
+                  {!showTypePreview && (
+                    <button
+                      type="button"
+                      onClick={() => setShowTypePreview(true)}
+                      className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-muted-foreground/20 text-muted-foreground hover:bg-muted-foreground/30 transition-colors"
+                      title="Show preview"
+                    >
+                      <span className="text-[9px] font-bold leading-none">i</span>
+                    </button>
+                  )}
+                </div>
                 <Input
                   id="type"
                   value={collectionType}
