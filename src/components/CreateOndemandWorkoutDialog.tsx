@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Share2, X, Upload, Dumbbell } from "lucide-react";
+import { Search, Share2, X, ImagePlus, Dumbbell } from "lucide-react";
 
 interface CreateOndemandWorkoutDialogProps {
   open: boolean;
@@ -64,7 +64,7 @@ export function CreateOndemandWorkoutDialog({
         .from("workout_plans")
         .select(`
           id, name, image_url,
-          workout_plan_sections(
+          workout_sections(
             id,
             workout_plan_exercises(id)
           )
@@ -73,7 +73,7 @@ export function CreateOndemandWorkoutDialog({
         .order("name", { ascending: true });
       if (error) throw error;
       return data?.map((w: any) => {
-        const sections = w.workout_plan_sections || [];
+        const sections = w.workout_sections || [];
         const exerciseCount = sections.reduce(
           (sum: number, s: any) => sum + (s.workout_plan_exercises?.length || 0),
           0
@@ -275,7 +275,7 @@ export function CreateOndemandWorkoutDialog({
               {thumbnailPreview || thumbnailUrl ? (
                 <img src={thumbnailPreview || thumbnailUrl} alt="Cover" className="h-full w-full object-cover" />
               ) : (
-                <Dumbbell className="h-6 w-6 text-muted-foreground" />
+                <ImagePlus className="h-6 w-6 text-muted-foreground" />
               )}
             </button>
             <button className="text-muted-foreground hover:text-foreground mt-1">
