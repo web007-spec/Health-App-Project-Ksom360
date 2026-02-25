@@ -282,7 +282,7 @@ export default function ResourceCollections() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {filteredResources.map((resource) => (
                     <div
                       key={resource.id}
@@ -290,7 +290,7 @@ export default function ResourceCollections() {
                       onClick={() => resource.url && window.open(resource.url, "_blank")}
                     >
                       {/* Thumbnail */}
-                      <div className="h-14 w-14 rounded-lg overflow-hidden flex-shrink-0">
+                      <div className="h-12 w-12 rounded-md overflow-hidden flex-shrink-0">
                         {resource.cover_image_url ? (
                           <img src={resource.cover_image_url} alt="" className="h-full w-full object-cover" />
                         ) : (
