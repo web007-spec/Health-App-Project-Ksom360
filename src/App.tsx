@@ -77,6 +77,7 @@ import ClientCommandCenter from "./pages/ClientCommandCenter";
 import Scheduling from "./pages/Scheduling";
 import TrainerSettings from "./pages/TrainerSettings";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { FastingRouteGuard } from "./components/FastingRouteGuard";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import GuardianSummary from "./pages/GuardianSummary";
 
@@ -163,10 +164,10 @@ const App = () => (
           <Route path="/client/appointments" element={<ProtectedRoute allowedRoles={["client"]}><ClientAppointments /></ProtectedRoute>} />
           <Route path="/client/sports" element={<ProtectedRoute allowedRoles={["client"]}><ClientSportsProfile /></ProtectedRoute>} />
           <Route path="/client/cardio-player" element={<ProtectedRoute allowedRoles={["client"]}><ClientCardioPlayer /></ProtectedRoute>} />
-          <Route path="/client/programs" element={<ProtectedRoute allowedRoles={["client"]}><ClientPrograms /></ProtectedRoute>} />
+          <Route path="/client/programs" element={<ProtectedRoute allowedRoles={["client"]}><FastingRouteGuard><ClientPrograms /></FastingRouteGuard></ProtectedRoute>} />
           <Route path="/client/choose-protocol" element={<ProtectedRoute allowedRoles={["client"]}><ClientChooseProtocol /></ProtectedRoute>} />
-          <Route path="/client/quick-plans" element={<ProtectedRoute allowedRoles={["client"]}><ClientQuickPlans /></ProtectedRoute>} />
-          <Route path="/client/protocol/:id" element={<ProtectedRoute allowedRoles={["client"]}><ClientProtocolDetail /></ProtectedRoute>} />
+          <Route path="/client/quick-plans" element={<ProtectedRoute allowedRoles={["client"]}><FastingRouteGuard><ClientQuickPlans /></FastingRouteGuard></ProtectedRoute>} />
+          <Route path="/client/protocol/:id" element={<ProtectedRoute allowedRoles={["client"]}><FastingRouteGuard><ClientProtocolDetail /></FastingRouteGuard></ProtectedRoute>} />
           <Route path="/client/vibes" element={<ProtectedRoute allowedRoles={["client"]}><ClientVibes /></ProtectedRoute>} />
           
           {/* Trainer: Vibes Admin */}
