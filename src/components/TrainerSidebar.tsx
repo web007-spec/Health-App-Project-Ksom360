@@ -33,7 +33,6 @@ const libraryItems = [
   { title: "Recipes", url: "/recipes", icon: FileText },
   { title: "Recipe Books", url: "/recipe-books", icon: BookOpen },
   { title: "Meal Plans", url: "/meal-plans", icon: Calendar },
-  { title: "Workout Labels", url: "/workout-labels", icon: Tags },
 ];
 
 const nutritionItems = [
@@ -44,6 +43,8 @@ const nutritionItems = [
 const onDemandItems = [
   { title: "Resource Collections", url: "/resource-collections", icon: FileText },
   { title: "Workout Collections", url: "/workout-collections", icon: Play },
+  { title: "On-demand Workouts", url: "/ondemand-workouts", icon: Dumbbell },
+  { title: "Workout Labels", url: "/workout-labels", icon: Tags },
   { title: "Studio Programs", url: "/studio-programs", icon: GraduationCap },
   { title: "Settings", url: "/vibes-admin", icon: Settings },
 ];
