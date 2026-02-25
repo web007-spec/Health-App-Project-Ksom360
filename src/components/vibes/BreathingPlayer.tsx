@@ -127,11 +127,19 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
   }, [playing, stage, tick]);
 
   // Music: fetch and play
-  const fetchAndPlayMusic = useCallback(async (dur: number) => {
+  // Create a silent audio element immediately on user gesture to unlock autoplay
+  const initAudioOnGesture = useCallback(() => {
+    if (audioRef.current) return;
+    const audio = new Audio();
+    audio.loop = true;
+    audio.volume = 0;
+    audioRef.current = audio;
+  }, []);
+
+  const fetchAndPlayMusic = useCallback(async () => {
     if (!musicEnabled) return;
     setMusicLoading(true);
     try {
-      const musicDuration = Math.min(dur, 300); // ElevenLabs max
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-breathing-music`,
         {
@@ -143,7 +151,7 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
           },
           body: JSON.stringify({
             prompt: exercise.musicPrompt,
-            duration: musicDuration,
+            duration: 10, // Short loop — it loops anyway, faster generation
           }),
         }
       );
@@ -151,20 +159,23 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       musicUrlRef.current = url;
-      const audio = new Audio(url);
-      audio.loop = true;
-      audio.volume = 0;
-      audioRef.current = audio;
-      await audio.play();
-      // Fade in over 2s
-      let vol = 0;
-      const fadeIn = setInterval(() => {
-        vol = Math.min(vol + 0.02, 0.35);
-        if (audioRef.current) audioRef.current.volume = vol;
-        if (vol >= 0.35) clearInterval(fadeIn);
-      }, 50);
+
+      const audio = audioRef.current;
+      if (audio) {
+        audio.src = url;
+        audio.volume = 0;
+        await audio.play();
+        // Fade in over 2s
+        let vol = 0;
+        const fadeIn = setInterval(() => {
+          vol = Math.min(vol + 0.02, 0.35);
+          if (audioRef.current) audioRef.current.volume = vol;
+          if (vol >= 0.35) clearInterval(fadeIn);
+        }, 50);
+      }
     } catch (err) {
       console.log("[BreathingPlayer] Music generation skipped:", err);
+      toast.info("Music couldn't load — session continues without it");
     } finally {
       setMusicLoading(false);
     }
@@ -228,9 +239,10 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
     setCycleCount(0);
     setPhaseIndex(0);
     setPhaseElapsed(0);
+    initAudioOnGesture(); // Unlock autoplay on user gesture
     setStage("playing");
     setPlaying(true);
-    fetchAndPlayMusic(dur);
+    fetchAndPlayMusic();
   };
 
   const handleReset = () => {
