@@ -304,6 +304,7 @@ export default function WorkoutCollectionDetail() {
           collectionId={id!}
           open={createCategoryOpen}
           onOpenChange={setCreateCategoryOpen}
+          onCreated={(cat) => setActiveCategoryId(cat.id)}
         />
 
         <AddWorkoutToCategoryDialog
