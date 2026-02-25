@@ -286,6 +286,33 @@ export type Database = {
           },
         ]
       }
+      breathing_exercise_videos: {
+        Row: {
+          created_at: string
+          exercise_id: string
+          id: string
+          trainer_id: string
+          updated_at: string
+          video_url: string
+        }
+        Insert: {
+          created_at?: string
+          exercise_id: string
+          id?: string
+          trainer_id: string
+          updated_at?: string
+          video_url: string
+        }
+        Update: {
+          created_at?: string
+          exercise_id?: string
+          id?: string
+          trainer_id?: string
+          updated_at?: string
+          video_url?: string
+        }
+        Relationships: []
+      }
       breathing_music_tracks: {
         Row: {
           created_at: string

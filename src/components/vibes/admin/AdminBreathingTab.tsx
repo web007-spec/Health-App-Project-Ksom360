@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Play, ArrowLeft, Music, Pin, X } from "lucide-react";
+import { Play, ArrowLeft, Music, Pin, Video, Trash2, Loader2 } from "lucide-react";
 import { BREATHING_EXERCISES, type BreathingExercise } from "@/lib/breathingExercises";
 import { BreathingPlayer } from "@/components/vibes/BreathingPlayer";
 import { ManageBreathingMusicDialog } from "./ManageBreathingMusicDialog";
