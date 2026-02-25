@@ -247,6 +247,53 @@ export type Database = {
           },
         ]
       }
+      breathing_music_tracks: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          file_url: string
+          id: string
+          is_active: boolean
+          name: string
+          order_index: number
+          tags: string[] | null
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          file_url: string
+          id?: string
+          is_active?: boolean
+          name: string
+          order_index?: number
+          tags?: string[] | null
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          file_url?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          order_index?: number
+          tags?: string[] | null
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "breathing_music_tracks_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cardio_activity_types: {
         Row: {
           created_at: string

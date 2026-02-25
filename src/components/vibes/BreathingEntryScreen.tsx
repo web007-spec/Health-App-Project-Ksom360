@@ -1,14 +1,16 @@
 import { useState } from "react";
-import { Play, Settings2 } from "lucide-react";
+import { Play, VolumeX, Music } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 import type { RestoreMode, BreathingExercise } from "@/lib/breathingExercises";
 import { DURATION_PRESETS, MODE_DEFAULT_DURATIONS } from "@/lib/breathingExercises";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   exercise: BreathingExercise;
   mode: RestoreMode;
-  onStart: (durationSecs: number) => void;
+  onStart: (durationSecs: number, musicUrl: string | null) => void;
   onBack: () => void;
   contained?: boolean;
 }
@@ -32,11 +34,28 @@ function formatDuration(secs: number): string {
 export function BreathingEntryScreen({ exercise, mode, onStart, onBack, contained }: Props) {
   const defaultDuration = MODE_DEFAULT_DURATIONS[mode];
   const [duration, setDuration] = useState(defaultDuration);
+  const [selectedTrackUrl, setSelectedTrackUrl] = useState<string | null>(null);
+  const [noMusic, setNoMusic] = useState(false);
 
   const h = exercise.tone.hueBase;
   const s = exercise.tone.hueSat;
-
   const ratioStr = exercise.phases.map((p) => p.seconds).join("–");
+
+  const { data: tracks = [] } = useQuery({
+    queryKey: ["breathing-music-tracks-active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("breathing_music_tracks")
+        .select("*")
+        .eq("is_active", true)
+        .order("order_index", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Auto-select first track if available and not explicitly set
+  const effectiveMusicUrl = noMusic ? null : (selectedTrackUrl ?? tracks[0]?.file_url ?? null);
 
   return (
     <div
@@ -83,7 +102,7 @@ export function BreathingEntryScreen({ exercise, mode, onStart, onBack, containe
       </div>
 
       {/* Fine control slider */}
-      <div className="w-56 mb-8">
+      <div className="w-56 mb-5">
         <Slider
           value={[duration]}
           onValueChange={([v]) => setDuration(v)}
@@ -94,9 +113,59 @@ export function BreathingEntryScreen({ exercise, mode, onStart, onBack, containe
         />
       </div>
 
+      {/* Music track picker */}
+      {tracks.length > 0 && (
+        <div className="mb-5 w-64">
+          <p className="text-[10px] uppercase tracking-[0.15em] text-white/25 mb-2 text-center">Background Music</p>
+          <div className="flex flex-wrap justify-center gap-1.5">
+            <button
+              onClick={() => { setNoMusic(true); setSelectedTrackUrl(null); }}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-[11px] transition-all duration-200 flex items-center gap-1",
+                noMusic ? "text-white/70" : "text-white/30 hover:text-white/50"
+              )}
+              style={{
+                background: noMusic
+                  ? `hsla(${h}, ${s - 10}%, 25%, 0.5)`
+                  : `hsla(${h}, 15%, 15%, 0.3)`,
+                border: `1px solid ${noMusic
+                  ? `hsla(${h}, ${s}%, 50%, 0.25)`
+                  : `hsla(${h}, 15%, 30%, 0.15)`}`,
+              }}
+            >
+              <VolumeX className="h-3 w-3" /> None
+            </button>
+            {tracks.map((track) => {
+              const isSelected = !noMusic && (selectedTrackUrl === track.file_url || (!selectedTrackUrl && tracks[0]?.id === track.id));
+              return (
+                <button
+                  key={track.id}
+                  onClick={() => { setNoMusic(false); setSelectedTrackUrl(track.file_url); }}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-[11px] transition-all duration-200 flex items-center gap-1 max-w-[120px]",
+                    isSelected ? "text-white/70" : "text-white/30 hover:text-white/50"
+                  )}
+                  style={{
+                    background: isSelected
+                      ? `hsla(${h}, ${s - 10}%, 25%, 0.5)`
+                      : `hsla(${h}, 15%, 15%, 0.3)`,
+                    border: `1px solid ${isSelected
+                      ? `hsla(${h}, ${s}%, 50%, 0.25)`
+                      : `hsla(${h}, 15%, 30%, 0.15)`}`,
+                  }}
+                >
+                  <Music className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{track.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Begin button */}
       <button
-        onClick={() => onStart(duration)}
+        onClick={() => onStart(duration, effectiveMusicUrl)}
         className="w-16 h-16 rounded-full flex items-center justify-center backdrop-blur-sm active:scale-95 transition-transform"
         style={{
           background: `hsla(${h}, 30%, 20%, 0.4)`,
