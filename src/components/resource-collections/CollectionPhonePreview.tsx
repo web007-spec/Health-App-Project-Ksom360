@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+
 
 interface PreviewSection {
   id: string;
@@ -82,17 +82,17 @@ export function CollectionPhonePreview({
                 </div>
 
                 {/* Resources list */}
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   {(section.section_resources || []).slice(0, 3).map((sr) => {
                     const resource = sr.resources;
                     if (!resource) return null;
                     return (
                       <div
                         key={sr.id}
-                        className="flex items-center gap-2 py-1"
+                        className="flex items-center gap-2.5 rounded-lg bg-muted/40 px-2 py-1.5"
                       >
                         {/* Thumbnail */}
-                        <div className="h-9 w-9 rounded-md overflow-hidden shrink-0 bg-muted">
+                        <div className="h-8 w-8 rounded overflow-hidden shrink-0 bg-muted">
                           {resource.cover_image_url ? (
                             <img
                               src={resource.cover_image_url}
@@ -100,19 +100,19 @@ export function CollectionPhonePreview({
                               className="h-full w-full object-cover"
                             />
                           ) : (
-                            <div className="h-full w-full flex items-center justify-center">
-                              <Badge
-                                variant="secondary"
-                                className="text-[7px] px-1 py-0 capitalize"
-                              >
-                                {resource.type}
-                              </Badge>
-                            </div>
+                            <div className="h-full w-full bg-gradient-to-br from-primary/20 to-primary/5" />
                           )}
                         </div>
-                        <span className="text-[10px] font-medium text-foreground line-clamp-2 leading-tight">
-                          {resource.name}
-                        </span>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[10px] font-medium text-foreground line-clamp-1 leading-tight">
+                            {resource.name}
+                          </span>
+                          {resource.url && (
+                            <span className="text-[8px] text-muted-foreground line-clamp-1 leading-tight">
+                              {resource.url}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
