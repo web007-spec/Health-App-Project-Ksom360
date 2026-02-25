@@ -136,50 +136,29 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
     audioRef.current = audio;
   }, []);
 
-  const fetchAndPlayMusic = useCallback(async () => {
-    if (!musicEnabled) return;
+  const playMusicFromUrl = useCallback(async (url: string) => {
     setMusicLoading(true);
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-breathing-music`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            prompt: exercise.musicPrompt,
-            duration: 10, // Short loop — it loops anyway, faster generation
-          }),
-        }
-      );
-      if (!response.ok) throw new Error(`Music generation failed: ${response.status}`);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      musicUrlRef.current = url;
-
       const audio = audioRef.current;
-      if (audio) {
-        audio.src = url;
-        audio.volume = 0;
-        await audio.play();
-        // Fade in over 2s
-        let vol = 0;
-        const fadeIn = setInterval(() => {
-          vol = Math.min(vol + 0.02, 0.35);
-          if (audioRef.current) audioRef.current.volume = vol;
-          if (vol >= 0.35) clearInterval(fadeIn);
-        }, 50);
-      }
+      if (!audio) return;
+      audio.src = url;
+      audio.volume = 0;
+      musicUrlRef.current = url;
+      await audio.play();
+      // Fade in over 2s
+      let vol = 0;
+      const fadeIn = setInterval(() => {
+        vol = Math.min(vol + 0.02, 0.35);
+        if (audioRef.current) audioRef.current.volume = vol;
+        if (vol >= 0.35) clearInterval(fadeIn);
+      }, 50);
     } catch (err) {
-      console.log("[BreathingPlayer] Music generation skipped:", err);
-      toast.info("Music couldn't load — session continues without it");
+      console.log("[BreathingPlayer] Music playback failed:", err);
+      toast.info("Music couldn't play — session continues without it");
     } finally {
       setMusicLoading(false);
     }
-  }, [exercise.musicPrompt, musicEnabled]);
+  }, []);
 
   const stopMusic = useCallback(() => {
     const audio = audioRef.current;
@@ -232,17 +211,22 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
     };
   }, []);
 
-  const handleStart = (dur: number) => {
+  const handleStart = (dur: number, musicUrl: string | null) => {
     setDurationSecs(dur);
     sessionStartRef.current = Date.now();
     setSessionElapsed(0);
     setCycleCount(0);
     setPhaseIndex(0);
     setPhaseElapsed(0);
-    initAudioOnGesture(); // Unlock autoplay on user gesture
+    initAudioOnGesture();
     setStage("playing");
     setPlaying(true);
-    fetchAndPlayMusic();
+    if (musicUrl) {
+      setMusicEnabled(true);
+      playMusicFromUrl(musicUrl);
+    } else {
+      setMusicEnabled(false);
+    }
   };
 
   const handleReset = () => {
