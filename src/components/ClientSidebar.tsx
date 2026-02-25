@@ -1,4 +1,4 @@
-import { Home, Dumbbell, TrendingUp, Utensils, MessageSquare, Settings, CalendarDays, Target, CheckSquare, FileText, Play, Activity, Heart, CalendarClock } from "lucide-react";
+import { Home, Dumbbell, TrendingUp, Utensils, MessageSquare, Settings, CalendarDays, Target, CheckSquare, FileText, Play, Activity, Heart, CalendarClock, Sparkles } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -33,6 +33,7 @@ const mainItems: MenuItem[] = [
   { title: "Nutrition Dashboard", url: "/client/nutrition-dashboard", icon: Activity, featureKey: "macros_enabled" },
   { title: "Messages", url: "/client/messages", icon: MessageSquare, featureKey: "messages_enabled" },
   { title: "Appointments", url: "/client/appointments", icon: CalendarClock },
+  { title: "Restore", url: "/client/vibes", icon: Sparkles, featureKey: "restore_enabled" },
 ];
 
 const ondemandItems: MenuItem[] = [
