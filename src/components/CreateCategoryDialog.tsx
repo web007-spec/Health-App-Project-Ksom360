@@ -80,47 +80,29 @@ export function CreateCategoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[460px]">
         <DialogHeader>
-          <DialogTitle>Create Category</DialogTitle>
+          <DialogTitle className="text-xl font-bold">Create New Category</DialogTitle>
           <DialogDescription>
-            Add a new category to organize workouts (like Netflix seasons)
+            Use categories to separate and sort workouts in the Collection.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Category Name *</Label>
+        <form onSubmit={handleSubmit} className="space-y-5 pt-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="name" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Category Name</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Week 1, Beginner Lessons, Core Workouts"
+              placeholder="Category Name"
               required
+              className="border-primary/40 focus-visible:ring-primary"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe this category..."
-              rows={2}
-            />
-          </div>
-
-          <div className="flex gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" className="flex-1" disabled={createMutation.isPending}>
-              {createMutation.isPending ? "Creating..." : "Create Category"}
+          <div className="flex justify-end pt-2">
+            <Button type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending ? "Creating..." : "Create"}
             </Button>
           </div>
         </form>
