@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, Trash2, GripVertical, LayoutGrid, Users, Image, Search } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, GripVertical, LayoutGrid, Users, Image, Search, Upload, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -120,41 +120,89 @@ function SortableSection({ section, onDelete, onAddResource, onChangeLayout }: a
 }
 
 function CoverImageSection({ collectionId, currentUrl }: { collectionId: string; currentUrl?: string }) {
-  const [url, setUrl] = useState(currentUrl || "");
+  const [preview, setPreview] = useState<string | null>(currentUrl || null);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const updateCover = useMutation({
-    mutationFn: async () => {
+  const handleUpload = async (file: File) => {
+    setIsUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const filePath = `covers/${collectionId}-${Date.now()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage.from("resource-files").upload(filePath, file);
+      if (uploadErr) throw uploadErr;
+      const { data } = supabase.storage.from("resource-files").getPublicUrl(filePath);
+      const publicUrl = data.publicUrl;
+
       const { error } = await supabase
         .from("resource_collections")
-        .update({ cover_image_url: url || null } as any)
+        .update({ cover_image_url: publicUrl } as any)
         .eq("id", collectionId);
       if (error) throw error;
-    },
-    onSuccess: () => {
+
+      setPreview(publicUrl);
       queryClient.invalidateQueries({ queryKey: ["resource-collection", collectionId] });
       toast({ title: "Cover image updated" });
-    },
-  });
+    } catch {
+      toast({ title: "Failed to upload cover image", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removeCover = async () => {
+    const { error } = await supabase
+      .from("resource_collections")
+      .update({ cover_image_url: null } as any)
+      .eq("id", collectionId);
+    if (!error) {
+      setPreview(null);
+      queryClient.invalidateQueries({ queryKey: ["resource-collection", collectionId] });
+      toast({ title: "Cover image removed" });
+    }
+  };
 
   return (
     <Card>
       <CardContent className="p-4">
-        <div className="flex items-center gap-3">
-          <Image className="h-5 w-5 text-muted-foreground shrink-0" />
-          <Input
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="Cover image URL (optional)"
-            className="flex-1"
-          />
-          <Button size="sm" onClick={() => updateCover.mutate()} disabled={updateCover.isPending}>
-            {updateCover.isPending ? "Saving..." : "Save"}
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept="image/*"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleUpload(f);
+          }}
+        />
+        {preview ? (
+          <div className="relative">
+            <img src={preview} alt="Cover" className="w-full h-40 object-cover rounded-lg" />
+            <div className="absolute top-2 right-2 flex gap-1">
+              <Button size="icon" variant="secondary" className="h-7 w-7" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="h-3 w-3" />
+              </Button>
+              <Button size="icon" variant="secondary" className="h-7 w-7" onClick={removeCover}>
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button
+            variant="outline"
+            className="w-full h-24 border-dashed"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+          >
+            <div className="flex flex-col items-center gap-1">
+              <Image className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                {isUploading ? "Uploading..." : "Upload cover image"}
+              </span>
+            </div>
           </Button>
-        </div>
-        {url && (
-          <img src={url} alt="Cover preview" className="mt-3 w-full h-32 object-cover rounded-lg" />
         )}
       </CardContent>
     </Card>
