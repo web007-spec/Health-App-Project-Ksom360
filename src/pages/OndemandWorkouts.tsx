@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { CreateOndemandWorkoutDialog } from "@/components/CreateOndemandWorkoutDialog";
 import { EditOndemandWorkoutDialog } from "@/components/EditOndemandWorkoutDialog";
+import { AddWorkoutTypePicker } from "@/components/AddWorkoutTypePicker";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,7 +35,9 @@ export default function OndemandWorkouts() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createType, setCreateType] = useState<"regular" | "video">("regular");
   const [editingWorkout, setEditingWorkout] = useState<any>(null);
   const [sortField, setSortField] = useState<SortField>("recent");
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
@@ -115,7 +118,7 @@ export default function OndemandWorkouts() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">On-demand Workout Library</h1>
-          <Button onClick={() => setCreateDialogOpen(true)} className="bg-primary hover:bg-primary/90">
+          <Button onClick={() => setTypePickerOpen(true)} className="bg-primary hover:bg-primary/90">
             <Plus className="mr-2 h-4 w-4" />
             Add New Workout
           </Button>
@@ -184,7 +187,7 @@ export default function OndemandWorkouts() {
             <p className="text-muted-foreground mb-4">
               Create your first on-demand workout to get started
             </p>
-            <Button onClick={() => setCreateDialogOpen(true)}>
+            <Button onClick={() => setTypePickerOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Add New Workout
             </Button>
@@ -281,9 +284,17 @@ export default function OndemandWorkouts() {
           </div>
         )}
 
+        <AddWorkoutTypePicker
+          open={typePickerOpen}
+          onOpenChange={setTypePickerOpen}
+          onSelectRegular={() => { setCreateType("regular"); setCreateDialogOpen(true); }}
+          onSelectVideo={() => { setCreateType("video"); setCreateDialogOpen(true); }}
+        />
+
         <CreateOndemandWorkoutDialog
           open={createDialogOpen}
           onOpenChange={setCreateDialogOpen}
+          presetType={createType}
         />
 
         {editingWorkout && (
