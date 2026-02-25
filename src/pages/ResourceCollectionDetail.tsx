@@ -243,41 +243,54 @@ function SortableSection({ section, onDelete, onAddResource, onChangeLayout, onR
         <CollapsibleContent>
           <div className="px-4 pb-4">
             {resourceCount > 0 ? (
-              <div className="space-y-2">
-                {section.section_resources.map((sr: any) => {
-                  const resource = sr.resources;
-                  return (
-                    <div key={sr.id} className="flex items-center gap-3 p-3 border rounded-lg">
-                      {resource?.cover_image_url ? (
-                        <img src={resource.cover_image_url} alt={resource?.name} className="w-12 h-12 rounded-lg object-cover shrink-0" />
-                      ) : (
-                        <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                          <Badge variant="secondary" className="text-[10px] capitalize">{resource?.type}</Badge>
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm line-clamp-1">{resource?.name}</p>
-                        {resource?.url && (
-                          <p className="text-xs text-muted-foreground truncate mt-0.5">{resource.url}</p>
+              <>
+                <div className="space-y-2">
+                  {section.section_resources.map((sr: any) => {
+                    const resource = sr.resources;
+                    return (
+                      <div key={sr.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                        {resource?.cover_image_url ? (
+                          <img src={resource.cover_image_url} alt={resource?.name} className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            <Badge variant="secondary" className="text-[10px] capitalize">{resource?.type}</Badge>
+                          </div>
                         )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm line-clamp-1">{resource?.name}</p>
+                          {resource?.url && (
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">{resource.url}</p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+                <button
+                  className="text-sm text-primary font-medium mt-3 hover:underline"
+                  onClick={() => onAddResource(section.id)}
+                >
+                  + Add Resource
+                </button>
+              </>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                No resources yet. Click "Add Resource" to get started.
-              </p>
+              <div
+                className="border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center py-10 cursor-pointer hover:bg-accent/30 transition-colors"
+                onClick={() => onAddResource(section.id)}
+              >
+                {/* Document with plus icon */}
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" className="text-muted-foreground mb-2">
+                  <rect x="8" y="4" width="24" height="32" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                  <line x1="13" y1="14" x2="22" y2="14" stroke="currentColor" strokeWidth="1.5" />
+                  <line x1="13" y1="19" x2="27" y2="19" stroke="currentColor" strokeWidth="1.5" />
+                  <line x1="13" y1="24" x2="24" y2="24" stroke="currentColor" strokeWidth="1.5" />
+                  <circle cx="30" cy="10" r="6" fill="hsl(var(--background))" stroke="currentColor" strokeWidth="1.5" />
+                  <line x1="30" y1="7" x2="30" y2="13" stroke="currentColor" strokeWidth="1.5" />
+                  <line x1="27" y1="10" x2="33" y2="10" stroke="currentColor" strokeWidth="1.5" />
+                </svg>
+                <span className="text-sm text-muted-foreground">Add Resource</span>
+              </div>
             )}
-
-            {/* + Add Resource link */}
-            <button
-              className="text-sm text-primary font-medium mt-3 hover:underline"
-              onClick={() => onAddResource(section.id)}
-            >
-              + Add Resource
-            </button>
           </div>
         </CollapsibleContent>
       </Collapsible>
