@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, Dumbbell, Calendar, CalendarClock, MessageSquare, Settings, TrendingUp, Target, CheckSquare, FileText, Play, Tags, Calculator, Activity, Heart, GraduationCap, Library, ChevronDown, ChevronRight, BookOpen } from "lucide-react";
+import { LayoutDashboard, Users, Dumbbell, Calendar, CalendarClock, MessageSquare, Settings, TrendingUp, Target, CheckSquare, FileText, Play, Tags, Calculator, Activity, Heart, GraduationCap, Library, ChevronDown, ChevronRight, BookOpen, MonitorPlay } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
@@ -41,13 +41,11 @@ const nutritionItems = [
   { title: "Macro Tracking", url: "/macro-tracking", icon: Activity },
 ];
 
-const studioItems = [
-  { title: "Resources", url: "/resources", icon: FileText },
+const onDemandItems = [
   { title: "Resource Collections", url: "/resource-collections", icon: FileText },
-  { title: "On-Demand Workouts", url: "/ondemand-workouts", icon: Play },
   { title: "Workout Collections", url: "/workout-collections", icon: Play },
   { title: "Studio Programs", url: "/studio-programs", icon: GraduationCap },
-  { title: "Restore Manager", url: "/vibes-admin", icon: Activity },
+  { title: "Settings", url: "/vibes-admin", icon: Settings },
 ];
 
 const bottomItems = [
@@ -57,9 +55,14 @@ const bottomItems = [
 export function TrainerSidebar() {
   const { open } = useSidebar();
   const location = useLocation();
+
   const libraryPaths = libraryItems.map((i) => i.url);
   const isLibraryActive = libraryPaths.some((p) => location.pathname === p || location.pathname.startsWith(p + "/"));
   const [libraryOpen, setLibraryOpen] = useState(isLibraryActive);
+
+  const onDemandPaths = onDemandItems.map((i) => i.url);
+  const isOnDemandActive = onDemandPaths.some((p) => location.pathname === p || location.pathname.startsWith(p + "/"));
+  const [onDemandOpen, setOnDemandOpen] = useState(isOnDemandActive);
 
   return (
     <Sidebar collapsible="icon">
@@ -128,6 +131,39 @@ export function TrainerSidebar() {
                   </CollapsibleContent>
                 </Collapsible>
               </SidebarMenuItem>
+
+              {/* On-Demand collapsible group */}
+              <SidebarMenuItem>
+                <Collapsible open={onDemandOpen} onOpenChange={setOnDemandOpen}>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton className={`hover:bg-sidebar-accent w-full ${isOnDemandActive ? "bg-sidebar-accent text-sidebar-primary font-medium" : ""}`}>
+                      <MonitorPlay className="h-4 w-4" />
+                      <span className="flex-1 text-left">On-demand</span>
+                      {open && (
+                        onDemandOpen ? <ChevronDown className="h-3.5 w-3.5 ml-auto" /> : <ChevronRight className="h-3.5 w-3.5 ml-auto" />
+                      )}
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenu className="pl-4 border-l border-sidebar-border ml-4 mt-1">
+                      {onDemandItems.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton asChild>
+                            <NavLink
+                              to={item.url}
+                              className="hover:bg-sidebar-accent"
+                              activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                            >
+                              <item.icon className="h-4 w-4" />
+                              <span>{item.title}</span>
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </CollapsibleContent>
+                </Collapsible>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -137,28 +173,6 @@ export function TrainerSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {nutritionItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      className="hover:bg-sidebar-accent"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>On-Demand Studio</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {studioItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
