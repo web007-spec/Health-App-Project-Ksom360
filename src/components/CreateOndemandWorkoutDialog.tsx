@@ -107,6 +107,7 @@ export function CreateOndemandWorkoutDialog({
   const createMutation = useMutation({
     mutationFn: async () => {
       let finalThumbnailUrl = thumbnailUrl || null;
+      let libraryCreated = false;
 
       // Upload thumbnail file if selected
       if (thumbnailFile && user) {
@@ -148,32 +149,87 @@ export function CreateOndemandWorkoutDialog({
         if (labelsError) throw labelsError;
       }
 
-      // If categoryId provided, also add to category
-      if (categoryId) {
-        const { data: maxRow } = await supabase
+      let targetCategoryId = categoryId;
+
+      // If no category is provided, ensure trainer has a default on-demand collection + category
+      if (!targetCategoryId) {
+        const { data: existingCategory, error: existingCategoryError } = await supabase
+          .from("workout_collection_categories")
+          .select("id, workout_collections!inner(trainer_id)")
+          .eq("workout_collections.trainer_id", user!.id)
+          .limit(1);
+
+        if (existingCategoryError) throw existingCategoryError;
+
+        targetCategoryId = existingCategory?.[0]?.id ?? null;
+
+        if (!targetCategoryId) {
+          const { data: createdCollection, error: collectionError } = await supabase
+            .from("workout_collections")
+            .insert({
+              name: "On-demand Library",
+              collection_type: "Workouts",
+              trainer_id: user!.id,
+            })
+            .select("id")
+            .single();
+
+          if (collectionError) throw collectionError;
+
+          const { data: createdCategory, error: categoryError } = await supabase
+            .from("workout_collection_categories")
+            .insert({
+              collection_id: createdCollection.id,
+              name: "All Workouts",
+              description: "Auto-created category for newly added on-demand workouts",
+              order_index: 0,
+            })
+            .select("id")
+            .single();
+
+          if (categoryError) throw categoryError;
+
+          targetCategoryId = createdCategory.id;
+          libraryCreated = true;
+        }
+      }
+
+      // Always place the new workout into a category
+      if (targetCategoryId) {
+        const { data: maxRow, error: maxOrderError } = await supabase
           .from("category_workouts")
           .select("order_index")
-          .eq("category_id", categoryId)
+          .eq("category_id", targetCategoryId)
           .order("order_index", { ascending: false })
           .limit(1);
+
+        if (maxOrderError) throw maxOrderError;
 
         const maxOrder = maxRow?.[0]?.order_index ?? -1;
 
         const { error: catError } = await supabase
           .from("category_workouts")
           .insert({
-            category_id: categoryId,
+            category_id: targetCategoryId,
             workout_id: workout.id,
             order_index: maxOrder + 1,
           });
+
         if (catError) throw catError;
       }
+
+      return { libraryCreated };
     },
-    onSuccess: () => {
+    onSuccess: ({ libraryCreated }) => {
       queryClient.invalidateQueries({ queryKey: ["ondemand-workouts"] });
       queryClient.invalidateQueries({ queryKey: ["workout-collection"] });
       queryClient.invalidateQueries({ queryKey: ["category-workout-ids"] });
-      toast({ title: "Workout added successfully" });
+      queryClient.invalidateQueries({ queryKey: ["workout-collections"] });
+      toast({
+        title: libraryCreated
+          ? "Workout added and on-demand library created"
+          : "Workout added successfully",
+      });
       onOpenChange(false);
       resetForm();
     },
