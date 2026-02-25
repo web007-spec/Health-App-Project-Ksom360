@@ -515,7 +515,7 @@ export default function ResourceCollectionDetail() {
     },
   });
 
-  if (isLoading) return <DashboardLayout><div className="p-6">Loading...</div></DashboardLayout>;
+  if (isLoading || !user) return <DashboardLayout><div className="p-6">Loading...</div></DashboardLayout>;
   if (!collection) return <DashboardLayout><div className="p-6">Collection not found</div></DashboardLayout>;
 
   const sections = collection.collection_sections
