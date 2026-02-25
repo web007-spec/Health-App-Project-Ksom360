@@ -135,19 +135,19 @@ export function ManageBreathingMusicDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[85vh] overflow-x-hidden">
+      <DialogContent className="max-w-[92vw] sm:max-w-lg max-h-[85vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Music className="h-5 w-5" /> Breathing Music Tracks
           </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground whitespace-normal break-words pr-6">
+          <DialogDescription className="text-xs text-muted-foreground whitespace-normal break-words">
             Manage shared music tracks for breathing sessions and pin specific tracks per exercise from the breathing cards.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 max-w-full overflow-x-hidden">
           {/* Upload section */}
-          <div className="flex flex-col gap-2 w-full overflow-hidden">
+          <div className="flex flex-col gap-2 w-full">
             <div className="w-full min-w-0">
               <Label className="text-xs text-muted-foreground">Track name (optional)</Label>
               <Input
@@ -165,14 +165,15 @@ export function ManageBreathingMusicDialog({
                 className="hidden"
                 onChange={handleUpload}
               />
-              <button
+              <Button
                 type="button"
-                className="h-9 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                size="sm"
+                className="h-9 w-full justify-center whitespace-nowrap"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
               >
                 {uploading ? "Uploading..." : "Upload track"}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -188,15 +189,15 @@ export function ManageBreathingMusicDialog({
               No tracks uploaded yet. Upload your first breathing music track above.
             </div>
           ) : (
-            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            <div className="space-y-2 max-h-[300px] overflow-y-auto overflow-x-hidden">
               {(tracks ?? []).map((track) => (
                 <div
                   key={track.id}
-                  className="flex items-center gap-3 p-3 rounded-lg border bg-card"
+                  className="flex w-full min-w-0 items-center gap-3 p-3 rounded-lg border bg-card"
                 >
                   <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{track.name}</p>
+                    <p className="text-sm font-medium truncate break-all">{track.name}</p>
                     {track.duration_seconds && (
                       <p className="text-xs text-muted-foreground">
                         {Math.floor(track.duration_seconds / 60)}:{String(track.duration_seconds % 60).padStart(2, "0")}
