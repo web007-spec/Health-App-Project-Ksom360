@@ -57,18 +57,33 @@ export function CreateOndemandWorkoutDialog({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("workout_plans")
-        .select("id, name")
+        .select(`
+          id, name,
+          workout_plan_sections(
+            id,
+            workout_plan_exercises(id)
+          )
+        `)
         .eq("trainer_id", user?.id)
         .order("name", { ascending: true });
       if (error) throw error;
-      return data;
+      return data?.map((w: any) => {
+        const sections = w.workout_plan_sections || [];
+        const exerciseCount = sections.reduce(
+          (sum: number, s: any) => sum + (s.workout_plan_exercises?.length || 0),
+          0
+        );
+        return { id: w.id, name: w.name, exerciseCount, sectionCount: sections.length };
+      });
     },
     enabled: !!user?.id && open && workoutType === "regular",
   });
 
-  const filteredLibrary = libraryWorkouts?.filter((w) =>
-    w.name.toLowerCase().includes(workoutSearch.toLowerCase())
-  );
+  const filteredLibrary = workoutSearch.trim()
+    ? libraryWorkouts?.filter((w) =>
+        w.name.toLowerCase().includes(workoutSearch.toLowerCase())
+      )
+    : libraryWorkouts;
 
   const levelLabels = labels?.filter((l) => l.category === "level") || [];
   const durationLabels = labels?.filter((l) => l.category === "duration") || [];
@@ -252,20 +267,31 @@ export function CreateOndemandWorkoutDialog({
                     className="pl-10 bg-background"
                   />
                 </div>
-                {workoutSearch && filteredLibrary && filteredLibrary.length > 0 && (
-                  <div className="bg-background rounded-md border border-border max-h-40 overflow-y-auto">
+                {filteredLibrary && filteredLibrary.length > 0 && (
+                  <div className="bg-background rounded-md border border-border max-h-48 overflow-y-auto shadow-lg">
                     {filteredLibrary.map((w) => (
                       <button
                         key={w.id}
-                        className={`w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors ${
-                          selectedWorkoutId === w.id ? "bg-accent font-medium" : ""
+                        className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-accent transition-colors border-b border-border last:border-b-0 ${
+                          selectedWorkoutId === w.id ? "bg-accent" : ""
                         }`}
                         onClick={() => {
                           setSelectedWorkoutId(w.id);
                           setWorkoutSearch(w.name);
+                          if (!name) setName(w.name);
                         }}
                       >
-                        {w.name}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm text-foreground">{w.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {w.exerciseCount} Exercises • {w.sectionCount} Sections
+                          </p>
+                        </div>
+                        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-bold text-primary">
+                            {(user?.email?.[0] || "T").toUpperCase()}{(user?.email?.[1] || "").toUpperCase()}
+                          </span>
+                        </div>
                       </button>
                     ))}
                   </div>
