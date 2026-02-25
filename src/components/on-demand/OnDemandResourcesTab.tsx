@@ -1,6 +1,7 @@
 import { Package, FileText, Link as LinkIcon, FileCheck } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 
 interface OnDemandResourcesTabProps {
   collections: any[] | undefined;
@@ -9,6 +10,8 @@ interface OnDemandResourcesTabProps {
 }
 
 export function OnDemandResourcesTab({ collections, searchQuery, isLoading }: OnDemandResourcesTabProps) {
+  const navigate = useNavigate();
+
   if (isLoading) {
     return <div className="text-center py-12 text-muted-foreground text-sm">Loading resources...</div>;
   }
@@ -46,7 +49,10 @@ export function OnDemandResourcesTab({ collections, searchQuery, isLoading }: On
         const collection = access.resource_collections;
         return (
           <div key={collection.id} className="space-y-4">
-            <div>
+            <div
+              className="cursor-pointer"
+              onClick={() => navigate(`/client/resource-collection/${collection.id}`)}
+            >
               <h2 className="text-lg font-bold text-foreground">{collection.name}</h2>
               {collection.description && (
                 <p className="text-sm text-muted-foreground mt-1">{collection.description}</p>

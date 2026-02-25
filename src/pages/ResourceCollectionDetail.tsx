@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, Trash2, GripVertical, LayoutGrid } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, GripVertical, LayoutGrid, Users, Image, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,10 @@ import { CreateSectionDialog } from "@/components/CreateSectionDialog";
 import { AddResourceToSectionDialog } from "@/components/AddResourceToSectionDialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DndContext,
   closestCenter,
@@ -112,6 +116,162 @@ function SortableSection({ section, onDelete, onAddResource, onChangeLayout }: a
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function CoverImageSection({ collectionId, currentUrl }: { collectionId: string; currentUrl?: string }) {
+  const [url, setUrl] = useState(currentUrl || "");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const updateCover = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("resource_collections")
+        .update({ cover_image_url: url || null } as any)
+        .eq("id", collectionId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["resource-collection", collectionId] });
+      toast({ title: "Cover image updated" });
+    },
+  });
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <Image className="h-5 w-5 text-muted-foreground shrink-0" />
+          <Input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="Cover image URL (optional)"
+            className="flex-1"
+          />
+          <Button size="sm" onClick={() => updateCover.mutate()} disabled={updateCover.isPending}>
+            {updateCover.isPending ? "Saving..." : "Save"}
+          </Button>
+        </div>
+        {url && (
+          <img src={url} alt="Cover preview" className="mt-3 w-full h-32 object-cover rounded-lg" />
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ClientAssignmentTab({ collectionId, trainerId }: { collectionId: string; trainerId: string }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const { data: clients } = useQuery({
+    queryKey: ["trainer-clients-for-assign", trainerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_feature_settings")
+        .select("client_id, profiles:client_id(id, full_name, email, avatar_url)")
+        .eq("trainer_id", trainerId);
+      if (error) throw error;
+      return (data as any[])?.map((d) => d.profiles).filter(Boolean) || [];
+    },
+    enabled: !!trainerId,
+  });
+
+  const { data: assignedClients } = useQuery({
+    queryKey: ["collection-clients", collectionId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_collection_access")
+        .select("client_id")
+        .eq("collection_id", collectionId);
+      if (error) throw error;
+      return data?.map((a) => a.client_id) || [];
+    },
+    enabled: !!collectionId,
+  });
+
+  const toggleClient = useMutation({
+    mutationFn: async (clientId: string) => {
+      const isAssigned = assignedClients?.includes(clientId);
+      if (isAssigned) {
+        const { error } = await supabase
+          .from("client_collection_access")
+          .delete()
+          .eq("collection_id", collectionId)
+          .eq("client_id", clientId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("client_collection_access")
+          .insert({ collection_id: collectionId, client_id: clientId });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["collection-clients", collectionId] });
+      queryClient.invalidateQueries({ queryKey: ["client-resource-collections"] });
+    },
+    onError: () => {
+      toast({ title: "Failed to update client access", variant: "destructive" });
+    },
+  });
+
+  const filteredClients = clients?.filter((c) =>
+    (c.full_name || c.email || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const assignedCount = assignedClients?.length || 0;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          <Users className="inline h-4 w-4 mr-1" />
+          {assignedCount} client{assignedCount !== 1 ? "s" : ""} assigned
+        </p>
+      </div>
+
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          placeholder="Search clients..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
+      <div className="space-y-2 max-h-96 overflow-y-auto">
+        {filteredClients?.map((client) => {
+          const isAssigned = assignedClients?.includes(client.id);
+          return (
+            <div
+              key={client.id}
+              className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-accent transition-colors"
+              onClick={() => toggleClient.mutate(client.id)}
+            >
+              <Checkbox checked={isAssigned} />
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={client.avatar_url || undefined} />
+                <AvatarFallback className="text-xs">
+                  {(client.full_name || client.email || "?").charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm">{client.full_name || "Unnamed"}</p>
+                <p className="text-xs text-muted-foreground truncate">{client.email}</p>
+              </div>
+              {isAssigned && <Badge variant="default" className="text-xs">Assigned</Badge>}
+            </div>
+          );
+        })}
+        {!filteredClients?.length && (
+          <p className="text-center text-muted-foreground py-8 text-sm">No clients found</p>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -237,6 +397,7 @@ export default function ResourceCollectionDetail() {
   if (!collection) return <DashboardLayout><div className="p-6">Collection not found</div></DashboardLayout>;
 
   const sections = collection.collection_sections?.sort((a: any, b: any) => a.order_index - b.order_index) || [];
+  const totalResources = sections.reduce((sum: number, s: any) => sum + (s.section_resources?.length || 0), 0);
 
   return (
     <DashboardLayout>
@@ -262,44 +423,66 @@ export default function ResourceCollectionDetail() {
                 onCheckedChange={(checked) => togglePublished.mutate(checked)}
               />
             </div>
-            <Button onClick={() => setCreateSectionOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Section
-            </Button>
           </div>
         </div>
 
-        {sections.length === 0 ? (
-          <Card className="text-center py-12">
-            <CardContent className="pt-6">
-              <LayoutGrid className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No sections yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Create sections to organize your resources
+        {/* Cover Image */}
+        <CoverImageSection collectionId={id!} currentUrl={(collection as any).cover_image_url} />
+
+        <Tabs defaultValue="resources">
+          <TabsList>
+            <TabsTrigger value="resources">Resources</TabsTrigger>
+            <TabsTrigger value="clients">Clients</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="resources" className="space-y-6 mt-4">
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-muted-foreground">
+                Resource limit: {totalResources}/25
               </p>
               <Button onClick={() => setCreateSectionOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Section
               </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={sections.map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
-              {sections.map((section: any) => (
-                <SortableSection
-                  key={section.id}
-                  section={section}
-                  onDelete={(sectionId: string) => deleteSection.mutate(sectionId)}
-                  onAddResource={handleAddResource}
-                  onChangeLayout={(sectionId: string, layout: string) =>
-                    updateLayout.mutate({ sectionId, layout })
-                  }
-                />
-              ))}
-            </SortableContext>
-          </DndContext>
-        )}
+            </div>
+
+            {sections.length === 0 ? (
+              <Card className="text-center py-12">
+                <CardContent className="pt-6">
+                  <LayoutGrid className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No sections yet</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Create sections to organize your resources
+                  </p>
+                  <Button onClick={() => setCreateSectionOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Section
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={sections.map((s: any) => s.id)} strategy={verticalListSortingStrategy}>
+                  {sections.map((section: any) => (
+                    <SortableSection
+                      key={section.id}
+                      section={section}
+                      onDelete={(sectionId: string) => deleteSection.mutate(sectionId)}
+                      onAddResource={handleAddResource}
+                      onChangeLayout={(sectionId: string, layout: string) =>
+                        updateLayout.mutate({ sectionId, layout })
+                      }
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            )}
+          </TabsContent>
+
+          <TabsContent value="clients" className="mt-4">
+            <ClientAssignmentTab collectionId={id!} trainerId={user!.id} />
+          </TabsContent>
+        </Tabs>
 
         <CreateSectionDialog
           collectionId={id!}
