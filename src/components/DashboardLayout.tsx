@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { HealthNotificationBell } from "./health/HealthNotificationBell";
 import {
   DropdownMenu,
@@ -30,7 +30,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-
+  const queryClient = useQueryClient();
   // Fetch user profile for avatar
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
@@ -64,6 +64,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const handleSwitchToClientView = (clientId: string) => {
     localStorage.setItem("impersonatedClientId", clientId);
+    queryClient.clear();
     navigate("/client/dashboard");
   };
 
