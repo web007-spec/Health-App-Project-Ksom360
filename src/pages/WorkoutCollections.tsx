@@ -18,7 +18,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 
 function HeroBanner({ onAddNew }: { onAddNew: () => void }) {
   const [visible, setVisible] = useState(true);
@@ -149,8 +148,7 @@ export default function WorkoutCollections() {
   const [searchQuery, setSearchQuery] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [collectionName, setCollectionName] = useState("");
-  const [collectionDescription, setCollectionDescription] = useState("");
-  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [collectionType, setCollectionType] = useState("");
 
   const { data: collections, isLoading } = useQuery({
     queryKey: ["workout-collections", user?.id],
@@ -176,8 +174,7 @@ export default function WorkoutCollections() {
         .from("workout_collections")
         .insert({
           name: collectionName,
-          description: collectionDescription,
-          cover_image_url: coverImageUrl || null,
+          description: collectionType || null,
           trainer_id: user!.id,
         })
         .select()
@@ -190,8 +187,7 @@ export default function WorkoutCollections() {
       toast({ title: "Collection created successfully" });
       setCreateDialogOpen(false);
       setCollectionName("");
-      setCollectionDescription("");
-      setCoverImageUrl("");
+      setCollectionType("");
       navigate(`/workout-collections/${data.id}`);
     },
     onError: () => {
@@ -266,48 +262,37 @@ export default function WorkoutCollections() {
         )}
 
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[460px]">
             <DialogHeader>
-              <DialogTitle>Create Workout Collection</DialogTitle>
-              <DialogDescription>
-                Create a Netflix-style collection of on-demand workouts
-              </DialogDescription>
+              <DialogTitle className="text-xl font-bold">Create New Collection</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Collection Name *</Label>
+            <form onSubmit={handleSubmit} className="space-y-5 pt-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Name</Label>
                 <Input
                   id="name"
                   value={collectionName}
                   onChange={(e) => setCollectionName(e.target.value)}
-                  placeholder="e.g., 4-Week Fitness Course, Daily Yoga"
+                  placeholder="Collection Name"
                   required
+                  className="border-primary/40 focus-visible:ring-primary"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={collectionDescription}
-                  onChange={(e) => setCollectionDescription(e.target.value)}
-                  placeholder="Describe this collection..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="cover">Cover Image URL</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="type" className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Type</Label>
                 <Input
-                  id="cover"
-                  type="url"
-                  value={coverImageUrl}
-                  onChange={(e) => setCoverImageUrl(e.target.value)}
-                  placeholder="https://..."
+                  id="type"
+                  value={collectionType}
+                  onChange={(e) => setCollectionType(e.target.value)}
+                  placeholder="Add a short label, e.g. Workouts, Yoga, HIIT"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Add a short label that will show above the Collection Name on the list of On-demand Collections.
+                </p>
               </div>
 
-              <div className="flex gap-2 pt-4">
+              <div className="flex gap-2 pt-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -317,7 +302,7 @@ export default function WorkoutCollections() {
                   Cancel
                 </Button>
                 <Button type="submit" className="flex-1" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? "Creating..." : "Create Collection"}
+                  {createMutation.isPending ? "Creating..." : "Create"}
                 </Button>
               </div>
             </form>
