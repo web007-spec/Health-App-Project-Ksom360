@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,15 +13,32 @@ import { useAuth } from "@/hooks/useAuth";
 export function ManageBreathingMusicDialog({
   open,
   onOpenChange,
+  autoPickOnOpen = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  autoPickOnOpen?: boolean;
 }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const autoPickTriggeredRef = useRef(false);
   const [uploading, setUploading] = useState(false);
   const [newName, setNewName] = useState("");
+
+  useEffect(() => {
+    if (!open) {
+      autoPickTriggeredRef.current = false;
+      return;
+    }
+
+    if (autoPickOnOpen && !autoPickTriggeredRef.current) {
+      autoPickTriggeredRef.current = true;
+      requestAnimationFrame(() => {
+        fileInputRef.current?.click();
+      });
+    }
+  }, [open, autoPickOnOpen]);
 
   const { data: tracks = [], isLoading } = useQuery({
     queryKey: ["breathing-music-tracks"],

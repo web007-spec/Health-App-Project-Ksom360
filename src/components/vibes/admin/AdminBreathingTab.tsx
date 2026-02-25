@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Play, ArrowLeft, Music } from "lucide-react";
+import { Play, ArrowLeft, Music, Upload } from "lucide-react";
 import { BREATHING_EXERCISES, type BreathingExercise } from "@/lib/breathingExercises";
 import { BreathingPlayer } from "@/components/vibes/BreathingPlayer";
 import { ManageBreathingMusicDialog } from "./ManageBreathingMusicDialog";
@@ -10,6 +10,7 @@ import { ManageBreathingMusicDialog } from "./ManageBreathingMusicDialog";
 export function AdminBreathingTab() {
   const [previewExercise, setPreviewExercise] = useState<BreathingExercise | null>(null);
   const [musicDialogOpen, setMusicDialogOpen] = useState(false);
+  const [autoPickOnOpen, setAutoPickOnOpen] = useState(false);
 
   if (previewExercise) {
     return (
@@ -34,12 +35,26 @@ export function AdminBreathingTab() {
         <p className="text-sm text-muted-foreground">
           {BREATHING_EXERCISES.length} exercises available for clients in the Restore → Breathe tab
         </p>
-        <Button variant="outline" size="sm" onClick={() => setMusicDialogOpen(true)}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setAutoPickOnOpen(false);
+            setMusicDialogOpen(true);
+          }}
+        >
           <Music className="h-4 w-4 mr-1" /> Manage Music
         </Button>
       </div>
 
-      <ManageBreathingMusicDialog open={musicDialogOpen} onOpenChange={setMusicDialogOpen} />
+      <ManageBreathingMusicDialog
+        open={musicDialogOpen}
+        onOpenChange={(nextOpen) => {
+          setMusicDialogOpen(nextOpen);
+          if (!nextOpen) setAutoPickOnOpen(false);
+        }}
+        autoPickOnOpen={autoPickOnOpen}
+      />
 
       <div className="grid gap-3 md:grid-cols-2">
         {BREATHING_EXERCISES.map((ex) => (
@@ -75,6 +90,17 @@ export function AdminBreathingTab() {
                   {ex.phases.reduce((s, p) => s + p.seconds, 0)}s per cycle
                 </span>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() => {
+                  setAutoPickOnOpen(true);
+                  setMusicDialogOpen(true);
+                }}
+              >
+                <Upload className="h-4 w-4 mr-1" /> Upload track
+              </Button>
             </CardContent>
           </Card>
         ))}
