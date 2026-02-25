@@ -118,7 +118,7 @@ export function ManageBreathingMusicDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg w-[calc(100vw-2rem)]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Music className="h-5 w-5" /> Breathing Music Tracks
@@ -127,8 +127,8 @@ export function ManageBreathingMusicDialog({
 
         <div className="space-y-4">
           {/* Upload section */}
-          <div className="flex gap-2 items-end">
-            <div className="flex-1">
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+            <div className="flex-1 min-w-0">
               <Label className="text-xs text-muted-foreground">Track name (optional)</Label>
               <Input
                 placeholder="e.g. Ocean Calm"
@@ -137,7 +137,7 @@ export function ManageBreathingMusicDialog({
                 className="h-9"
               />
             </div>
-            <div>
+            <div className="sm:shrink-0">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -147,6 +147,7 @@ export function ManageBreathingMusicDialog({
               />
               <Button
                 size="sm"
+                className="w-full sm:w-auto"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
               >
@@ -159,6 +160,10 @@ export function ManageBreathingMusicDialog({
               </Button>
             </div>
           </div>
+
+          <p className="text-xs text-muted-foreground">
+            Uploaded tracks are shared across all breathing exercises.
+          </p>
 
           {/* Track list */}
           {isLoading ? (
