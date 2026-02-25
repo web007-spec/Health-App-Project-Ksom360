@@ -120,51 +120,55 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
 
   /* ─── Tick engine ─── */
   const tick = useCallback(() => {
-    setPhaseElapsed((prev) => {
-      const next = prev + 0.05;
-      if (next >= phases[phaseIndex].seconds) {
-        setPhaseIndex((pi) => {
-          const nextPi = pi + 1;
-          if (nextPi >= phases.length) {
-            setCycleCount((c) => c + 1);
-            phaseIndexRef.current = 0;
-            return 0;
-          }
-          phaseIndexRef.current = nextPi;
-          return nextPi;
-        });
-        phaseElapsedRef.current = 0;
-        return 0;
+    const delta = 0.05;
+    const currentPi = phaseIndexRef.current;
+    const phase = phases[currentPi];
+
+    let nextPi = currentPi;
+    let nextElapsed = phaseElapsedRef.current + delta;
+
+    if (nextElapsed >= phase.seconds) {
+      nextElapsed = 0;
+      nextPi = currentPi + 1;
+      if (nextPi >= phases.length) {
+        nextPi = 0;
+        setCycleCount((c) => c + 1);
       }
-      phaseElapsedRef.current = next;
-      return next;
-    });
-    setSessionElapsed((prev) => prev + 0.05);
+    }
+
+    // Update refs first so video scrub and UI state share the same tick boundary
+    phaseIndexRef.current = nextPi;
+    phaseElapsedRef.current = nextElapsed;
+
+    // Keep React UI in sync with the same computed values
+    setPhaseIndex(nextPi);
+    setPhaseElapsed(nextElapsed);
+    setSessionElapsed((prev) => prev + delta);
     frameRef.current++;
 
-    // Synchronous video scrub — zero delay
+    // Synchronous video scrub — phase-accurate
     const video = videoRef.current;
     const vDur = videoDurationRef.current;
     if (video && vDur > 0) {
       if (!video.paused) video.pause();
-      const pi = phaseIndexRef.current;
-      const pe = phaseElapsedRef.current;
-      const phase = phases[pi];
-      const progress = pe / phase.seconds;
+
+      const scrubPhase = phases[nextPi];
+      const progress = nextElapsed / scrubPhase.seconds;
       const segLen = Math.min(vDur, 10);
       const halfSeg = segLen / 2;
 
       let targetTime: number;
-      if (phase.type === "inhale") {
+      if (scrubPhase.type === "inhale") {
         targetTime = progress * halfSeg;
-      } else if (phase.type === "hold") {
+      } else if (scrubPhase.type === "hold") {
         targetTime = halfSeg;
       } else {
         targetTime = halfSeg * (1 - progress);
       }
+
       video.currentTime = targetTime % vDur;
     }
-  }, [phases, phaseIndex]);
+  }, [phases]);
 
   useEffect(() => {
     if (playing && stage === "playing") {
