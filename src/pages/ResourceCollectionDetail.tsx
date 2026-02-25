@@ -71,13 +71,14 @@ const normalizeLayoutType = (layout?: string | null) => {
   }
 };
 
-function SortableSection({ section, onDelete, onAddResource, onChangeLayout }: any) {
+function SortableSection({ section, onDelete, onAddResource, onChangeLayout, onRenameSection }: any) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: section.id,
   });
   const [isOpen, setIsOpen] = useState(true);
   const [formatOpen, setFormatOpen] = useState(false);
   const [selectedLayout, setSelectedLayout] = useState(normalizeLayoutType(section.layout_type));
+  const [editingSectionName, setEditingSectionName] = useState(section.name);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -132,7 +133,6 @@ function SortableSection({ section, onDelete, onAddResource, onChangeLayout }: a
     },
   ];
 
-  const currentLayoutLabel = layoutOptions.find((l) => l.id === normalizeLayoutType(section.layout_type))?.label || "Large Cards";
   const resourceCount = section.section_resources?.length || 0;
 
   return (
@@ -143,17 +143,40 @@ function SortableSection({ section, onDelete, onAddResource, onChangeLayout }: a
           <GripVertical className="h-5 w-5 text-muted-foreground" />
         </div>
 
-        <Collapsible open={isOpen} onOpenChange={setIsOpen} className="flex-1">
-          <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            {isOpen ? (
-              <ChevronDown className="h-4 w-4 text-primary" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-primary" />
-            )}
-            <span className="font-bold text-base">{section.name}</span>
-            <span className="text-muted-foreground text-sm">({resourceCount})</span>
-          </CollapsibleTrigger>
-        </Collapsible>
+        <button
+          className="shrink-0 hover:opacity-80 transition-opacity"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          {isOpen ? (
+            <ChevronDown className="h-4 w-4 text-primary" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-primary" />
+          )}
+        </button>
+
+        {/* Editable section name */}
+        <div className="flex items-center gap-1 flex-1 min-w-0">
+          <Input
+            className="font-bold text-base border-primary/30 bg-transparent h-8 px-2 max-w-[250px]"
+            value={editingSectionName}
+            onChange={(e) => {
+              setEditingSectionName(e.target.value);
+              onRenameSection?.(section.id, e.target.value);
+            }}
+            onBlur={() => {
+              if (editingSectionName && editingSectionName !== section.name) {
+                onRenameSection?.(section.id, editingSectionName, true);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && editingSectionName) {
+                onRenameSection?.(section.id, editingSectionName, true);
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
+          />
+          <span className="text-muted-foreground text-sm shrink-0">({resourceCount})</span>
+        </div>
 
         {/* Format dropdown */}
         <Popover open={formatOpen} onOpenChange={setFormatOpen}>
@@ -614,6 +637,7 @@ export default function ResourceCollectionDetail() {
 
   const [editName, setEditName] = useState(collection?.name || "");
   const [isEditingName, setIsEditingName] = useState(false);
+  const [sectionNameOverrides, setSectionNameOverrides] = useState<Record<string, string>>({});
 
   const updateName = useMutation({
     mutationFn: async (name: string) => {
@@ -629,6 +653,28 @@ export default function ResourceCollectionDetail() {
       setIsEditingName(false);
     },
   });
+
+  const renameSectionMutation = useMutation({
+    mutationFn: async ({ sectionId, name }: { sectionId: string; name: string }) => {
+      const { error } = await supabase
+        .from("collection_sections")
+        .update({ name })
+        .eq("id", sectionId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["resource-collection", id] });
+    },
+  });
+
+  const handleRenameSection = (sectionId: string, name: string, persist?: boolean) => {
+    // Always update local override for live preview
+    setSectionNameOverrides((prev) => ({ ...prev, [sectionId]: name }));
+    // Persist to DB on blur/enter
+    if (persist) {
+      renameSectionMutation.mutate({ sectionId, name });
+    }
+  };
 
   if (isLoading || !user) return <DashboardLayout><div className="p-6">Loading...</div></DashboardLayout>;
   if (!collection) return <DashboardLayout><div className="p-6">Collection not found</div></DashboardLayout>;
@@ -728,12 +774,13 @@ export default function ResourceCollectionDetail() {
                       {sections.map((section: any) => (
                         <SortableSection
                           key={section.id}
-                          section={section}
+                          section={{ ...section, name: sectionNameOverrides[section.id] || section.name }}
                           onDelete={(sectionId: string) => deleteSection.mutate(sectionId)}
                           onAddResource={handleAddResource}
                           onChangeLayout={(sectionId: string, layout: string) =>
                             updateLayout.mutate({ sectionId, layout })
                           }
+                          onRenameSection={handleRenameSection}
                         />
                       ))}
                     </SortableContext>
@@ -746,7 +793,7 @@ export default function ResourceCollectionDetail() {
               <CollectionPhonePreview
                   collectionName={editName || collection.name}
                   coverImageUrl={(collection as any).cover_image_url}
-                  sections={sections}
+                  sections={sections.map((s: any) => ({ ...s, name: sectionNameOverrides[s.id] || s.name }))}
                 />
               </div>
             </div>
