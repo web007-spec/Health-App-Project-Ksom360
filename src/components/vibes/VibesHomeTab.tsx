@@ -6,7 +6,6 @@ import { BRAINWAVE_DEFS, BrainwaveType } from "@/lib/syntheticSounds";
 import { GUIDED_SESSIONS } from "@/lib/guidedSessions";
 import { Check, Crown } from "lucide-react";
 import { useIsPremium } from "@/hooks/useIsPremium";
-import { useRestoreProfile } from "@/hooks/useRestoreProfile";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,7 +51,6 @@ interface Props {
 
 export function VibesHomeTab({ sounds, mixer }: Props) {
   const { isPremium } = useIsPremium();
-  const { config: profileConfig } = useRestoreProfile();
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>(loadMode);
   const [activeCategory, setActiveCategory] = useState("featured");
@@ -77,15 +75,15 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
   }, [mode]);
 
   const modeHeader: Record<Mode, { title: string; sub: string }> = {
-    morning: { title: "🌅 Good Morning", sub: "Start your day with uplifting sounds" },
-    focus: { title: "🎯 Focus Session", sub: "Lock in with deep concentration" },
-    night: { title: "🌙 Wind Down", sub: "Ease into restful calm" },
+    morning: { title: "Good Morning", sub: "Start your day with uplifting sounds" },
+    focus: { title: "Focus Session", sub: "Lock in with deep concentration" },
+    night: { title: "Wind Down", sub: "Ease into restful calm" },
   };
 
   const { title: timeLabel, sub: modeSub } = modeHeader[mode];
 
   const filtered = useMemo(() => {
-    if (activeCategory === "brainwaves") return []; // handled separately
+    if (activeCategory === "brainwaves") return [];
     let list: any[];
     if (activeCategory === "featured") {
       list = sounds.filter((s) => s.is_featured);
@@ -106,14 +104,9 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
   const handleToggle = (s: any) =>
     mixer.toggleSound({ id: s.id, name: s.name, audioUrl: s.audio_url, iconUrl: s.icon_url });
 
-  const modeBg: Record<Mode, string> = {
-    morning: "bg-[hsl(30,30%,6%)]",
-    focus: "",
-    night: "bg-[hsl(240,20%,5%)]",
-  };
-
-  // Use profile-driven brainwave priority: first in list = recommended
-  const recommended = (profileConfig.brainwavePriority[0] || "alpha") as BrainwaveType;
+  // Default brainwave priority
+  const defaultPriority = ["alpha", "beta", "theta", "gamma", "delta"];
+  const recommended = (defaultPriority[0] || "alpha") as BrainwaveType;
   const activeBw = mixer.brainwave?.type as BrainwaveType | undefined;
 
   const handleApplySession = async (session: typeof GUIDED_SESSIONS[number]) => {
@@ -122,7 +115,7 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
   };
 
   return (
-    <div className={cn("space-y-4 mt-4 rounded-xl px-1 transition-colors duration-300", modeBg[mode])}>
+    <div className="space-y-4 mt-4 rounded-xl px-1 transition-colors duration-300">
       {/* Sessions row */}
       <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
         {GUIDED_SESSIONS.map((session) => (
@@ -145,16 +138,16 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
       </div>
 
       {/* Mode segmented control */}
-      <div className="flex rounded-full bg-white/10 p-1 gap-0.5">
+      <div className="flex rounded-lg bg-white/[0.04] p-1 gap-0.5 border border-white/[0.06]">
         {MODES.map((m) => (
           <button
             key={m.value}
             onClick={() => setMode(m.value)}
             className={cn(
-              "flex-1 text-xs font-medium py-1.5 rounded-full transition-all duration-[180ms]",
+              "flex-1 text-xs font-medium py-1.5 rounded-md transition-all duration-200",
               mode === m.value
-                ? "bg-[hsl(260,45%,38%)] text-white shadow-sm"
-                : "text-white/50 hover:text-white"
+                ? "bg-white/[0.10] text-white/90 shadow-sm"
+                : "text-white/35 hover:text-white/55"
             )}
           >
             {m.label}
@@ -169,10 +162,10 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
             key={cat.value}
             onClick={() => setActiveCategory(cat.value)}
             className={cn(
-              "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap shrink-0 transition-all duration-200 border",
+              "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap shrink-0 transition-all duration-200 border",
               activeCategory === cat.value
-                ? "bg-[hsl(260,45%,38%)] text-white/90 border-[hsl(260,40%,50%)] shadow-[inset_0_1px_2px_rgba(255,255,255,0.1)]"
-                : "bg-transparent text-white/60 border-white/20 hover:border-[hsl(260,30%,45%)] hover:text-white"
+                ? "bg-white/[0.10] text-white/90 border-white/[0.15]"
+                : "bg-transparent text-white/40 border-white/[0.06] hover:border-white/[0.12] hover:text-white/60"
             )}
           >
             {cat.label}
@@ -186,8 +179,8 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
           <div className="grid grid-cols-2 gap-3 px-2">
             {(Object.entries(BRAINWAVE_DEFS) as [BrainwaveType, typeof BRAINWAVE_DEFS[BrainwaveType]][])
               .sort(([a], [b]) => {
-                const aIdx = profileConfig.brainwavePriority.indexOf(a);
-                const bIdx = profileConfig.brainwavePriority.indexOf(b);
+                const aIdx = defaultPriority.indexOf(a);
+                const bIdx = defaultPriority.indexOf(b);
                 return (aIdx < 0 ? 99 : aIdx) - (bIdx < 0 ? 99 : bIdx);
               })
               .map(([type, def]) => {
@@ -206,15 +199,15 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
                     isActive ? mixer.removeBrainwave() : mixer.setBrainwave(type);
                   }}
                   className={cn(
-                    "relative flex flex-col items-center gap-2 py-5 px-3 rounded-2xl transition-all duration-[180ms] border",
-                    "bg-gradient-to-br from-[hsl(260,25%,16%)] to-[hsl(260,20%,12%)]",
+                    "relative flex flex-col items-center gap-2 py-5 px-3 rounded-xl transition-all duration-200 border",
+                    "bg-white/[0.03]",
                     "active:scale-[0.97]",
                     isBwLocked && "opacity-60",
                     isActive
-                      ? "ring-[1.5px] ring-amber-400/70 border-amber-400/30 shadow-[0_0_14px_rgba(251,191,36,0.2)]"
+                      ? "ring-1 ring-white/30 border-white/20"
                       : isRecommended
-                        ? "border-[hsl(260,40%,40%)] shadow-[0_0_8px_rgba(139,92,246,0.15)]"
-                        : "border-border/50"
+                        ? "border-white/[0.10]"
+                        : "border-white/[0.06]"
                   )}
                 >
                   {isBwLocked && (
@@ -223,16 +216,16 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
                     </div>
                   )}
                   {isRecommended && !isActive && !isBwLocked && (
-                    <span className="absolute top-2 right-2 text-[9px] font-semibold uppercase tracking-wider text-[hsl(260,60%,70%)]">
+                    <span className="absolute top-2 right-2 text-[9px] font-semibold uppercase tracking-wider text-white/30">
                       Rec
                     </span>
                   )}
                   <span className="text-2xl">{def.icon}</span>
                   <span className="text-sm font-semibold text-white/90">{def.label}</span>
-                  <span className="text-[10px] text-muted-foreground">{def.description}</span>
+                  <span className="text-[10px] text-white/35">{def.description}</span>
                   {isActive && (
-                    <div className="absolute bottom-2 right-2 w-[14px] h-[14px] rounded-full bg-amber-400/90 flex items-center justify-center shadow-[0_0_6px_rgba(251,191,36,0.5)]">
-                      <Check className="w-[8px] h-[8px] text-amber-950 stroke-[3]" />
+                    <div className="absolute bottom-2 right-2 w-[14px] h-[14px] rounded-full bg-white/30 flex items-center justify-center">
+                      <Check className="w-[8px] h-[8px] text-white stroke-[3]" />
                     </div>
                   )}
                 </button>
@@ -246,7 +239,7 @@ export function VibesHomeTab({ sounds, mixer }: Props) {
             onToggle={handleToggle}
           />
         ) : (
-          <p className="text-center text-muted-foreground py-8 text-sm">No sounds in this category yet</p>
+          <p className="text-center text-white/30 py-8 text-sm">No sounds in this category yet</p>
         )}
       </div>
     </div>

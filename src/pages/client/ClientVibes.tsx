@@ -11,21 +11,30 @@ import { VibesMixesTab } from "@/components/vibes/VibesMixesTab";
 import { VibesMyMixesTab } from "@/components/vibes/VibesMyMixesTab";
 import { VibesSleepTab } from "@/components/vibes/VibesSleepTab";
 import { VibesMiniPlayer } from "@/components/vibes/VibesMiniPlayer";
-import { RestoreEntryScreen, RestoreSection, Mood } from "@/components/vibes/RestoreEntryScreen";
-import { RestoreForYouTab } from "@/components/vibes/RestoreForYouTab";
-import { RestoreGuidedTab } from "@/components/vibes/RestoreGuidedTab";
-import { RestoreSleepTab } from "@/components/vibes/RestoreSleepTab";
+import { RestoreStateHeader } from "@/components/vibes/RestoreEntryScreen";
+import { RestoreQuickStart } from "@/components/vibes/RestoreQuickStart";
+import { RestoreModuleGrid, type RestoreModule } from "@/components/vibes/RestoreModuleGrid";
 import { RestoreBreathingTab } from "@/components/vibes/RestoreBreathingTab";
+import { RestoreSleepTab } from "@/components/vibes/RestoreSleepTab";
+
+import { BreathingPlayer } from "@/components/vibes/BreathingPlayer";
+import { type BreathingExercise } from "@/lib/breathingExercises";
 import { useSearchParams, Navigate } from "react-router-dom";
 import { useClientFeatureSettings } from "@/hooks/useClientFeatureSettings";
+import { ArrowLeft } from "lucide-react";
+
+type ViewState =
+  | { type: "home" }
+  | { type: "module"; module: RestoreModule }
+  | { type: "breathing-session"; exercise: BreathingExercise }
+  | { type: "soundlab" };
 
 export default function ClientVibes() {
   const { settings, isLoading: settingsLoading } = useClientFeatureSettings();
   const mixer = useAudioMixer();
   const [searchParams] = useSearchParams();
   const [mixRefreshKey, setMixRefreshKey] = useState(0);
-  const [section, setSection] = useState<RestoreSection>("home");
-  const [mood, setMood] = useState<Mood>(null);
+  const [view, setView] = useState<ViewState>({ type: "home" });
 
   const { data: sounds = [] } = useQuery({
     queryKey: ["vibes-sounds-client"],
@@ -39,7 +48,6 @@ export default function ClientVibes() {
     },
   });
 
-  // Preload audio buffers in background so first tap is instant
   useEffect(() => {
     if (sounds.length > 0) {
       const urls = sounds.map((s: any) => s.audio_url).filter(Boolean);
@@ -83,7 +91,7 @@ export default function ClientVibes() {
         iconUrl: it.vibes_sounds?.icon_url,
       }));
       mixer.loadMix(loaded);
-      setSection("soundlab");
+      setView({ type: "soundlab" });
     })();
   }, [searchParams]);
 
@@ -105,67 +113,94 @@ export default function ClientVibes() {
     return <Navigate to="/client/dashboard" replace />;
   }
 
+  // Breathing session — full screen
+  if (view.type === "breathing-session") {
+    return (
+      <BreathingPlayer
+        exercise={view.exercise}
+        onBack={() => setView({ type: "module", module: "breathing" })}
+      />
+    );
+  }
+
   return (
     <ClientLayout>
-      <div className="min-h-screen bg-[hsl(260,20%,5%)] pb-40">
-        <div className="p-4 space-y-4">
-          {/* Restore entry screen — always visible */}
-          <RestoreEntryScreen
-            activeSection={section}
-            onSectionChange={setSection}
-            mood={mood}
-            onMoodChange={setMood}
-          />
+      <div className="min-h-screen bg-[hsl(220,20%,5%)] pb-40">
+        <div className="p-4 space-y-6">
+          {/* Back button when in a module */}
+          {view.type !== "home" && (
+            <button
+              onClick={() => setView({ type: "home" })}
+              className="flex items-center gap-1.5 text-white/40 hover:text-white/60 text-xs font-medium transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </button>
+          )}
 
-          {/* Section content */}
-          {section === "home" && (
-            <RestoreForYouTab
-              mood={mood}
-              sounds={sounds}
-              mixer={mixer}
-              onNavigateGuided={() => setSection("guided")}
-              onNavigateSleep={() => setSection("sleep")}
+          {/* State Header — always visible */}
+          <RestoreStateHeader />
+
+          {/* HOME VIEW */}
+          {view.type === "home" && (
+            <div className="space-y-8">
+              <RestoreQuickStart
+                onStartBreathing={(ex) =>
+                  setView({ type: "breathing-session", exercise: ex })
+                }
+                onNavigateGuided={() =>
+                  setView({ type: "module", module: "breathing" })
+                }
+              />
+              <RestoreModuleGrid
+                onModuleSelect={(mod) =>
+                  mod === "soundlab"
+                    ? setView({ type: "soundlab" })
+                    : setView({ type: "module", module: mod })
+                }
+              />
+            </div>
+          )}
+
+          {/* BREATHING MODULE */}
+          {view.type === "module" && view.module === "breathing" && (
+            <RestoreBreathingTab
+              onStartSession={(ex) =>
+                setView({ type: "breathing-session", exercise: ex })
+              }
             />
           )}
 
-          {section === "guided" && (
-            <RestoreGuidedTab sounds={sounds} />
-          )}
-
-          {section === "breathe" && (
-            <RestoreBreathingTab />
-          )}
-
-          {section === "sleep" && (
+          {/* SLEEP MODULE */}
+          {view.type === "module" && view.module === "sleep" && (
             <RestoreSleepTab sounds={sounds} mixer={mixer} />
           )}
 
-          {section === "soundlab" && (
-            <Tabs defaultValue="home">
-              <TabsList className="w-full grid grid-cols-5 bg-white/10 dark:bg-white/10">
-                <TabsTrigger value="home" className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-[hsl(260,45%,38%)] hover:text-white">Home</TabsTrigger>
-                <TabsTrigger value="sounds" className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-[hsl(260,45%,38%)] hover:text-white">Sounds</TabsTrigger>
-                <TabsTrigger value="my-mixes" className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-[hsl(260,45%,38%)] hover:text-white">My Mixes</TabsTrigger>
-                <TabsTrigger value="mixes" className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-[hsl(260,45%,38%)] hover:text-white">Mixes</TabsTrigger>
-                <TabsTrigger value="sleep" className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-[hsl(260,45%,38%)] hover:text-white">Sleep</TabsTrigger>
-              </TabsList>
+          {/* SOUND LAB MODULE */}
+          {view.type === "soundlab" && (
+            <div className="space-y-4">
+              <Tabs defaultValue="home">
+                <TabsList className="w-full grid grid-cols-4 bg-white/[0.06] border border-white/[0.06]">
+                  <TabsTrigger value="home" className="text-white/50 data-[state=active]:text-white/90 data-[state=active]:bg-white/[0.08]">Home</TabsTrigger>
+                  <TabsTrigger value="sounds" className="text-white/50 data-[state=active]:text-white/90 data-[state=active]:bg-white/[0.08]">Sounds</TabsTrigger>
+                  <TabsTrigger value="my-mixes" className="text-white/50 data-[state=active]:text-white/90 data-[state=active]:bg-white/[0.08]">My Mixes</TabsTrigger>
+                  <TabsTrigger value="mixes" className="text-white/50 data-[state=active]:text-white/90 data-[state=active]:bg-white/[0.08]">Mixes</TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="home">
-                <VibesHomeTab sounds={sounds} mixer={mixer} />
-              </TabsContent>
-              <TabsContent value="sounds">
-                <VibesSoundsTab sounds={sounds} categories={categories} mixer={mixer} />
-              </TabsContent>
-              <TabsContent value="my-mixes">
-                <VibesMyMixesTab mixer={mixer} sounds={sounds} refreshKey={mixRefreshKey} />
-              </TabsContent>
-              <TabsContent value="mixes">
-                <VibesMixesTab mixer={mixer} />
-              </TabsContent>
-              <TabsContent value="sleep">
-                <VibesSleepTab sounds={sounds} mixer={mixer} />
-              </TabsContent>
-            </Tabs>
+                <TabsContent value="home">
+                  <VibesHomeTab sounds={sounds} mixer={mixer} />
+                </TabsContent>
+                <TabsContent value="sounds">
+                  <VibesSoundsTab sounds={sounds} categories={categories} mixer={mixer} />
+                </TabsContent>
+                <TabsContent value="my-mixes">
+                  <VibesMyMixesTab mixer={mixer} sounds={sounds} refreshKey={mixRefreshKey} />
+                </TabsContent>
+                <TabsContent value="mixes">
+                  <VibesMixesTab mixer={mixer} />
+                </TabsContent>
+              </Tabs>
+            </div>
           )}
         </div>
 
