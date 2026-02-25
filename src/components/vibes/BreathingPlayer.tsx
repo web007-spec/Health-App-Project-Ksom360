@@ -222,6 +222,10 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !videoUrl || stage !== "playing") return;
+
+    // Hard-lock: never allow free-running playback
+    if (!video.paused) video.pause();
+
     const vDur = videoDurationRef.current;
     if (vDur <= 0) return;
 
@@ -235,7 +239,7 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
       // Scrub forward from 0 → halfSeg
       targetTime = rawProgress * halfSeg;
     } else if (currentPhase.type === "hold") {
-      // Stay at peak
+      // Stay at peak (freeze on one frame)
       targetTime = halfSeg;
     } else {
       // Exhale: scrub backward from halfSeg → 0
@@ -434,9 +438,12 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
              muted
              playsInline
              preload="auto"
-             onLoadedMetadata={(e) => {
-               videoDurationRef.current = e.currentTarget.duration;
-             }}
+              onLoadedMetadata={(e) => {
+                videoDurationRef.current = e.currentTarget.duration;
+                e.currentTarget.pause();
+                e.currentTarget.currentTime = 0;
+              }}
+              onPlay={(e) => e.currentTarget.pause()}
              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
              style={{
                filter: `brightness(${
