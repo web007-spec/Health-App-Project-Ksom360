@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
   Search,
   ArrowDown,
   Trash2,
+  ImageIcon,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -163,6 +164,9 @@ export function CategoryDetailView({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [editingDesc, setEditingDesc] = useState(false);
+  const [descValue, setDescValue] = useState(category.description || "");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -191,6 +195,51 @@ export function CategoryDetailView({
       queryClient.invalidateQueries({ queryKey: ["workout-collection", collectionId] });
     },
   });
+
+  const saveDescription = useMutation({
+    mutationFn: async (desc: string) => {
+      const { error } = await supabase
+        .from("workout_collection_categories")
+        .update({ description: desc || null })
+        .eq("id", category.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workout-collection", collectionId] });
+      setEditingDesc(false);
+    },
+  });
+
+  const uploadCoverImage = useMutation({
+    mutationFn: async (file: File) => {
+      const ext = file.name.split(".").pop();
+      const path = `category-covers/${category.id}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("workout-covers")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage
+        .from("workout-covers")
+        .getPublicUrl(path);
+      const { error: updateError } = await supabase
+        .from("workout_collection_categories")
+        .update({ cover_image_url: urlData.publicUrl })
+        .eq("id", category.id);
+      if (updateError) throw updateError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workout-collection", collectionId] });
+      toast({ title: "Cover image updated" });
+    },
+    onError: () => {
+      toast({ title: "Failed to upload image", variant: "destructive" });
+    },
+  });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadCoverImage.mutate(file);
+  };
 
   const removeWorkout = useMutation({
     mutationFn: async (categoryWorkoutId: string) => {
@@ -237,41 +286,52 @@ export function CategoryDetailView({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <Button variant="ghost" size="sm" className="gap-1 px-2" onClick={onBack}>
           <ArrowLeft className="h-4 w-4" />
-          {collectionName}
+          on-demand
         </Button>
         <span>/</span>
-        <span className="text-foreground font-medium">{category.name}</span>
+        <span className="text-primary font-medium">{category.name}</span>
       </div>
 
-      {/* Category header */}
-      <div className="flex items-start gap-5">
-        {category.cover_image_url ? (
-          <img
-            src={category.cover_image_url}
-            alt={category.name}
-            className="w-28 h-28 object-cover rounded-lg flex-shrink-0"
+      {/* Category header card */}
+      <div className="flex items-start gap-6">
+        {/* Cover image upload */}
+        <div
+          className="w-40 h-32 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors flex-shrink-0 overflow-hidden"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
           />
-        ) : (
-          <div className="w-28 h-28 bg-muted flex items-center justify-center rounded-lg flex-shrink-0">
-            <Dumbbell className="h-8 w-8 text-muted-foreground" />
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
+          {category.cover_image_url ? (
+            <img
+              src={category.cover_image_url}
+              alt={category.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <>
+              <ImageIcon className="h-8 w-8 text-muted-foreground/40 mb-1.5" />
+              <span className="text-xs font-medium text-primary">Choose file</span>
+              <span className="text-[10px] text-muted-foreground">for Category cover image</span>
+            </>
+          )}
+        </div>
+
+        {/* Name + description */}
+        <div className="flex-1 min-w-0 space-y-2">
           <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-bold">{category.name}</h2>
-              {category.description && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  {category.description}
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-foreground">{category.name}</h2>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <div className={`h-2 w-2 rounded-full ${category.is_active !== false ? 'bg-green-500' : 'bg-muted-foreground/40'}`} />
               <span className="text-sm text-muted-foreground">
                 {category.is_active !== false ? "Active" : "Inactive"}
               </span>
@@ -281,60 +341,81 @@ export function CategoryDetailView({
               />
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Search + Add */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search for a workout"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Button onClick={() => onAddWorkout(category.id)}>
-          <Plus className="h-4 w-4 mr-1" />
-          Add workout
-        </Button>
-      </div>
-
-      {/* Workout count */}
-      <p className="text-sm text-muted-foreground">{workouts.length} workouts</p>
-
-      {/* Workout list */}
-      {filteredWorkouts.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <Dumbbell className="mx-auto h-10 w-10 mb-3" />
-          <p className="font-medium">No workouts yet</p>
-          <p className="text-sm mt-1">Click "Add workout" to get started.</p>
-        </div>
-      ) : (
-        <div className="border border-border rounded-lg overflow-hidden bg-card">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={filteredWorkouts.map((w: any) => w.id)}
-              strategy={verticalListSortingStrategy}
+          {editingDesc ? (
+            <Input
+              autoFocus
+              value={descValue}
+              onChange={(e) => setDescValue(e.target.value)}
+              onBlur={() => saveDescription.mutate(descValue)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveDescription.mutate(descValue);
+                if (e.key === "Escape") { setEditingDesc(false); setDescValue(category.description || ""); }
+              }}
+              placeholder="Add category description"
+              className="border-primary/40 focus-visible:ring-primary"
+            />
+          ) : (
+            <p
+              className="text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors border border-transparent hover:border-border rounded px-2 py-1.5 -ml-2"
+              onClick={() => setEditingDesc(true)}
             >
-              {filteredWorkouts.map((cw: any, index: number) => (
-                <SortableWorkoutRow
-                  key={cw.id}
-                  cw={cw}
-                  index={index}
-                  onRemove={(id: string) => removeWorkout.mutate(id)}
-                  onMoveToBottom={moveToBottom}
-                />
-              ))}
-            </SortableContext>
-          </DndContext>
+              {category.description || "Add category description"}
+            </p>
+          )}
         </div>
-      )}
+      </div>
+
+      {/* Workouts section */}
+      <div className="border border-border rounded-lg bg-card p-4 space-y-4">
+        {/* Search + Add */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search for a workout"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-muted/50 border-transparent"
+            />
+          </div>
+          <Button onClick={() => onAddWorkout(category.id)}>
+            <Plus className="h-4 w-4 mr-1" />
+            Add workout
+          </Button>
+        </div>
+
+        {/* Workout count */}
+        <p className="text-sm font-medium">
+          <span className="font-bold">{workouts.length}</span> workouts
+        </p>
+
+        {/* Workout list */}
+        {filteredWorkouts.length > 0 && (
+          <div className="border border-border rounded-lg overflow-hidden">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={filteredWorkouts.map((w: any) => w.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {filteredWorkouts.map((cw: any, index: number) => (
+                  <SortableWorkoutRow
+                    key={cw.id}
+                    cw={cw}
+                    index={index}
+                    onRemove={(id: string) => removeWorkout.mutate(id)}
+                    onMoveToBottom={moveToBottom}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

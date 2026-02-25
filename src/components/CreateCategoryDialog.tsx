@@ -18,12 +18,14 @@ interface CreateCategoryDialogProps {
   collectionId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCreated?: (category: any) => void;
 }
 
 export function CreateCategoryDialog({
   collectionId,
   open,
   onOpenChange,
+  onCreated,
 }: CreateCategoryDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -49,20 +51,22 @@ export function CreateCategoryDialog({
   const createMutation = useMutation({
     mutationFn: async () => {
       const maxOrder = categories?.[0]?.order_index ?? -1;
-      const { error } = await supabase.from("workout_collection_categories").insert({
+      const { data, error } = await supabase.from("workout_collection_categories").insert({
         collection_id: collectionId,
         name: name.trim(),
         description: description.trim() || null,
         order_index: maxOrder + 1,
-      });
+      }).select().single();
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["workout-collection", collectionId] });
       toast({ title: "Category created successfully" });
       onOpenChange(false);
       setName("");
       setDescription("");
+      onCreated?.(data);
     },
     onError: () => {
       toast({ title: "Failed to create category", variant: "destructive" });
