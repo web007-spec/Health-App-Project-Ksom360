@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Plus, Play, Dumbbell, FolderOpen, FolderInput, CloudUpload } from "lucide-react";
+
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +15,7 @@ import { AddWorkoutToCategoryDialog } from "@/components/AddWorkoutToCategoryDia
 import { CollectionHeader } from "@/components/workout-collections/CollectionHeader";
 import { CategoryCard } from "@/components/workout-collections/CategoryCard";
 import { CategoryDetailView } from "@/components/workout-collections/CategoryDetailView";
+import { AddWorkoutTypePicker } from "@/components/AddWorkoutTypePicker";
 import {
   DndContext,
   closestCenter,
@@ -32,6 +34,7 @@ import {
 
 export default function WorkoutCollectionDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -40,6 +43,8 @@ export default function WorkoutCollectionDetail() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [typePickerOpen, setTypePickerOpen] = useState(false);
+  const [typePickerCategoryId, setTypePickerCategoryId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -157,8 +162,8 @@ export default function WorkoutCollectionDetail() {
   };
 
   const handleAddWorkout = (categoryId: string) => {
-    setSelectedCategory(categoryId);
-    setAddWorkoutOpen(true);
+    setTypePickerCategoryId(categoryId);
+    setTypePickerOpen(true);
   };
 
   if (isLoading) return <DashboardLayout><div className="p-6">Loading...</div></DashboardLayout>;
@@ -305,6 +310,18 @@ export default function WorkoutCollectionDetail() {
           open={createCategoryOpen}
           onOpenChange={setCreateCategoryOpen}
           onCreated={(cat) => setActiveCategoryId(cat.id)}
+        />
+
+        <AddWorkoutTypePicker
+          open={typePickerOpen}
+          onOpenChange={setTypePickerOpen}
+          onSelectRegular={() => {
+            setSelectedCategory(typePickerCategoryId);
+            setAddWorkoutOpen(true);
+          }}
+          onSelectVideo={() => {
+            navigate("/ondemand-workouts?create=video");
+          }}
         />
 
         <AddWorkoutToCategoryDialog
