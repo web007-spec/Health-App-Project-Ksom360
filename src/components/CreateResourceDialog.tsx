@@ -87,6 +87,8 @@ export function CreateResourceDialog({ open, onOpenChange }: CreateResourceDialo
 
       if (coverFile) {
         coverImageUrl = await uploadFile(coverFile, "covers");
+      } else if (autoThumbnail) {
+        coverImageUrl = autoThumbnail;
       }
 
       if (!finalUrl && resourceType !== "form") throw new Error("No file or URL provided");
