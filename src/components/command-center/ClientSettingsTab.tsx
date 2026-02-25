@@ -218,16 +218,6 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
     },
   });
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
-        </CardContent>
-      </Card>
-    );
-  }
-
   // Engine mode mutation (updates both profiles + feature settings)
   const engineModeMutation = useMutation({
     mutationFn: async (mode: EngineMode) => {
@@ -247,6 +237,16 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
       toast({ title: "Error", description: "Failed to update engine mode", variant: "destructive" });
     },
   });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   const ENGINE_ICONS_MAP: Record<EngineMode, React.ReactNode> = {
     metabolic: <Shield className="h-5 w-5" />,
