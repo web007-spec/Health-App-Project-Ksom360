@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, Trash2, Music, Loader2, GripVertical } from "lucide-react";
+import { Trash2, Music, GripVertical } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -135,29 +135,29 @@ export function ManageBreathingMusicDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg w-[calc(100vw-2rem)]">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[85vh] overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Music className="h-5 w-5" /> Breathing Music Tracks
           </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
+          <DialogDescription className="text-xs text-muted-foreground whitespace-normal break-words pr-6">
             Manage shared music tracks for breathing sessions and pin specific tracks per exercise from the breathing cards.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Upload section */}
-          <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
-            <div className="flex-1 min-w-0">
+          <div className="flex flex-col gap-2 w-full overflow-hidden">
+            <div className="w-full min-w-0">
               <Label className="text-xs text-muted-foreground">Track name (optional)</Label>
               <Input
                 placeholder="e.g. Ocean Calm"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                className="h-9"
+                className="h-9 w-full"
               />
             </div>
-            <div className="sm:shrink-0">
+            <div className="w-full">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -165,20 +165,14 @@ export function ManageBreathingMusicDialog({
                 className="hidden"
                 onChange={handleUpload}
               />
-              <Button
+              <button
                 type="button"
-                size="sm"
-                className="w-full sm:w-auto min-w-[140px] bg-primary text-primary-foreground hover:bg-primary/90"
+                className="h-9 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
               >
-                {uploading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Upload className="h-4 w-4" />
-                )}
-                <span>{uploading ? "Uploading..." : "Upload track"}</span>
-              </Button>
+                {uploading ? "Uploading..." : "Upload track"}
+              </button>
             </div>
           </div>
 
@@ -195,7 +189,7 @@ export function ManageBreathingMusicDialog({
             </div>
           ) : (
             <div className="space-y-2 max-h-[300px] overflow-y-auto">
-              {tracks.map((track) => (
+              {(tracks ?? []).map((track) => (
                 <div
                   key={track.id}
                   className="flex items-center gap-3 p-3 rounded-lg border bg-card"
