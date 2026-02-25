@@ -31,6 +31,7 @@ import ClientTasks from "./pages/client/ClientTasks";
 import ClientResourceHub from "./pages/client/ClientResourceHub";
 import ClientWorkoutHub from "./pages/client/ClientWorkoutHub";
 import ClientOnDemand from "./pages/client/ClientOnDemand";
+import ClientResourceCollectionDetail from "./pages/client/ClientResourceCollectionDetail";
 import ResourceLibrary from "./pages/ResourceLibrary";
 import ResourceCollections from "./pages/ResourceCollections";
 import ResourceCollectionDetail from "./pages/ResourceCollectionDetail";
@@ -150,6 +151,7 @@ const App = () => (
           <Route path="/client/resource-hub" element={<ProtectedRoute allowedRoles={["client"]}><ClientResourceHub /></ProtectedRoute>} />
           <Route path="/client/workout-hub" element={<ProtectedRoute allowedRoles={["client"]}><ClientWorkoutHub /></ProtectedRoute>} />
           <Route path="/client/on-demand" element={<ProtectedRoute allowedRoles={["client"]}><ClientOnDemand /></ProtectedRoute>} />
+          <Route path="/client/resource-collection/:id" element={<ProtectedRoute allowedRoles={["client"]}><ClientResourceCollectionDetail /></ProtectedRoute>} />
           <Route path="/client/health" element={<ProtectedRoute allowedRoles={["client"]}><ClientHealth /></ProtectedRoute>} />
           <Route path="/client/health-connect" element={<ProtectedRoute allowedRoles={["client"]}><ClientHealthConnect /></ProtectedRoute>} />
           <Route path="/client/badges" element={<ProtectedRoute allowedRoles={["client"]}><ClientBadges /></ProtectedRoute>} />

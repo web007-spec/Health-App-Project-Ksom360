@@ -1,7 +1,7 @@
 import { Play, Package } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { WorkoutCollectionCard } from "./WorkoutCollectionCard";
-import { ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface OnDemandAllTabProps {
   workoutCollections: any[] | undefined;
@@ -16,6 +16,8 @@ export function OnDemandAllTab({
   searchQuery,
   isLoading,
 }: OnDemandAllTabProps) {
+  const navigate = useNavigate();
+
   if (isLoading) {
     return <div className="text-center py-12 text-muted-foreground text-sm">Loading content...</div>;
   }
@@ -60,6 +62,7 @@ export function OnDemandAllTab({
                 <div
                   key={collection.id}
                   className="relative overflow-hidden rounded-xl cursor-pointer group flex-shrink-0 w-36"
+                  onClick={() => navigate(`/client/resource-collection/${collection.id}`)}
                 >
                   {collection.cover_image_url ? (
                     <img
