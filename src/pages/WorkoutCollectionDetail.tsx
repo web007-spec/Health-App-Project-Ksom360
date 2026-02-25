@@ -164,8 +164,8 @@ export default function WorkoutCollectionDetail() {
   };
 
   const handleAddWorkout = (categoryId: string) => {
-    setTypePickerCategoryId(categoryId);
-    setTypePickerOpen(true);
+    setSelectedCategory(categoryId);
+    setAddWorkoutOpen(true);
   };
 
   if (isLoading) return <DashboardLayout><div className="p-6">Loading...</div></DashboardLayout>;
