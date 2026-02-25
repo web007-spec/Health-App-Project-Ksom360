@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CreateSectionDialog } from "@/components/CreateSectionDialog";
+// CreateSectionDialog removed – inline add used instead
 import { AddResourceToSectionDialog } from "@/components/AddResourceToSectionDialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -495,9 +495,9 @@ export default function ResourceCollectionDetail() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [createSectionOpen, setCreateSectionOpen] = useState(false);
   const [addResourceOpen, setAddResourceOpen] = useState(false);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  const [newSectionName, setNewSectionName] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -744,17 +744,11 @@ export default function ResourceCollectionDetail() {
 
             <div className="flex gap-6">
               <div className="flex-1 space-y-4 min-w-0">
-                <div className="flex justify-between items-center">
-                  <p className="text-sm text-muted-foreground">
-                    Resource limit: {totalResources}/25
-                  </p>
-                  <Button onClick={() => setCreateSectionOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Section
-                  </Button>
-                </div>
+                <p className="text-sm text-muted-foreground">
+                  Resource limit: {totalResources}/25
+                </p>
 
-                {sections.length === 0 ? (
+                {sections.length === 0 && !newSectionName ? (
                   <Card className="text-center py-12">
                     <CardContent className="pt-6">
                       <LayoutGrid className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -762,10 +756,6 @@ export default function ResourceCollectionDetail() {
                       <p className="text-muted-foreground mb-4">
                         Create sections to organize your resources
                       </p>
-                      <Button onClick={() => setCreateSectionOpen(true)}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Section
-                      </Button>
                     </CardContent>
                   </Card>
                 ) : (
@@ -786,6 +776,39 @@ export default function ResourceCollectionDetail() {
                     </SortableContext>
                   </DndContext>
                 )}
+
+                {/* Inline Add New Section */}
+                <div className="border-2 border-dashed border-border rounded-lg p-4">
+                  <div className="flex items-center gap-2">
+                    <Plus className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      className="border-primary/30 bg-transparent h-9 max-w-[300px] placeholder:text-muted-foreground"
+                      placeholder="Add New Section"
+                      value={newSectionName}
+                      onChange={(e) => setNewSectionName(e.target.value)}
+                      onKeyDown={async (e) => {
+                        if (e.key === "Enter" && newSectionName.trim()) {
+                          const maxOrder = sections.length > 0
+                            ? Math.max(...sections.map((s: any) => s.order_index ?? 0))
+                            : -1;
+                          const { error } = await supabase.from("collection_sections").insert({
+                            collection_id: id!,
+                            name: newSectionName.trim(),
+                            layout_type: "large_cards" as any,
+                            order_index: maxOrder + 1,
+                          });
+                          if (!error) {
+                            queryClient.invalidateQueries({ queryKey: ["resource-collection", id] });
+                            setNewSectionName("");
+                            toast({ title: "Section created" });
+                          } else {
+                            toast({ title: "Failed to create section", variant: "destructive" });
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Phone preview — hidden on small screens */}
@@ -804,11 +827,8 @@ export default function ResourceCollectionDetail() {
           </TabsContent>
         </Tabs>
 
-        <CreateSectionDialog
-          collectionId={id!}
-          open={createSectionOpen}
-          onOpenChange={setCreateSectionOpen}
-        />
+
+
 
         <AddResourceToSectionDialog
           sectionId={selectedSection!}
