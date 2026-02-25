@@ -40,9 +40,9 @@ let HealthKit: any = null;
 async function getHealthKit() {
   if (HealthKit) return HealthKit;
   try {
-    const pkg = ['@nicearma', 'capacitor-healthkit'].join('/');
+    const pkg = ['@nicholasquinn', 'capacitor-healthkit'].join('/');
     const mod = await (new Function('p', 'return import(p)'))(pkg);
-    HealthKit = mod.HealthKit;
+    HealthKit = mod.CapacitorHealthkit || mod.HealthKit || mod.default;
     return HealthKit;
   } catch {
     console.warn('HealthKit plugin not installed – running in stub mode');
@@ -57,9 +57,9 @@ let HealthConnect: any = null;
 async function getHealthConnect() {
   if (HealthConnect) return HealthConnect;
   try {
-    const pkg = ['@nicearma', 'capacitor-health-connect'].join('/');
+    const pkg = ['@nicholasquinn', 'capacitor-healthconnect'].join('/');
     const mod = await (new Function('p', 'return import(p)'))(pkg);
-    HealthConnect = mod.HealthConnect;
+    HealthConnect = mod.CapacitorHealthConnect || mod.HealthConnect || mod.default;
     return HealthConnect;
   } catch {
     console.warn('Health Connect plugin not installed – running in stub mode');
