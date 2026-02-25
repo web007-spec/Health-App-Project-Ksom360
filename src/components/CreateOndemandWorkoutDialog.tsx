@@ -209,7 +209,7 @@ export function CreateOndemandWorkoutDialog({
     setSelectedWorkoutData(w);
     setWorkoutSearch("");
     setShowSearchResults(false);
-    if (!name) setName(w.name);
+    // Don't auto-fill name — user names the on-demand workout independently
     // Use the workout's cover image as thumbnail if we don't have one
     if (!thumbnailPreview && !thumbnailUrl && w.imageUrl) {
       setThumbnailUrl(w.imageUrl);
