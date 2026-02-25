@@ -104,8 +104,11 @@ export function ClientLayout({ children }: ClientLayoutProps) {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Top bar */}
-      <header className="h-12 border-b border-border bg-card flex items-center justify-between px-4 shrink-0">
+      {/* Top bar — safe-area padding keeps it below the iOS notch / status bar */}
+      <header
+        className="border-b border-border bg-card flex items-center justify-between px-4 shrink-0"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)', minHeight: 'calc(3rem + env(safe-area-inset-top, 0px))' }}
+      >
         {isImpersonating ? (
           <>
             <Badge variant="default" className="bg-orange-500 hover:bg-orange-600 text-xs">
