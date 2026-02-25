@@ -28,21 +28,26 @@ export function ClientLayout({ children }: ClientLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
-  const effectiveClientId = useEffectiveClientId();
-  const isImpersonating = userRole === "trainer" && effectiveClientId !== user?.id;
+
+  // Use a single stable client id reference across the component
+  const activeClientId = useEffectiveClientId();
+  const isImpersonating = userRole === "trainer" && activeClientId !== user?.id;
 
   const { data: profile } = useQuery({
-    queryKey: ["profile", effectiveClientId],
+    queryKey: ["profile", activeClientId],
     queryFn: async () => {
+      if (!activeClientId) return null;
+
       const { data, error } = await supabase
         .from("profiles")
         .select("avatar_url, full_name, email")
-        .eq("id", effectiveClientId)
+        .eq("id", activeClientId)
         .single();
+
       if (error) throw error;
       return data;
     },
-    enabled: !!effectiveClientId,
+    enabled: !!activeClientId,
   });
 
   // Count unread messages across all conversations
