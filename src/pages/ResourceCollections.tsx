@@ -282,18 +282,19 @@ export default function ResourceCollections() {
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {filteredResources.map((resource) => (
                     <div
                       key={resource.id}
-                      className="flex items-center gap-3 p-3 border rounded-lg hover:bg-accent/50 transition-colors group cursor-pointer"
+                      className="flex items-center gap-3 p-3 border rounded-xl hover:bg-accent/50 transition-colors group cursor-pointer"
+                      onClick={() => resource.url && window.open(resource.url, "_blank")}
                     >
                       {/* Thumbnail */}
-                      <div className="h-12 w-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                      <div className="h-14 w-14 rounded-lg overflow-hidden flex-shrink-0">
                         {resource.cover_image_url ? (
                           <img src={resource.cover_image_url} alt="" className="h-full w-full object-cover" />
                         ) : (
-                          <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                          <div className="h-full w-full flex items-center justify-center bg-primary/10 rounded-lg">
                             {getResourceIcon(resource.type)}
                           </div>
                         )}
@@ -301,9 +302,9 @@ export default function ResourceCollections() {
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{resource.name}</p>
+                        <p className="text-sm font-semibold truncate">{resource.name}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {resource.url || resource.file_path || "—"}
+                          {resource.url ? resource.url.replace(/^https?:\/\//, "").slice(0, 30) + "..." : "—"}
                         </p>
                       </div>
 
