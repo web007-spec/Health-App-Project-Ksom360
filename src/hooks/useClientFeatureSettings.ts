@@ -92,7 +92,9 @@ export function useClientFeatureSettings() {
       return data as ClientFeatureSettings | null;
     },
     enabled: !!clientId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   // When clientId is not yet available (auth loading), treat as loading
