@@ -4,11 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Package, Filter, Folder, MoreVertical, Trash2, FileText, Link as LinkIcon, FileCheck } from "lucide-react";
+import { Plus, Search, Package, Filter, Folder, MoreVertical, Trash2, FileText, Link as LinkIcon, FileCheck, ChevronUp, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { CreateResourceDialog } from "@/components/CreateResourceDialog";
 import {
@@ -37,12 +36,94 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+/* ─── Hero Banner ─── */
+function HeroBanner({ onAddResource, onSearch }: { onAddResource: () => void; onSearch: () => void }) {
+  const [visible, setVisible] = useState(true);
+
+  if (!visible) {
+    return (
+      <button
+        onClick={() => setVisible(true)}
+        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
+      >
+        Show Banner <ChevronDown className="h-3.5 w-3.5" />
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-xl bg-gradient-to-br from-rose-50 to-orange-50/60 dark:from-rose-950/30 dark:to-orange-900/20 border border-rose-200/50 dark:border-rose-800/30 p-6 md:p-8 relative overflow-hidden">
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Left content */}
+        <div className="flex-1 space-y-3">
+          <p className="text-xs font-bold tracking-widest uppercase text-foreground/70">Studio Resources</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground">Quick access to links and documents</h2>
+          <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
+            Add resources for websites, videos, social media profiles, or documents you want to share with clients.
+          </p>
+
+          <div className="flex items-center gap-3 pt-3">
+            <Button onClick={onAddResource} className="gap-2 bg-primary hover:bg-primary/90">
+              <Plus className="h-4 w-4" />
+              Add Resource
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="border-primary/30 text-primary hover:bg-primary/10"
+              onClick={onSearch}
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" className="gap-2 text-muted-foreground">
+              <Filter className="h-4 w-4" />
+              Filter
+            </Button>
+          </div>
+        </div>
+
+        {/* Right decorative cards */}
+        <div className="hidden md:grid grid-cols-3 gap-2 w-64">
+          <div className="h-20 rounded-lg bg-blue-400/80 flex items-start p-2">
+            <span className="text-white font-bold text-lg">f</span>
+          </div>
+          <div className="h-20 rounded-lg bg-purple-400/60 flex items-start p-2">
+            <span className="text-white font-bold text-lg">📷</span>
+          </div>
+          <div className="h-20 rounded-lg bg-muted/60 flex items-start p-2">
+            <span className="text-muted-foreground font-bold text-lg">🔗</span>
+          </div>
+          <div className="h-20 rounded-lg bg-amber-300/70 flex items-start p-2">
+            <span className="text-amber-900 font-bold text-[10px] uppercase">Documents</span>
+          </div>
+          <div className="h-20 rounded-lg bg-cyan-300/60 flex items-center justify-center">
+            <span className="text-cyan-700 text-xl">▶</span>
+          </div>
+          <div className="h-20 rounded-lg bg-rose-400/60 flex items-center justify-center">
+            <span className="text-white text-xl">▶</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Hide Banner toggle */}
+      <button
+        onClick={() => setVisible(false)}
+        className="absolute bottom-3 right-4 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+      >
+        Hide Banner <ChevronUp className="h-3 w-3" />
+      </button>
+    </div>
+  );
+}
+
+/* ─── Page ─── */
 export default function ResourceCollections() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [createCollectionOpen, setCreateCollectionOpen] = useState(false);
   const [createResourceOpen, setCreateResourceOpen] = useState(false);
   const [collectionName, setCollectionName] = useState("");
@@ -156,33 +237,28 @@ export default function ResourceCollections() {
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Resources</h1>
-          <div className="flex gap-2">
-            <Button onClick={() => setCreateResourceOpen(true)} className="bg-primary hover:bg-primary/90">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Resource
-            </Button>
-          </div>
-        </div>
+        {/* Page title */}
+        <h1 className="text-3xl font-bold text-foreground">Resources</h1>
 
-        {/* Search + Filter */}
-        <div className="flex gap-3">
-          <div className="relative flex-1 max-w-md">
+        {/* Hero Banner */}
+        <HeroBanner
+          onAddResource={() => setCreateResourceOpen(true)}
+          onSearch={() => setSearchOpen(!searchOpen)}
+        />
+
+        {/* Inline search bar (toggled) */}
+        {searchOpen && (
+          <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search resources..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
+              autoFocus
             />
           </div>
-          <Button variant="outline" className="gap-2">
-            <Filter className="h-4 w-4" />
-            Filter
-          </Button>
-        </div>
+        )}
 
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">Loading resources...</div>
