@@ -3,7 +3,7 @@ import fastingCardBgImg from "@/assets/fasting-timer-bg.jpg";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X, Plus, Pencil, Swords, Trophy, MapPin, Check, Activity, ScanBarcode, Camera, PenLine, MessageCircle, Clock } from "lucide-react";
+import { Bell, Dumbbell, CheckCircle2, Circle, UtensilsCrossed, Footprints, ChevronRight, Smartphone, X, Plus, Pencil, Swords, Trophy, MapPin, Check, Activity, ScanBarcode, Camera, PenLine, MessageCircle, Clock, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { differenceInCalendarDays } from "date-fns";
 import { useEffectiveClientId } from "@/hooks/useEffectiveClientId";
@@ -1283,6 +1283,25 @@ export default function ClientDashboard() {
         {/* Fasting Protocol Card — hidden for Athletic engine */}
         {settings.fasting_enabled && !engineConfig.fastingDisabled && (
           <FastingProtocolCard clientId={clientId} navigate={navigate} />
+        )}
+
+        {/* Restore Recovery Hub Card */}
+        {settings.restore_enabled && (
+          <Card
+            className="overflow-hidden border-primary/20 shadow-md cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => navigate("/client/vibes")}
+          >
+            <CardContent className="px-5 py-5 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Sparkles className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold">Restore</h3>
+                <p className="text-xs text-muted-foreground">Soundscapes, breathing & guided recovery</p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+            </CardContent>
+          </Card>
         )}
 
         {/* Engine-driven dashboard cards (always show for all engines) */}
