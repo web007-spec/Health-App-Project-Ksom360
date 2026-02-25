@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ArrowLeft, Pause, Play, RotateCcw } from "lucide-react";
+import { ArrowLeft, Pause, Play, RotateCcw, Music, Volume2 } from "lucide-react";
 import type { BreathingExercise, RestoreMode, MotionProfile, ProtocolTone } from "@/lib/breathingExercises";
 import { BreathingEntryScreen } from "./BreathingEntryScreen";
 import { BreathingSessionSummary } from "./BreathingSessionSummary";
 import { BreathingAnimationLayer } from "./BreathingAnimationLayer";
+import { toast } from "sonner";
 
 interface Props {
   exercise: BreathingExercise;
@@ -79,6 +80,12 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
   const frameRef = useRef(0);
   const sessionStartRef = useRef(0);
 
+  // Music state
+  const [musicLoading, setMusicLoading] = useState(false);
+  const [musicEnabled, setMusicEnabled] = useState(true);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const musicUrlRef = useRef<string | null>(null);
+
   const currentPhase = phases[phaseIndex];
   const rawProgress = phaseElapsed / currentPhase.seconds;
   const mappedProgress = currentPhase.type === "exhale" ? easeOutQuart(rawProgress) : rawProgress;
@@ -119,13 +126,100 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [playing, stage, tick]);
 
+  // Music: fetch and play
+  const fetchAndPlayMusic = useCallback(async (dur: number) => {
+    if (!musicEnabled) return;
+    setMusicLoading(true);
+    try {
+      const musicDuration = Math.min(dur, 300); // ElevenLabs max
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-breathing-music`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            prompt: exercise.musicPrompt,
+            duration: musicDuration,
+          }),
+        }
+      );
+      if (!response.ok) throw new Error(`Music generation failed: ${response.status}`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      musicUrlRef.current = url;
+      const audio = new Audio(url);
+      audio.loop = true;
+      audio.volume = 0;
+      audioRef.current = audio;
+      await audio.play();
+      // Fade in over 2s
+      let vol = 0;
+      const fadeIn = setInterval(() => {
+        vol = Math.min(vol + 0.02, 0.35);
+        if (audioRef.current) audioRef.current.volume = vol;
+        if (vol >= 0.35) clearInterval(fadeIn);
+      }, 50);
+    } catch (err) {
+      console.log("[BreathingPlayer] Music generation skipped:", err);
+    } finally {
+      setMusicLoading(false);
+    }
+  }, [exercise.musicPrompt, musicEnabled]);
+
+  const stopMusic = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    let vol = audio.volume;
+    const fadeOut = setInterval(() => {
+      vol = Math.max(vol - 0.02, 0);
+      audio.volume = vol;
+      if (vol <= 0) {
+        clearInterval(fadeOut);
+        audio.pause();
+        audio.src = "";
+        audioRef.current = null;
+        if (musicUrlRef.current) {
+          URL.revokeObjectURL(musicUrlRef.current);
+          musicUrlRef.current = null;
+        }
+      }
+    }, 30);
+  }, []);
+
   // Auto-end when duration reached
   useEffect(() => {
     if (stage === "playing" && sessionElapsed >= durationSecs) {
       setPlaying(false);
+      stopMusic();
       setStage("summary");
     }
-  }, [sessionElapsed, durationSecs, stage]);
+  }, [sessionElapsed, durationSecs, stage, stopMusic]);
+
+  // Pause/resume music with session
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing && stage === "playing") {
+      audio.play().catch(() => {});
+    } else {
+      audio.pause();
+    }
+  }, [playing, stage]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+      }
+      if (musicUrlRef.current) URL.revokeObjectURL(musicUrlRef.current);
+    };
+  }, []);
 
   const handleStart = (dur: number) => {
     setDurationSecs(dur);
@@ -136,6 +230,7 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
     setPhaseElapsed(0);
     setStage("playing");
     setPlaying(true);
+    fetchAndPlayMusic(dur);
   };
 
   const handleReset = () => {
@@ -148,6 +243,7 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
 
   const handleEnd = () => {
     setPlaying(false);
+    stopMusic();
     setStage("summary");
   };
 
@@ -376,9 +472,14 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <span className="text-[11px] text-white/35 font-light tabular-nums tracking-wide">
-          {timeRemainingStr} remaining
-        </span>
+        <div className="flex items-center gap-2">
+          {musicLoading && (
+            <span className="text-[9px] text-white/25 animate-pulse">generating music…</span>
+          )}
+          <span className="text-[11px] text-white/35 font-light tabular-nums tracking-wide">
+            {timeRemainingStr} remaining
+          </span>
+        </div>
         <span className="text-[10px] text-white/20 uppercase tracking-[0.2em] tabular-nums">
           {cycleCount + 1}
         </span>
@@ -437,7 +538,21 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
             <Play className="h-5 w-5 ml-0.5 text-white/60" />
           )}
         </button>
-        <div className="w-10" /> {/* spacer for centering */}
+        <button
+          onClick={() => {
+            setMusicEnabled((prev) => {
+              if (prev) stopMusic();
+              return !prev;
+            });
+          }}
+          className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
+          style={{
+            background: `hsla(${h}, 15%, 15%, 0.3)`,
+            color: musicEnabled && audioRef.current ? `hsla(${h}, 40%, 70%, 0.6)` : `hsla(${h}, 10%, 50%, 0.25)`,
+          }}
+        >
+          <Music className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );
