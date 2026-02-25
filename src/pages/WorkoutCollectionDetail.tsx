@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Plus, Play, Dumbbell } from "lucide-react";
+import { Plus, Play, Dumbbell, FolderOpen, FolderInput, CloudUpload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -198,20 +198,34 @@ export default function WorkoutCollectionDetail() {
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
-        <CollectionHeader
-          collection={collection}
-          onTogglePublished={(val) => togglePublished.mutate(val === "published")}
-        />
+        <h1 className="text-2xl font-bold text-foreground">{collection.name}</h1>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="clients">Clients</TabsTrigger>
+          <TabsList className="bg-transparent p-0 h-auto gap-4 justify-start border-b border-border rounded-none w-full">
+            <TabsTrigger
+              value="overview"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 pb-2 text-sm font-medium"
+            >
+              Overview
+            </TabsTrigger>
+            <TabsTrigger
+              value="clients"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 pb-2 text-sm font-medium"
+            >
+              Clients
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="mt-4 space-y-4">
+          <TabsContent value="overview" className="mt-6 space-y-6">
+            <CollectionHeader
+              collection={collection}
+              onTogglePublished={(val) => togglePublished.mutate(val === "published")}
+            />
+
+            <div className="border-t border-border" />
+
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Categories ({categories.length})</h2>
+              <h2 className="text-lg font-semibold text-foreground">Categories ({categories.length})</h2>
               <Button onClick={() => setCreateCategoryOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create New Category
@@ -219,19 +233,36 @@ export default function WorkoutCollectionDetail() {
             </div>
 
             {categories.length === 0 ? (
-              <Card className="text-center py-12">
-                <CardContent className="pt-6">
-                  <Play className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No categories yet</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Create categories to organize your workouts
-                  </p>
-                  <Button onClick={() => setCreateCategoryOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create New Category
-                  </Button>
-                </CardContent>
-              </Card>
+              <div className="flex items-center justify-center gap-8 py-16">
+                {/* Step 1 */}
+                <div className="flex flex-col items-center text-center max-w-[160px]">
+                  <div className="h-16 w-16 rounded-xl bg-muted/60 flex items-center justify-center mb-3">
+                    <FolderOpen className="h-8 w-8 text-muted-foreground/50" />
+                  </div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Step 1</p>
+                  <p className="text-sm font-medium text-foreground">Create Categories</p>
+                </div>
+                {/* Arrow */}
+                <div className="text-muted-foreground/30 text-2xl tracking-[0.3em] mt-[-2rem]">···›</div>
+                {/* Step 2 */}
+                <div className="flex flex-col items-center text-center max-w-[160px]">
+                  <div className="h-16 w-16 rounded-xl bg-muted/60 flex items-center justify-center mb-3">
+                    <FolderInput className="h-8 w-8 text-muted-foreground/50" />
+                  </div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Step 2</p>
+                  <p className="text-sm font-medium text-foreground">Add Workouts into Categories</p>
+                </div>
+                {/* Arrow */}
+                <div className="text-muted-foreground/30 text-2xl tracking-[0.3em] mt-[-2rem]">···›</div>
+                {/* Step 3 */}
+                <div className="flex flex-col items-center text-center max-w-[160px]">
+                  <div className="h-16 w-16 rounded-xl bg-muted/60 flex items-center justify-center mb-3">
+                    <CloudUpload className="h-8 w-8 text-muted-foreground/50" />
+                  </div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Step 3</p>
+                  <p className="text-sm font-medium text-foreground">Publish and add clients</p>
+                </div>
+              </div>
             ) : (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext
