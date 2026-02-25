@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -140,6 +140,9 @@ export function ManageBreathingMusicDialog({
           <DialogTitle className="flex items-center gap-2">
             <Music className="h-5 w-5" /> Breathing Music Tracks
           </DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            Manage shared music tracks for breathing sessions and pin specific tracks per exercise from the breathing cards.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -163,9 +166,10 @@ export function ManageBreathingMusicDialog({
                 onChange={handleUpload}
               />
               <Button
+                type="button"
                 size="sm"
-                variant="default"
-                className="w-full sm:w-auto gap-1"
+                variant="secondary"
+                className="w-full sm:w-auto"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
               >
@@ -174,13 +178,13 @@ export function ManageBreathingMusicDialog({
                 ) : (
                   <Upload className="h-4 w-4 mr-1" />
                 )}
-                Upload
+                {uploading ? "Uploading..." : "Upload track"}
               </Button>
             </div>
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Uploaded tracks are shared across all breathing exercises.
+            Uploaded tracks go to your shared library. Use the pin selector on each breathing card to assign a track individually.
           </p>
 
           {/* Track list */}
