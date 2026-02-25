@@ -497,6 +497,24 @@ export default function ResourceCollectionDetail() {
     setAddResourceOpen(true);
   };
 
+  const [editName, setEditName] = useState("");
+  const [isEditingName, setIsEditingName] = useState(false);
+
+  const updateName = useMutation({
+    mutationFn: async (name: string) => {
+      const { error } = await supabase
+        .from("resource_collections")
+        .update({ name })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["resource-collection", id] });
+      toast({ title: "Name updated" });
+      setIsEditingName(false);
+    },
+  });
+
   if (isLoading) return <DashboardLayout><div className="p-6">Loading...</div></DashboardLayout>;
   if (!collection) return <DashboardLayout><div className="p-6">Collection not found</div></DashboardLayout>;
 
@@ -507,22 +525,16 @@ export default function ResourceCollectionDetail() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/resource-collections")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold">{collection.name}</h1>
-              {collection.description && (
-                <p className="text-muted-foreground mt-1">{collection.description}</p>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
+      <div className="p-6 space-y-4">
+        {/* Compact Everfit-style header */}
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/resource-collections")}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">{collection.name}</h1>
+          <div className="ml-auto flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <Label htmlFor="published">Published</Label>
+              <Label htmlFor="published" className="text-sm">Published</Label>
               <Switch
                 id="published"
                 checked={collection.is_published}
@@ -532,9 +544,6 @@ export default function ResourceCollectionDetail() {
           </div>
         </div>
 
-        {/* Cover Image */}
-        <CoverImageSection collectionId={id!} currentUrl={(collection as any).cover_image_url} />
-
         <Tabs defaultValue="resources">
           <TabsList>
             <TabsTrigger value="resources">Resources</TabsTrigger>
@@ -542,9 +551,30 @@ export default function ResourceCollectionDetail() {
           </TabsList>
 
           <TabsContent value="resources" className="mt-4">
+            {/* Inline editable name row */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-16 h-16 rounded-lg border-2 border-dashed border-border flex items-center justify-center shrink-0 bg-muted/30">
+                {(collection as any).cover_image_url ? (
+                  <img src={(collection as any).cover_image_url} alt="" className="w-full h-full object-cover rounded-lg" />
+                ) : (
+                  <Image className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              <Input
+                className="text-lg font-semibold border-none bg-muted/30 h-12 flex-1"
+                defaultValue={collection.name}
+                onFocus={(e) => { setEditName(e.target.value); setIsEditingName(true); }}
+                onChange={(e) => setEditName(e.target.value)}
+                onBlur={() => { if (isEditingName && editName && editName !== collection.name) updateName.mutate(editName); else setIsEditingName(false); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && editName) updateName.mutate(editName); }}
+              />
+              <Button variant="outline" disabled={!isEditingName} onClick={() => { if (editName) updateName.mutate(editName); }}>
+                Save
+              </Button>
+            </div>
+
             <div className="flex gap-6">
-              {/* Main content */}
-              <div className="flex-1 space-y-6 min-w-0">
+              <div className="flex-1 space-y-4 min-w-0">
                 <div className="flex justify-between items-center">
                   <p className="text-sm text-muted-foreground">
                     Resource limit: {totalResources}/25
