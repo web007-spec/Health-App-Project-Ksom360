@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Share2, X } from "lucide-react";
+import { Search, Share2, X, Upload, Dumbbell } from "lucide-react";
 
 interface CreateOndemandWorkoutDialogProps {
   open: boolean;
@@ -31,10 +31,15 @@ export function CreateOndemandWorkoutDialog({
   const [description, setDescription] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [workoutSearch, setWorkoutSearch] = useState("");
   const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
+  const [selectedWorkoutData, setSelectedWorkoutData] = useState<{ name: string; exerciseCount: number; sectionCount: number; imageUrl: string | null } | null>(null);
   const [showMoreLabels, setShowMoreLabels] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const thumbInputRef = useRef<HTMLInputElement>(null);
 
   const workoutType = presetType;
 
@@ -58,7 +63,7 @@ export function CreateOndemandWorkoutDialog({
       const { data, error } = await supabase
         .from("workout_plans")
         .select(`
-          id, name,
+          id, name, image_url,
           workout_plan_sections(
             id,
             workout_plan_exercises(id)
@@ -73,7 +78,7 @@ export function CreateOndemandWorkoutDialog({
           (sum: number, s: any) => sum + (s.workout_plan_exercises?.length || 0),
           0
         );
-        return { id: w.id, name: w.name, exerciseCount, sectionCount: sections.length };
+        return { id: w.id, name: w.name, exerciseCount, sectionCount: sections.length, imageUrl: w.image_url || null };
       });
     },
     enabled: !!user?.id && open && workoutType === "regular",
@@ -101,6 +106,20 @@ export function CreateOndemandWorkoutDialog({
 
   const createMutation = useMutation({
     mutationFn: async () => {
+      let finalThumbnailUrl = thumbnailUrl || null;
+
+      // Upload thumbnail file if selected
+      if (thumbnailFile && user) {
+        const ext = thumbnailFile.name.split(".").pop();
+        const path = `${user.id}/${Date.now()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("workout-covers")
+          .upload(path, thumbnailFile, { contentType: thumbnailFile.type, upsert: false });
+        if (uploadErr) throw uploadErr;
+        const { data: { publicUrl } } = supabase.storage.from("workout-covers").getPublicUrl(path);
+        finalThumbnailUrl = publicUrl;
+      }
+
       const { data: workout, error: workoutError } = await supabase
         .from("ondemand_workouts")
         .insert({
@@ -108,7 +127,7 @@ export function CreateOndemandWorkoutDialog({
           description,
           type: workoutType,
           video_url: workoutType === "video" ? videoUrl : null,
-          thumbnail_url: thumbnailUrl || null,
+          thumbnail_url: finalThumbnailUrl,
           trainer_id: user!.id,
           source_workout_id: selectedWorkoutId,
         })
@@ -168,10 +187,39 @@ export function CreateOndemandWorkoutDialog({
     setDescription("");
     setVideoUrl("");
     setThumbnailUrl("");
+    setThumbnailFile(null);
+    setThumbnailPreview(null);
     setSelectedLabels([]);
     setWorkoutSearch("");
     setSelectedWorkoutId(null);
+    setSelectedWorkoutData(null);
     setShowMoreLabels(false);
+    setShowSearchResults(false);
+  };
+
+  const handleThumbnailSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setThumbnailFile(file);
+    setThumbnailPreview(URL.createObjectURL(file));
+  };
+
+  const handleSelectWorkout = (w: { id: string; name: string; exerciseCount: number; sectionCount: number; imageUrl: string | null }) => {
+    setSelectedWorkoutId(w.id);
+    setSelectedWorkoutData(w);
+    setWorkoutSearch("");
+    setShowSearchResults(false);
+    if (!name) setName(w.name);
+    // Use the workout's cover image as thumbnail if we don't have one
+    if (!thumbnailPreview && !thumbnailUrl && w.imageUrl) {
+      setThumbnailUrl(w.imageUrl);
+    }
+  };
+
+  const handleClearWorkout = () => {
+    setSelectedWorkoutId(null);
+    setSelectedWorkoutData(null);
+    setWorkoutSearch("");
   };
 
   const toggleLabel = (labelId: string, category: string) => {
@@ -208,15 +256,29 @@ export function CreateOndemandWorkoutDialog({
       <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto p-0 gap-0">
         {/* Header area */}
         <div className="p-6 pb-0 space-y-5">
-          {/* Name input - large, borderless */}
-          <div className="flex items-center gap-2">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Name your Workout"
-              className="flex-1 text-2xl font-medium text-foreground placeholder:text-muted-foreground/50 bg-transparent border-none outline-none"
-            />
-            <button className="text-muted-foreground hover:text-foreground">
+          {/* Name input + thumbnail */}
+          <div className="flex items-start gap-3">
+            <div className="flex-1">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Name your Workout"
+                className="w-full text-2xl font-medium text-foreground placeholder:text-muted-foreground/50 bg-transparent border-none outline-none"
+              />
+            </div>
+            {/* Thumbnail upload */}
+            <input ref={thumbInputRef} type="file" accept="image/*" className="hidden" onChange={handleThumbnailSelect} />
+            <button
+              onClick={() => thumbInputRef.current?.click()}
+              className="h-16 w-16 rounded-lg border border-border bg-muted/50 flex items-center justify-center overflow-hidden flex-shrink-0 hover:border-primary/50 transition-colors"
+            >
+              {thumbnailPreview || thumbnailUrl ? (
+                <img src={thumbnailPreview || thumbnailUrl} alt="Cover" className="h-full w-full object-cover" />
+              ) : (
+                <Dumbbell className="h-6 w-6 text-muted-foreground" />
+              )}
+            </button>
+            <button className="text-muted-foreground hover:text-foreground mt-1">
               <Share2 className="h-5 w-5" />
             </button>
           </div>
@@ -258,43 +320,68 @@ export function CreateOndemandWorkoutDialog({
                 <p className="text-sm text-muted-foreground">
                   Copy a workout from your Workout library
                 </p>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    value={workoutSearch}
-                    onChange={(e) => setWorkoutSearch(e.target.value)}
-                    placeholder="Search by workout name"
-                    className="pl-10 bg-background"
-                  />
-                </div>
-                {filteredLibrary && filteredLibrary.length > 0 && (
-                  <div className="bg-background rounded-md border border-border max-h-48 overflow-y-auto shadow-lg">
-                    {filteredLibrary.map((w) => (
-                      <button
-                        key={w.id}
-                        className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-accent transition-colors border-b border-border last:border-b-0 ${
-                          selectedWorkoutId === w.id ? "bg-accent" : ""
-                        }`}
-                        onClick={() => {
-                          setSelectedWorkoutId(w.id);
-                          setWorkoutSearch(w.name);
-                          if (!name) setName(w.name);
-                        }}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm text-foreground">{w.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {w.exerciseCount} Exercises • {w.sectionCount} Sections
-                          </p>
-                        </div>
-                        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-bold text-primary">
-                            {(user?.email?.[0] || "T").toUpperCase()}{(user?.email?.[1] || "").toUpperCase()}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
+
+                {/* Show selected workout card OR search */}
+                {selectedWorkoutData ? (
+                  <div className="bg-background rounded-md border border-border p-3 flex items-center gap-3">
+                    {selectedWorkoutData.imageUrl ? (
+                      <img src={selectedWorkoutData.imageUrl} alt="" className="h-14 w-20 rounded-md object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="h-14 w-20 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                        <Dumbbell className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-foreground">{selectedWorkoutData.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {selectedWorkoutData.exerciseCount} Exercises • {selectedWorkoutData.sectionCount} Sections
+                      </p>
+                    </div>
+                    <button onClick={handleClearWorkout} className="text-muted-foreground hover:text-destructive p-1">
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
+                ) : (
+                  <>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={workoutSearch}
+                        onChange={(e) => {
+                          setWorkoutSearch(e.target.value);
+                          setShowSearchResults(true);
+                        }}
+                        onFocus={() => setShowSearchResults(true)}
+                        placeholder="Search by workout name"
+                        className="pl-10 bg-background"
+                      />
+                    </div>
+                    {showSearchResults && filteredLibrary && filteredLibrary.length > 0 && (
+                      <div className="bg-background rounded-md border border-border max-h-48 overflow-y-auto shadow-lg">
+                        {filteredLibrary.map((w) => (
+                          <button
+                            key={w.id}
+                            className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-accent transition-colors border-b border-border last:border-b-0"
+                            onClick={() => handleSelectWorkout(w)}
+                          >
+                            {w.imageUrl ? (
+                              <img src={w.imageUrl} alt="" className="h-10 w-14 rounded object-cover flex-shrink-0" />
+                            ) : (
+                              <div className="h-10 w-14 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                                <Dumbbell className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm text-foreground">{w.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {w.exerciseCount} Exercises • {w.sectionCount} Sections
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
