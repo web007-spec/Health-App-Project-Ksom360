@@ -163,7 +163,7 @@ export function CreateResourceDialog({ open, onOpenChange }: CreateResourceDialo
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[560px] p-0 gap-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[560px] p-0 gap-0 overflow-visible">
         {step === "pick" ? (
           /* ─── Step 1: Type Picker ─── */
           <div className="p-6 space-y-5">
@@ -193,25 +193,22 @@ export function CreateResourceDialog({ open, onOpenChange }: CreateResourceDialo
           </div>
         ) : (
           /* ─── Step 2: Details Form ─── */
-          <form onSubmit={handleSubmit}>
-            {/* Header with icon badge */}
-            <div className="relative">
-              {/* Floating icon badge */}
-              <div className="absolute -top-5 left-6 z-10 h-12 w-12 rounded-full bg-accent border-2 border-background flex items-center justify-center shadow-sm">
-                {typeIcon}
-              </div>
+          <form onSubmit={handleSubmit} className="relative pt-8">
+            {/* Floating icon badge — sits on top edge */}
+            <div className="absolute -top-6 left-6 z-10 h-12 w-12 rounded-full bg-primary flex items-center justify-center shadow-lg">
+              <span className="text-primary-foreground">{typeIcon}</span>
+            </div>
 
-              <div className="pt-4 px-6 pb-0">
-                <div className="flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => setStep("pick")}
-                    className="flex items-center gap-1.5 text-primary hover:text-primary/80 transition-colors text-sm font-medium"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    {typeLabel}
-                  </button>
-                </div>
+            <div className="px-6 pb-0">
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setStep("pick")}
+                  className="flex items-center gap-1.5 text-primary hover:text-primary/80 transition-colors text-sm font-medium"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  {typeLabel}
+                </button>
               </div>
             </div>
 
