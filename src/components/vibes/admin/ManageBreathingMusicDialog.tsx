@@ -168,17 +168,16 @@ export function ManageBreathingMusicDialog({
               <Button
                 type="button"
                 size="sm"
-                variant="secondary"
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto min-w-[140px] bg-primary text-primary-foreground hover:bg-primary/90"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
               >
                 {uploading ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Upload className="h-4 w-4 mr-1" />
+                  <Upload className="h-4 w-4" />
                 )}
-                {uploading ? "Uploading..." : "Upload track"}
+                <span>{uploading ? "Uploading..." : "Upload track"}</span>
               </Button>
             </div>
           </div>
