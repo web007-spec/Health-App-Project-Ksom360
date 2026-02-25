@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, Trash2, GripVertical, LayoutGrid, Users, Image, Search, Upload, X } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, GripVertical, LayoutGrid, Users, Image, Search, Upload, X, ChevronDown, ChevronRight, MoreHorizontal, ListIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +42,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CollectionPhonePreview } from "@/components/resource-collections/CollectionPhonePreview";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
 const normalizeLayoutType = (layout?: string | null) => {
   switch (layout) {
@@ -62,6 +75,9 @@ function SortableSection({ section, onDelete, onAddResource, onChangeLayout }: a
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: section.id,
   });
+  const [isOpen, setIsOpen] = useState(true);
+  const [formatOpen, setFormatOpen] = useState(false);
+  const [selectedLayout, setSelectedLayout] = useState(normalizeLayoutType(section.layout_type));
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -69,81 +85,180 @@ function SortableSection({ section, onDelete, onAddResource, onChangeLayout }: a
   };
 
   const layoutOptions = [
-    { value: "large_cards", label: "Large Cards" },
-    { value: "narrow_cards", label: "Narrow Cards" },
-    { value: "small_cards", label: "Small Cards" },
-    { value: "list", label: "List View" },
+    {
+      id: "large_cards",
+      label: "Large Cards",
+      icon: (
+        <div className="w-full h-full border-2 border-current rounded flex flex-col p-1">
+          <div className="flex-1 border-b border-current rounded-sm bg-current/10" />
+          <div className="h-3" />
+        </div>
+      ),
+    },
+    {
+      id: "small_cards",
+      label: "Squares",
+      icon: (
+        <div className="w-full h-full flex gap-1 p-1">
+          <div className="flex-1 border-2 border-current rounded bg-current/10" />
+          <div className="flex-1 border-2 border-current rounded bg-current/10" />
+        </div>
+      ),
+    },
+    {
+      id: "narrow_cards",
+      label: "Narrow cards",
+      icon: (
+        <div className="w-full h-full flex gap-0.5 p-1">
+          <div className="flex-1 border-2 border-current rounded bg-current/10" />
+          <div className="flex-1 border-2 border-current rounded bg-current/10" />
+          <div className="flex-1 border-2 border-current rounded bg-current/10" />
+        </div>
+      ),
+    },
+    {
+      id: "list",
+      label: "List",
+      icon: (
+        <div className="w-full h-full flex flex-col gap-0.5 p-1">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex gap-0.5 flex-1">
+              <div className="w-3 border-2 border-current rounded bg-current/10" />
+              <div className="flex-1 border-2 border-current rounded bg-current/10" />
+            </div>
+          ))}
+        </div>
+      ),
+    },
   ];
 
-  const normalizedLayoutType = normalizeLayoutType(section.layout_type);
+  const currentLayoutLabel = layoutOptions.find((l) => l.id === normalizeLayoutType(section.layout_type))?.label || "Large Cards";
+  const resourceCount = section.section_resources?.length || 0;
 
   return (
-    <Card ref={setNodeRef} style={style} className="mb-4">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <div className="flex items-center gap-3 flex-1">
-          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
-            <GripVertical className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <div className="flex-1">
-            <CardTitle className="text-lg">{section.name}</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              {section.section_resources?.length || 0} resources
-            </p>
-          </div>
+    <div ref={setNodeRef} style={style} className="mb-4 border rounded-lg bg-card">
+      {/* Section header */}
+      <div className="flex items-center gap-2 px-4 py-3">
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing shrink-0">
+          <GripVertical className="h-5 w-5 text-muted-foreground" />
         </div>
-        <div className="flex items-center gap-2">
-          <Select value={normalizedLayoutType} onValueChange={(value) => onChangeLayout(section.id, value)}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {layoutOptions.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button size="sm" onClick={() => onAddResource(section.id)}>
-            <Plus className="h-4 w-4 mr-1" />
-            Add Resource
-          </Button>
-          <Button size="sm" variant="destructive" onClick={() => onDelete(section.id)}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {section.section_resources?.length > 0 ? (
-          <div className="space-y-2">
-            {section.section_resources.map((sr: any) => {
-              const resource = sr.resources;
-              return (
-                <div key={sr.id} className="flex items-center gap-3 p-3 border rounded-lg">
-                  {resource?.cover_image_url ? (
-                    <img src={resource.cover_image_url} alt={resource?.name} className="w-12 h-12 rounded-lg object-cover shrink-0" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                      <Badge variant="secondary" className="text-[10px] capitalize">{resource?.type}</Badge>
-                    </div>
+
+        <Collapsible open={isOpen} onOpenChange={setIsOpen} className="flex-1">
+          <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            {isOpen ? (
+              <ChevronDown className="h-4 w-4 text-primary" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-primary" />
+            )}
+            <span className="font-bold text-base">{section.name}</span>
+            <span className="text-muted-foreground text-sm">({resourceCount})</span>
+          </CollapsibleTrigger>
+        </Collapsible>
+
+        {/* Format dropdown */}
+        <Popover open={formatOpen} onOpenChange={setFormatOpen}>
+          <PopoverTrigger asChild>
+            <button className="flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm text-muted-foreground hover:bg-accent transition-colors">
+              <ListIcon className="h-4 w-4" />
+              <span>Format</span>
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[380px] p-5" align="end">
+            <h3 className="text-lg font-semibold mb-4">Choose card design</h3>
+            <div className="grid grid-cols-4 gap-3 mb-5">
+              {layoutOptions.map((layout) => (
+                <button
+                  key={layout.id}
+                  type="button"
+                  onClick={() => setSelectedLayout(layout.id)}
+                  className={cn(
+                    "flex flex-col items-center gap-2 rounded-lg border-2 transition-colors aspect-square p-2",
+                    selectedLayout === layout.id
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/50"
                   )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm line-clamp-1">{resource?.name}</p>
-                    {resource?.url && (
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">{resource.url}</p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                >
+                  <div className="w-full flex-1">{layout.icon}</div>
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-4 gap-3 mb-5 -mt-3">
+              {layoutOptions.map((layout) => (
+                <p key={layout.id} className="text-[11px] text-center text-muted-foreground font-medium">
+                  {layout.label}
+                </p>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setFormatOpen(false)}>Cancel</Button>
+              <Button onClick={() => { onChangeLayout(section.id, selectedLayout); setFormatOpen(false); }}>
+                Update
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Three-dot menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem className="text-destructive" onClick={() => onDelete(section.id)}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Section
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Collapsible content */}
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleContent>
+          <div className="px-4 pb-4">
+            {resourceCount > 0 ? (
+              <div className="space-y-2">
+                {section.section_resources.map((sr: any) => {
+                  const resource = sr.resources;
+                  return (
+                    <div key={sr.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                      {resource?.cover_image_url ? (
+                        <img src={resource.cover_image_url} alt={resource?.name} className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                          <Badge variant="secondary" className="text-[10px] capitalize">{resource?.type}</Badge>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm line-clamp-1">{resource?.name}</p>
+                        {resource?.url && (
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">{resource.url}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                No resources yet. Click "Add Resource" to get started.
+              </p>
+            )}
+
+            {/* + Add Resource link */}
+            <button
+              className="text-sm text-primary font-medium mt-3 hover:underline"
+              onClick={() => onAddResource(section.id)}
+            >
+              + Add Resource
+            </button>
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground text-center py-8">
-            No resources yet. Click "Add Resource" to get started.
-          </p>
-        )}
-      </CardContent>
-    </Card>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
   );
 }
 
