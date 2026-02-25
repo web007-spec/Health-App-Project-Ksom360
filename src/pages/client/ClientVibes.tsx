@@ -20,7 +20,7 @@ import { useSearchParams, Navigate } from "react-router-dom";
 import { useClientFeatureSettings } from "@/hooks/useClientFeatureSettings";
 
 export default function ClientVibes() {
-  const { settings } = useClientFeatureSettings();
+  const { settings, isLoading: settingsLoading } = useClientFeatureSettings();
   const mixer = useAudioMixer();
   const [searchParams] = useSearchParams();
   const [mixRefreshKey, setMixRefreshKey] = useState(0);
@@ -90,6 +90,16 @@ export default function ClientVibes() {
   const handleMixSaved = useCallback(() => {
     setMixRefreshKey((k) => k + 1);
   }, []);
+
+  if (settingsLoading) {
+    return (
+      <ClientLayout>
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      </ClientLayout>
+    );
+  }
 
   if (!settings.restore_enabled) {
     return <Navigate to="/client/dashboard" replace />;
