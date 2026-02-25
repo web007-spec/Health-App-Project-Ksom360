@@ -115,76 +115,25 @@ function SortableSection({ section, onDelete, onAddResource, onChangeLayout }: a
       </CardHeader>
       <CardContent>
         {section.section_resources?.length > 0 ? (
-          <div className={
-            normalizedLayoutType === "list"
-              ? "space-y-2"
-              : normalizedLayoutType === "small_cards"
-              ? "grid grid-cols-3 md:grid-cols-6 gap-3"
-              : normalizedLayoutType === "narrow_cards"
-              ? "flex gap-3 overflow-x-auto pb-2 scrollbar-hide"
-              : "grid grid-cols-1 md:grid-cols-2 gap-3"
-          }>
+          <div className="space-y-2">
             {section.section_resources.map((sr: any) => {
               const resource = sr.resources;
-              if (normalizedLayoutType === "list") {
-                return (
-                  <div key={sr.id} className="flex items-center gap-3 p-3 border rounded-lg">
-                    {resource?.cover_image_url ? (
-                      <img src={resource.cover_image_url} alt={resource?.name} className="w-10 h-10 rounded-lg object-cover" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                        <Badge variant="secondary" className="text-[10px] capitalize">{resource?.type}</Badge>
-                      </div>
-                    )}
-                    <p className="font-medium text-sm flex-1 line-clamp-1">{resource?.name}</p>
-                    <Badge variant="secondary" className="capitalize text-xs shrink-0">{resource?.type}</Badge>
-                  </div>
-                );
-              }
-              if (normalizedLayoutType === "small_cards") {
-                return (
-                  <div key={sr.id} className="flex flex-col items-center gap-1.5">
-                    {resource?.cover_image_url ? (
-                      <img src={resource.cover_image_url} alt={resource?.name} className="w-14 h-14 rounded-xl object-cover" />
-                    ) : (
-                      <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center">
-                        <Badge variant="secondary" className="text-[10px] capitalize">{resource?.type}</Badge>
-                      </div>
-                    )}
-                    <p className="font-medium text-xs text-center line-clamp-2">{resource?.name}</p>
-                  </div>
-                );
-              }
-              if (normalizedLayoutType === "narrow_cards") {
-                return (
-                  <Card key={sr.id} className="overflow-hidden flex-shrink-0 w-36">
-                    {resource?.cover_image_url ? (
-                      <img src={resource.cover_image_url} alt={resource?.name} className="w-full h-24 object-cover" />
-                    ) : (
-                      <div className="w-full h-24 bg-muted flex items-center justify-center">
-                        <Badge variant="secondary" className="capitalize text-xs">{resource?.type}</Badge>
-                      </div>
-                    )}
-                    <CardContent className="p-2">
-                      <p className="font-medium text-xs line-clamp-2">{resource?.name}</p>
-                    </CardContent>
-                  </Card>
-                );
-              }
-              // large_cards (default)
               return (
-                <Card key={sr.id} className="overflow-hidden">
+                <div key={sr.id} className="flex items-center gap-3 p-3 border rounded-lg">
                   {resource?.cover_image_url ? (
-                    <img src={resource.cover_image_url} alt={resource?.name} className="w-full h-32 object-cover" />
+                    <img src={resource.cover_image_url} alt={resource?.name} className="w-12 h-12 rounded-lg object-cover shrink-0" />
                   ) : (
-                    <div className="w-full h-32 bg-muted flex items-center justify-center">
-                      <Badge variant="secondary" className="capitalize">{resource?.type}</Badge>
+                    <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <Badge variant="secondary" className="text-[10px] capitalize">{resource?.type}</Badge>
                     </div>
                   )}
-                  <CardContent className="p-3">
-                    <p className="font-medium text-sm line-clamp-2">{resource?.name}</p>
-                  </CardContent>
-                </Card>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm line-clamp-1">{resource?.name}</p>
+                    {resource?.url && (
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">{resource.url}</p>
+                    )}
+                  </div>
+                </div>
               );
             })}
           </div>
