@@ -56,5 +56,11 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     return null;
   }
 
+  // Enforce role-based access: redirect to the correct dashboard if role doesn't match
+  if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
+    const redirectTo = userRole === "client" ? "/client/dashboard" : "/";
+    return <Navigate to={redirectTo} replace />;
+  }
+
   return <>{children}</>;
 }
