@@ -166,7 +166,11 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
         targetTime = scrubSpan * (1 - progress);
       }
 
-      video.currentTime = Math.max(0, Math.min(playableEnd, targetTime));
+      const clamped = Math.max(0, Math.min(playableEnd, targetTime));
+      // Only seek when difference is noticeable — avoids stuttery micro-seeks
+      if (Math.abs(video.currentTime - clamped) > 0.08) {
+        video.currentTime = clamped;
+      }
     }
   }, [phases]);
 
