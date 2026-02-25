@@ -408,97 +408,125 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
         `,
       }}
     >
-      {/* Background video — loops for full session duration */}
-      {videoUrl && (
-        <video
-          ref={videoRef}
-          src={videoUrl}
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          style={{ opacity: 0.6 }}
-        />
+      {videoUrl ? (
+        <>
+          {/* Custom video replaces all default visuals — synced to breathing */}
+          <video
+            ref={videoRef}
+            src={videoUrl}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            style={{
+              transform: `scale(${
+                currentPhase.type === "inhale"
+                  ? 1 + p * 0.08
+                  : currentPhase.type === "exhale"
+                  ? 1.08 - p * 0.08
+                  : 1.08
+              })`,
+              filter: `brightness(${
+                currentPhase.type === "inhale"
+                  ? 0.55 + p * 0.35
+                  : currentPhase.type === "exhale"
+                  ? 0.9 - p * 0.35
+                  : 0.85
+              })`,
+              transition: `transform ${transitionDuration} ${transitionEasing}, filter ${transitionDuration} ${transitionEasing}`,
+            }}
+          />
+          {/* Subtle vignette overlay on custom video */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: `radial-gradient(ellipse 80% 70% at 50% 50%, transparent 30%, hsla(0, 0%, 0%, 0.6) 100%)`,
+            }}
+          />
+        </>
+      ) : (
+        <>
+          {/* Default animation layers */}
+          {/* Depth blur */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backdropFilter: `blur(${depthBlur}px)`,
+              WebkitBackdropFilter: `blur(${depthBlur}px)`,
+              transition: `backdrop-filter ${transitionDuration} ${transitionEasing}`,
+            }}
+          />
+
+          {/* Parallax haze 1 */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: `radial-gradient(ellipse 120% 50% at 30% ${lightY + 10}%, hsla(${h - 15}, ${s - 10}%, 15%, ${0.08 + brightness * 0.3}) 0%, transparent 70%)`,
+              transition: `all ${transitionDuration} ${transitionEasing}`,
+            }}
+          />
+          {/* Parallax haze 2 */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: `radial-gradient(ellipse 90% 40% at 70% ${lightY - 5}%, hsla(${h + hSpread}, ${Math.max(s - 25, 12)}%, 18%, ${0.05 + brightness * 0.2}) 0%, transparent 60%)`,
+              transition: `all ${transitionDuration} ${transitionEasing}`,
+            }}
+          />
+
+          {/* Luminance pulse overlay */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: `radial-gradient(circle at ${lightX}% ${lightY}%, hsla(${h}, ${s - 10}%, 50%, ${pulseIntensity}) 0%, transparent 60%)`,
+              transition: `all ${transitionDuration} ${transitionEasing}`,
+            }}
+          />
+
+          {/* Horizon anchor */}
+          <div
+            className="absolute bottom-0 left-0 right-0 pointer-events-none"
+            style={{
+              height: "30%",
+              background: `linear-gradient(to top, hsla(${h + 10}, 30%, 8%, 0.1) 0%, transparent 100%)`,
+              opacity: 0.1,
+            }}
+          />
+
+          {/* Particles */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
+            {particlesRef.current.map((pt) => {
+              const yOffset = time * pt.speed * particleDir * pSpeed * 8;
+              const y = ((pt.baseY + yOffset) % 120 + 120) % 120 - 10;
+              const xSway = Math.sin(time * 0.3 * pt.speed + pt.id * 2.1) * pt.drift * 6 * particleDrift;
+              const particleOpacity = pt.opacity * (0.6 + brightness * 3) *
+                (currentPhase.type === "inhale" ? 0.7 + p * 0.6 : currentPhase.type === "exhale" ? 1.3 - p * 0.5 : 0.8);
+              return (
+                <circle
+                  key={pt.id}
+                  cx={`${pt.x + xSway}%`}
+                  cy={`${y}%`}
+                  r={pt.size * (0.8 + arcIntensity * 0.4)}
+                  fill={`hsla(${particleHue}, 40%, 70%, ${particleOpacity})`}
+                />
+              );
+            })}
+          </svg>
+
+          {/* ─── Animation Layer ─── */}
+          <BreathingAnimationLayer
+            animation={exercise.animation}
+            progress={mappedProgress}
+            phaseType={currentPhase.type}
+            hue={h}
+            sat={s}
+            brightness={brightness}
+            arcIntensity={arcIntensity}
+            time={time}
+          />
+        </>
       )}
-
-      {/* Depth blur */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          backdropFilter: `blur(${depthBlur}px)`,
-          WebkitBackdropFilter: `blur(${depthBlur}px)`,
-          transition: `backdrop-filter ${transitionDuration} ${transitionEasing}`,
-        }}
-      />
-
-      {/* Parallax haze 1 */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `radial-gradient(ellipse 120% 50% at 30% ${lightY + 10}%, hsla(${h - 15}, ${s - 10}%, 15%, ${0.08 + brightness * 0.3}) 0%, transparent 70%)`,
-          transition: `all ${transitionDuration} ${transitionEasing}`,
-        }}
-      />
-      {/* Parallax haze 2 */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `radial-gradient(ellipse 90% 40% at 70% ${lightY - 5}%, hsla(${h + hSpread}, ${Math.max(s - 25, 12)}%, 18%, ${0.05 + brightness * 0.2}) 0%, transparent 60%)`,
-          transition: `all ${transitionDuration} ${transitionEasing}`,
-        }}
-      />
-
-      {/* Luminance pulse overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `radial-gradient(circle at ${lightX}% ${lightY}%, hsla(${h}, ${s - 10}%, 50%, ${pulseIntensity}) 0%, transparent 60%)`,
-          transition: `all ${transitionDuration} ${transitionEasing}`,
-        }}
-      />
-
-      {/* Horizon anchor */}
-      <div
-        className="absolute bottom-0 left-0 right-0 pointer-events-none"
-        style={{
-          height: "30%",
-          background: `linear-gradient(to top, hsla(${h + 10}, 30%, 8%, 0.1) 0%, transparent 100%)`,
-          opacity: 0.1,
-        }}
-      />
-
-      {/* Particles */}
-      <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-        {particlesRef.current.map((pt) => {
-          const yOffset = time * pt.speed * particleDir * pSpeed * 8;
-          const y = ((pt.baseY + yOffset) % 120 + 120) % 120 - 10;
-          const xSway = Math.sin(time * 0.3 * pt.speed + pt.id * 2.1) * pt.drift * 6 * particleDrift;
-          const particleOpacity = pt.opacity * (0.6 + brightness * 3) *
-            (currentPhase.type === "inhale" ? 0.7 + p * 0.6 : currentPhase.type === "exhale" ? 1.3 - p * 0.5 : 0.8);
-          return (
-            <circle
-              key={pt.id}
-              cx={`${pt.x + xSway}%`}
-              cy={`${y}%`}
-              r={pt.size * (0.8 + arcIntensity * 0.4)}
-              fill={`hsla(${particleHue}, 40%, 70%, ${particleOpacity})`}
-            />
-          );
-        })}
-      </svg>
-
-      {/* ─── Animation Layer ─── */}
-      <BreathingAnimationLayer
-        animation={exercise.animation}
-        progress={mappedProgress}
-        phaseType={currentPhase.type}
-        hue={h}
-        sat={s}
-        brightness={brightness}
-        arcIntensity={arcIntensity}
-        time={time}
-      />
 
       {/* ─── UI Layer ─── */}
 
