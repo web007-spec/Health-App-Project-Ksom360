@@ -18,6 +18,9 @@ export function AdminBreathingTab() {
   const [previewExercise, setPreviewExercise] = useState<BreathingExercise | null>(null);
   const [musicDialogOpen, setMusicDialogOpen] = useState(false);
   const [autoPickOnOpen, setAutoPickOnOpen] = useState(false);
+  const [uploadingVideoFor, setUploadingVideoFor] = useState<string | null>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const pendingExerciseRef = useRef<string | null>(null);
 
   const { data: tracks = [] } = useQuery({
     queryKey: ["breathing-music-tracks"],
@@ -44,6 +47,20 @@ export function AdminBreathingTab() {
     },
   });
 
+  // Fetch video assignments
+  const { data: videoMap = {} } = useQuery({
+    queryKey: ["breathing-exercise-videos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("breathing_exercise_videos")
+        .select("*");
+      if (error) throw error;
+      const map: Record<string, { id: string; video_url: string }> = {};
+      (data ?? []).forEach((row: any) => { map[row.exercise_id] = { id: row.id, video_url: row.video_url }; });
+      return map;
+    },
+  });
+
   const pinTrack = useMutation({
     mutationFn: async ({ exerciseId, trackId }: { exerciseId: string; trackId: string | null }) => {
       if (!user) return;
@@ -62,6 +79,53 @@ export function AdminBreathingTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["breathing-exercise-music"] });
       toast.success("Track assignment updated");
+    },
+  });
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const exerciseId = pendingExerciseRef.current;
+    if (!file || !exerciseId || !user) return;
+    e.target.value = "";
+
+    setUploadingVideoFor(exerciseId);
+    try {
+      const ext = file.name.split(".").pop() || "mp4";
+      const path = `${user.id}/${exerciseId}-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("breathing-videos")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from("breathing-videos").getPublicUrl(path);
+      const videoUrl = urlData.publicUrl;
+
+      const { error: dbError } = await supabase.from("breathing_exercise_videos").upsert({
+        exercise_id: exerciseId,
+        trainer_id: user.id,
+        video_url: videoUrl,
+      }, { onConflict: "exercise_id,trainer_id" });
+      if (dbError) throw dbError;
+
+      queryClient.invalidateQueries({ queryKey: ["breathing-exercise-videos"] });
+      toast.success("Video uploaded");
+    } catch (err: any) {
+      toast.error("Upload failed: " + (err.message || "Unknown error"));
+    } finally {
+      setUploadingVideoFor(null);
+      pendingExerciseRef.current = null;
+    }
+  };
+
+  const removeVideo = useMutation({
+    mutationFn: async (exerciseId: string) => {
+      if (!user) return;
+      await supabase.from("breathing_exercise_videos").delete()
+        .eq("exercise_id", exerciseId).eq("trainer_id", user.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["breathing-exercise-videos"] });
+      toast.success("Video removed");
     },
   });
 
@@ -113,6 +177,7 @@ export function AdminBreathingTab() {
         {BREATHING_EXERCISES.map((ex) => {
           const pinnedTrackId = pinnedMap[ex.id];
           const pinnedTrack = tracks.find((t) => t.id === pinnedTrackId);
+          const videoEntry = videoMap[ex.id];
 
           return (
             <Card key={ex.id}>
@@ -170,11 +235,55 @@ export function AdminBreathingTab() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Per-exercise background video */}
+                <div className="mt-2 flex items-center gap-2">
+                  <Video className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  {videoEntry ? (
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="text-xs text-muted-foreground truncate flex-1">Video uploaded</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => removeVideo.mutate(ex.id)}
+                      >
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      disabled={uploadingVideoFor === ex.id}
+                      onClick={() => {
+                        pendingExerciseRef.current = ex.id;
+                        videoInputRef.current?.click();
+                      }}
+                    >
+                      {uploadingVideoFor === ex.id ? (
+                        <><Loader2 className="h-3 w-3 animate-spin mr-1" /> Uploading…</>
+                      ) : (
+                        "Upload Video"
+                      )}
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           );
         })}
       </div>
+
+      {/* Hidden video file input */}
+      <input
+        ref={videoInputRef}
+        type="file"
+        accept="video/*"
+        className="hidden"
+        onChange={handleVideoUpload}
+      />
     </div>
   );
 }

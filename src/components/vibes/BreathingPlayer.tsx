@@ -4,6 +4,8 @@ import type { BreathingExercise, RestoreMode, MotionProfile, ProtocolTone } from
 import { BreathingEntryScreen } from "./BreathingEntryScreen";
 import { BreathingSessionSummary } from "./BreathingSessionSummary";
 import { BreathingAnimationLayer } from "./BreathingAnimationLayer";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface Props {
@@ -85,6 +87,21 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
   const [musicEnabled, setMusicEnabled] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const musicUrlRef = useRef<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Fetch background video for this exercise
+  const { data: videoUrl } = useQuery({
+    queryKey: ["breathing-exercise-video", exercise.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("breathing_exercise_videos")
+        .select("video_url")
+        .eq("exercise_id", exercise.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.video_url ?? null;
+    },
+  });
 
   const currentPhase = phases[phaseIndex];
   const rawProgress = phaseElapsed / currentPhase.seconds;
@@ -199,6 +216,17 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
       audio.pause();
     }
   }, [playing, stage]);
+
+  // Pause/resume video with session
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (playing && stage === "playing") {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [playing, stage, videoUrl]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -380,6 +408,20 @@ export function BreathingPlayer({ exercise, mode, onBack, contained = false }: P
         `,
       }}
     >
+      {/* Background video — loops for full session duration */}
+      {videoUrl && (
+        <video
+          ref={videoRef}
+          src={videoUrl}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ opacity: 0.6 }}
+        />
+      )}
+
       {/* Depth blur */}
       <div
         className="absolute inset-0 pointer-events-none"
