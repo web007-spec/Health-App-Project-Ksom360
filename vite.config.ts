@@ -92,8 +92,8 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       external: [
-        '@nicearma/capacitor-healthkit',
-        '@nicearma/capacitor-health-connect',
+        '@nicholasquinn/capacitor-healthkit',
+        '@nicholasquinn/capacitor-healthconnect',
       ],
     },
   },
