@@ -191,7 +191,7 @@ function SortableSection({ section, onDelete, onAddResource, onChangeLayout, onR
         <Popover open={formatOpen} onOpenChange={setFormatOpen}>
           <PopoverTrigger asChild>
             <button className="flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm text-muted-foreground hover:bg-accent transition-colors">
-              <ListIcon className="h-4 w-4" />
+              <div className="w-5 h-4">{layoutOptions.find((l) => l.id === selectedLayout)?.icon}</div>
               <span>Format</span>
               <ChevronDown className="h-3 w-3" />
             </button>
