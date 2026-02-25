@@ -95,8 +95,12 @@ export function useClientFeatureSettings() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // When clientId is not yet available (auth loading), treat as loading
+  // to prevent premature redirects based on DEFAULT_SETTINGS
+  const effectiveLoading = isLoading || !clientId;
+
   return {
     settings: settings || DEFAULT_SETTINGS,
-    isLoading,
+    isLoading: effectiveLoading,
   };
 }
