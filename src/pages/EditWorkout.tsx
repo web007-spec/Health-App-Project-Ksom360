@@ -309,7 +309,7 @@ export default function EditWorkout() {
   const [videoFilter, setVideoFilter] = useState<"all" | "named" | "unnamed">("all");
   const [loaded, setLoaded] = useState(false);
 
-  const sensors = useSensors(useSensor(PointerSensor));
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   // Fetch workout data
   const { data: workout, isLoading: workoutLoading } = useQuery({
