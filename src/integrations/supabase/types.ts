@@ -2290,6 +2290,48 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_card_layouts: {
+        Row: {
+          cards: Json
+          client_id: string | null
+          created_at: string
+          id: string
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          cards?: Json
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          cards?: Json
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_card_layouts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_card_layouts_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       eating_window_meal_photos: {
         Row: {
           client_id: string
