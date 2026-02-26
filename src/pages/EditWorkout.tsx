@@ -600,7 +600,7 @@ export default function EditWorkout() {
       if (deleteSectionsError) throw deleteSectionsError;
 
       // Recreate sections + exercises in Trainerize format (same as CreateWorkout)
-      const ungroupedItems = exerciseItems.filter((i) => !i.group_id && i.exercise_type === "normal");
+      const ungroupedItems = exerciseItems.filter((i) => !i.group_id && (i.exercise_type === "normal" || i.exercise_type === "rest"));
       const sectionInserts: any[] = [];
       let sectionIdx = 0;
 
@@ -640,11 +640,10 @@ export default function EditWorkout() {
       }
 
       const exercisesToInsert = exerciseItems
-        .filter((item) => item.exercise_type === "normal")
         .map((item, index) => ({
           workout_plan_id: id,
           section_id: item.group_id ? groupSections.get(item.group_id) || sections[0].id : mainSection?.id || sections[0].id,
-          exercise_id: item.exercise_id,
+          exercise_id: item.exercise_type === "rest" ? null : item.exercise_id,
           order_index: index,
           sets: item.sets,
           reps: null,
