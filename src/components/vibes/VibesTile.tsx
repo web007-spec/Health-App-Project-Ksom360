@@ -2,6 +2,7 @@ import { memo } from "react";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 import { useTransparentIcon } from "@/hooks/useTransparentIcon";
+import woodBg from "@/assets/wood-tile-bg.jpg";
 
 interface Props {
   name: string;
@@ -23,74 +24,77 @@ export const VibesTile = memo(function VibesTile({
       <button
         onClick={onToggle}
         className={cn(
-          "group relative flex flex-col items-center justify-center rounded-[14px] aspect-square w-full transition-all duration-[180ms] select-none",
-          "bg-gradient-to-br from-[hsl(30,32%,42%)] via-[hsl(28,28%,36%)] to-[hsl(24,24%,28%)]",
-          "shadow-[inset_0_2px_3px_rgba(255,255,255,0.1),inset_0_-2px_4px_rgba(0,0,0,0.25),0_1px_4px_rgba(0,0,0,0.25)]",
-          "hover:translate-y-[-2px] hover:shadow-[inset_0_2px_3px_rgba(255,255,255,0.12),inset_0_-2px_4px_rgba(0,0,0,0.25),0_4px_12px_rgba(0,0,0,0.35)]",
+          "group relative flex flex-col items-center justify-center rounded-[16px] aspect-square w-full transition-all duration-[180ms] select-none overflow-hidden",
+          "shadow-[0_2px_8px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.08)]",
+          "hover:translate-y-[-2px] hover:shadow-[0_6px_16px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.1)]",
           "active:scale-[0.97] active:translate-y-0",
           isActive && [
-            "ring-[1.5px] ring-amber-400/70",
-            "shadow-[inset_0_2px_3px_rgba(255,255,255,0.1),inset_0_-2px_4px_rgba(0,0,0,0.25),0_0_14px_rgba(251,191,36,0.3),0_0_4px_rgba(251,191,36,0.15)]",
+            "ring-[2px] ring-amber-400/80",
+            "shadow-[0_0_18px_rgba(251,191,36,0.35),0_2px_8px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.08)]",
             "animate-vibes-sway origin-top",
           ],
         )}
         style={{ minHeight: 44, minWidth: 44 }}
       >
-        {/* Nail hole — transparent cut-out */}
+        {/* Real wood texture background */}
         <div
-          className="absolute top-[5px] left-1/2 -translate-x-1/2 w-[5px] h-[5px] rounded-full"
+          className="absolute inset-0 rounded-[16px]"
           style={{
-            background: "transparent",
-            boxShadow: "inset 0 1px 2px rgba(0,0,0,0.8), inset 0 -0.5px 0.5px rgba(255,255,255,0.15), 0 0.5px 1px rgba(0,0,0,0.4)",
-            border: "0.5px solid rgba(0,0,0,0.3)",
+            backgroundImage: `url(${woodBg})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
           }}
         />
 
-        {/* Deep wood grain overlay */}
+        {/* Warm vignette overlay for depth */}
         <div
-          className="absolute inset-0 rounded-[14px] pointer-events-none"
+          className="absolute inset-0 rounded-[16px] pointer-events-none"
           style={{
-            backgroundImage: [
-              `repeating-linear-gradient(78deg, transparent, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px)`,
-              `repeating-linear-gradient(82deg, transparent, transparent 6px, rgba(255,255,255,0.05) 6px, rgba(255,255,255,0.05) 7px)`,
-              `repeating-linear-gradient(85deg, transparent, transparent 11px, rgba(0,0,0,0.06) 11px, rgba(0,0,0,0.06) 12.5px)`,
-              `repeating-linear-gradient(74deg, transparent, transparent 18px, rgba(255,255,255,0.03) 18px, rgba(255,255,255,0.03) 20px)`,
-              `repeating-linear-gradient(80deg, transparent, transparent 25px, rgba(0,0,0,0.04) 25px, rgba(0,0,0,0.04) 27px)`,
-            ].join(", "),
-          }}
-        />
-        {/* Knot / swirl accent */}
-        <div
-          className="absolute inset-0 rounded-[14px] pointer-events-none opacity-[0.06]"
-          style={{
-            backgroundImage: `radial-gradient(ellipse 40% 30% at 70% 60%, rgba(0,0,0,0.3), transparent),
-                              radial-gradient(ellipse 25% 20% at 25% 35%, rgba(0,0,0,0.2), transparent)`,
+            background: "radial-gradient(ellipse 80% 80% at 50% 40%, rgba(180,130,60,0.15) 0%, rgba(0,0,0,0.4) 100%)",
           }}
         />
 
-        {/* Icon — carved/engraved into wood effect */}
+        {/* Subtle inner bevel for 3D edge */}
+        <div
+          className="absolute inset-0 rounded-[16px] pointer-events-none"
+          style={{
+            boxShadow: "inset 0 2px 4px rgba(255,255,255,0.12), inset 0 -3px 6px rgba(0,0,0,0.35), inset 2px 0 4px rgba(0,0,0,0.15), inset -2px 0 4px rgba(0,0,0,0.15)",
+          }}
+        />
+
+        {/* Nail hole */}
+        <div
+          className="absolute top-[6px] left-1/2 -translate-x-1/2 w-[5px] h-[5px] rounded-full z-[2]"
+          style={{
+            background: "rgba(30,20,10,0.7)",
+            boxShadow: "inset 0 1px 2px rgba(0,0,0,0.9), inset 0 -0.5px 0.5px rgba(255,255,255,0.1), 0 0.5px 1px rgba(0,0,0,0.5)",
+            border: "0.5px solid rgba(0,0,0,0.4)",
+          }}
+        />
+
+        {/* Icon — deep carved/engraved into wood */}
         <div className="relative z-[1] flex items-center justify-center w-12 h-12">
           {transparentIcon ? (
             <div className="relative w-10 h-10">
-              {/* Deep shadow — bottom-right for carved depth */}
+              {/* Deep carved shadow — offset for 3D depth */}
+              <img
+                src={transparentIcon}
+                alt=""
+                className="absolute inset-0 w-10 h-10 object-contain opacity-60"
+                style={{
+                  filter: "brightness(0) blur(1.2px)",
+                  transform: "translate(1.5px, 2px)",
+                }}
+                aria-hidden
+              />
+              {/* Inner groove shadow */}
               <img
                 src={transparentIcon}
                 alt=""
                 className="absolute inset-0 w-10 h-10 object-contain opacity-50"
                 style={{
-                  filter: "brightness(0) blur(1px)",
-                  transform: "translate(1px, 1.5px)",
-                }}
-                aria-hidden
-              />
-              {/* Inner shadow — tighter groove */}
-              <img
-                src={transparentIcon}
-                alt=""
-                className="absolute inset-0 w-10 h-10 object-contain opacity-40"
-                style={{
-                  filter: "brightness(0) blur(0.3px)",
-                  transform: "translate(0.3px, 0.5px)",
+                  filter: "brightness(0) blur(0.4px)",
+                  transform: "translate(0.5px, 0.8px)",
                 }}
                 aria-hidden
               />
@@ -100,32 +104,32 @@ export const VibesTile = memo(function VibesTile({
                 alt={name}
                 className="relative w-10 h-10 object-contain"
                 style={{
-                  filter: "brightness(0.15) sepia(0.2) saturate(0.3) contrast(1.4)",
-                  opacity: 0.85,
+                  filter: "brightness(0.1) sepia(0.3) saturate(0.2) contrast(1.5)",
+                  opacity: 0.9,
                 }}
               />
-              {/* Top-left highlight — light catch for 3D feel */}
+              {/* Top-left light catch — chiseled edge highlight */}
               <img
                 src={transparentIcon}
                 alt=""
-                className="absolute inset-0 w-10 h-10 object-contain opacity-30"
+                className="absolute inset-0 w-10 h-10 object-contain opacity-25"
                 style={{
-                  filter: "brightness(2.5) contrast(0.4) blur(0.3px)",
-                  transform: "translate(-0.5px, -0.8px)",
+                  filter: "brightness(3) contrast(0.3) blur(0.4px)",
+                  transform: "translate(-0.8px, -1px)",
                   mixBlendMode: "overlay",
                 }}
                 aria-hidden
               />
             </div>
           ) : (
-            <div className="w-10 h-10 rounded-lg bg-white/[0.07] flex items-center justify-center text-lg text-white/50">🎵</div>
+            <div className="w-10 h-10 rounded-lg bg-black/20 flex items-center justify-center text-lg text-white/40">🎵</div>
           )}
         </div>
 
         {/* Active check */}
         {isActive && (
-          <div className="absolute bottom-[4px] left-1/2 -translate-x-1/2">
-            <div className="w-[14px] h-[14px] rounded-full bg-amber-400/90 flex items-center justify-center shadow-[0_0_6px_rgba(251,191,36,0.5)]">
+          <div className="absolute bottom-[4px] left-1/2 -translate-x-1/2 z-[2]">
+            <div className="w-[14px] h-[14px] rounded-full bg-amber-400/90 flex items-center justify-center shadow-[0_0_8px_rgba(251,191,36,0.6)]">
               <Check className="w-[8px] h-[8px] text-amber-950 stroke-[3]" />
             </div>
           </div>
