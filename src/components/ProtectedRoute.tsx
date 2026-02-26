@@ -56,6 +56,14 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     return null;
   }
 
+  // Allow trainers to access client routes while impersonating a client
+  const impersonatedClientId = localStorage.getItem("impersonatedClientId");
+  const isTrainerImpersonatingClient = userRole === "trainer" && !!impersonatedClientId;
+
+  if (allowedRoles?.includes("client") && isTrainerImpersonatingClient) {
+    return <>{children}</>;
+  }
+
   // Enforce role-based access: redirect to the correct dashboard if role doesn't match
   if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
     const redirectTo = userRole === "client" ? "/client/dashboard" : "/";
