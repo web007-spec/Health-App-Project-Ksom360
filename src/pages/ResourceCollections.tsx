@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Package, Filter, Folder, MoreVertical, Trash2, FileText, Link as LinkIcon, FileCheck, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Search, Package, Filter, Folder, MoreVertical, Trash2, FileText, Link as LinkIcon, FileCheck, ChevronUp, ChevronDown, Pencil, Copy, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -129,6 +129,7 @@ export default function ResourceCollections() {
   const [collectionName, setCollectionName] = useState("");
   const [collectionDescription, setCollectionDescription] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [deleteCollectionTarget, setDeleteCollectionTarget] = useState<any>(null);
 
   // Fetch individual resources
   const { data: resources, isLoading: resourcesLoading } = useQuery({
@@ -211,6 +212,78 @@ export default function ResourceCollections() {
     },
     onError: () => {
       toast({ title: "Failed to delete resource", variant: "destructive" });
+    },
+  });
+
+  const deleteCollectionMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("resource_collections").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["resource-collections"] });
+      toast({ title: "Collection deleted" });
+      setDeleteCollectionTarget(null);
+    },
+    onError: () => {
+      toast({ title: "Failed to delete collection", variant: "destructive" });
+    },
+  });
+
+  const duplicateCollectionMutation = useMutation({
+    mutationFn: async (collection: any) => {
+      const { data, error } = await supabase
+        .from("resource_collections")
+        .insert({
+          name: `${collection.name} (Copy)`,
+          description: collection.description,
+          trainer_id: user!.id,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      // Copy sections
+      const { data: sections } = await supabase
+        .from("collection_sections")
+        .select("*")
+        .eq("collection_id", collection.id);
+      if (sections?.length) {
+        for (const section of sections) {
+          const { data: newSection } = await supabase
+            .from("collection_sections")
+            .insert({
+              collection_id: data.id,
+              name: section.name,
+              order_index: section.order_index,
+              layout_type: section.layout_type,
+            })
+            .select()
+            .single();
+          if (newSection) {
+            const { data: resources } = await supabase
+              .from("section_resources")
+              .select("*")
+              .eq("section_id", section.id);
+            if (resources?.length) {
+              await supabase.from("section_resources").insert(
+                resources.map((r: any) => ({
+                  section_id: newSection.id,
+                  resource_id: r.resource_id,
+                  order_index: r.order_index,
+                }))
+              );
+            }
+          }
+        }
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["resource-collections"] });
+      toast({ title: "Collection duplicated" });
+    },
+    onError: () => {
+      toast({ title: "Failed to duplicate collection", variant: "destructive" });
     },
   });
 
@@ -375,7 +448,23 @@ export default function ResourceCollections() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => navigate(`/resource-collections/${collection.id}`)}>
-                              Open
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => duplicateCollectionMutation.mutate(collection)}>
+                              <Copy className="h-4 w-4 mr-2" />
+                              Duplicate
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => navigate(`/resource-collections/${collection.id}?tab=clients`)}>
+                              <Share2 className="h-4 w-4 mr-2" />
+                              Sharing settings
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleteCollectionTarget(collection)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Remove
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -450,7 +539,7 @@ export default function ResourceCollections() {
           </DialogContent>
         </Dialog>
 
-        {/* Delete confirmation */}
+        {/* Delete resource confirmation */}
         <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -462,6 +551,24 @@ export default function ResourceCollections() {
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={() => deleteTarget && deleteResourceMutation.mutate(deleteTarget.id)}>
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Delete collection confirmation */}
+        <AlertDialog open={!!deleteCollectionTarget} onOpenChange={(open) => { if (!open) setDeleteCollectionTarget(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete collection?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete "{deleteCollectionTarget?.name}" and all its sections.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={() => deleteCollectionTarget && deleteCollectionMutation.mutate(deleteCollectionTarget.id)}>
                 Delete
               </AlertDialogAction>
             </AlertDialogFooter>
