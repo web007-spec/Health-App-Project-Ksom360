@@ -317,7 +317,7 @@ export default function WorkoutCollectionDetail() {
               </div>
 
               {/* Right: phone preview */}
-              <div className="hidden xl:block w-[300px] shrink-0">
+              <div className="hidden lg:block w-[300px] shrink-0">
                 <WorkoutPhonePreview
                   collectionName={collection.name}
                   categories={categories}
