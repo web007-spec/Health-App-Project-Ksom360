@@ -92,6 +92,9 @@ function ExerciseRow({
     return (
       <div ref={setNodeRef} style={style} className="flex items-center gap-3 px-4 py-3 border-b bg-amber-50 dark:bg-amber-950/20">
         <Checkbox checked={item.selected} onCheckedChange={() => onToggleSelect(item.id)} />
+        <div {...attributes} {...listeners} className="cursor-grab p-1 shrink-0">
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
         <div className="w-12 h-12 rounded bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
           <Timer className="h-5 w-5 text-amber-600" />
         </div>
@@ -106,9 +109,6 @@ function ExerciseRow({
             ))}
           </SelectContent>
         </Select>
-        <div {...attributes} {...listeners} className="cursor-grab p-1">
-          <GripVertical className="h-4 w-4 text-muted-foreground" />
-        </div>
       </div>
     );
   }
@@ -119,6 +119,9 @@ function ExerciseRow({
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-2 px-3 py-2 border-b hover:bg-muted/30 transition-colors min-w-0">
       <Checkbox checked={item.selected} onCheckedChange={() => onToggleSelect(item.id)} className="shrink-0" />
+      <div {...attributes} {...listeners} className="cursor-grab p-1 shrink-0">
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
 
       <div className="w-14 h-10 rounded bg-muted overflow-hidden shrink-0">
         {hasDirectVideo ? (
@@ -210,9 +213,6 @@ function ExerciseRow({
         </SelectContent>
       </Select>
 
-      <div {...attributes} {...listeners} className="cursor-grab p-1">
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
-      </div>
     </div>
   );
 }
