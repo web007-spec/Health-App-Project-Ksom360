@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Play, Clock, Dumbbell, Weight } from "lucide-react";
+import { getEquipmentItem } from "@/lib/equipmentConfig";
 import { useAuth } from "@/hooks/useAuth";
 import { WorkoutPlayer, unlockAudioForMobile } from "@/components/WorkoutPlayer";
 import { WorkoutSummary } from "@/components/WorkoutSummary";
@@ -381,13 +382,18 @@ export default function WorkoutDetail() {
 
                 {equipmentList.length > 0 && (
                   <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Equipment</p>
-                    <div className="flex flex-wrap gap-2">
-                      {equipmentList.map((eq) => (
-                        <Badge key={eq} variant="secondary" className="capitalize">
-                          {eq}
-                        </Badge>
-                      ))}
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Equipment</p>
+                    <div className="flex flex-wrap gap-4">
+                      {equipmentList.map((eq) => {
+                        const item = getEquipmentItem(eq);
+                        const IconComp = item?.icon || Dumbbell;
+                        return (
+                          <div key={eq} className="flex flex-col items-center gap-1">
+                            <IconComp className="h-7 w-7 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground capitalize">{item?.label || eq}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

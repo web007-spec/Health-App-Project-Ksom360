@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { EQUIPMENT_LIBRARY, getEquipmentItem } from "@/lib/equipmentConfig";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -893,35 +894,54 @@ export default function EditWorkout() {
             </div>
           </div>
 
-          {/* Equipment Tags */}
-          <div className="flex items-center gap-2 px-4 py-2 border-b text-xs flex-wrap">
-            <span className="text-muted-foreground shrink-0">Equipment:</span>
-            {equipment.map((eq) => (
-              <span key={eq} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs capitalize">
-                {eq}
-                <button onClick={() => setEquipment(prev => prev.filter(e => e !== eq))} className="hover:text-destructive">
-                  <X className="h-3 w-3" />
+          {/* Equipment Picker */}
+          <div className="px-4 py-2 border-b space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-muted-foreground shrink-0">Equipment:</span>
+              {equipment.map((eq) => {
+                const item = getEquipmentItem(eq);
+                const IconComp = item?.icon;
+                return (
+                  <span key={eq} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-secondary text-secondary-foreground text-xs capitalize">
+                    {IconComp && <IconComp className="h-3.5 w-3.5" />}
+                    {item?.label || eq}
+                    <button onClick={() => setEquipment(prev => prev.filter(e => e !== eq))} className="hover:text-destructive ml-0.5">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {EQUIPMENT_LIBRARY.filter(e => !equipment.includes(e.id)).map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setEquipment(prev => [...prev, item.id])}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded border border-dashed border-border text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                >
+                  <item.icon className="h-3 w-3" />
+                  {item.label}
                 </button>
-              </span>
-            ))}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const val = equipmentInput.trim();
-                if (val && !equipment.includes(val.toLowerCase())) {
-                  setEquipment(prev => [...prev, val.toLowerCase()]);
-                  setEquipmentInput("");
-                }
-              }}
-              className="inline-flex"
-            >
-              <Input
-                value={equipmentInput}
-                onChange={(e) => setEquipmentInput(e.target.value)}
-                placeholder="+ Add equipment"
-                className="h-7 w-28 text-xs"
-              />
-            </form>
+              ))}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const val = equipmentInput.trim().toLowerCase();
+                  if (val && !equipment.includes(val)) {
+                    setEquipment(prev => [...prev, val]);
+                    setEquipmentInput("");
+                  }
+                }}
+                className="inline-flex"
+              >
+                <Input
+                  value={equipmentInput}
+                  onChange={(e) => setEquipmentInput(e.target.value)}
+                  placeholder="+ Custom"
+                  className="h-7 w-24 text-xs"
+                />
+              </form>
+            </div>
           </div>
 
           {/* Exercises Header */}
