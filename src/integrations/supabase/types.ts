@@ -2230,6 +2230,30 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_equipment: {
+        Row: {
+          created_at: string
+          icon_url: string | null
+          id: string
+          label: string
+          trainer_id: string
+        }
+        Insert: {
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          label: string
+          trainer_id: string
+        }
+        Update: {
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          label?: string
+          trainer_id?: string
+        }
+        Relationships: []
+      }
       daily_checkins: {
         Row: {
           checkin_date: string

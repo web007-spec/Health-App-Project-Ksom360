@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, X, GripVertical, Copy, Trash2, Timer, FileText, Clock } from "lucide-react";
+import { Search, Plus, X, GripVertical, Copy, Trash2, Timer, FileText, Clock, Upload, Dumbbell } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -303,6 +303,8 @@ export default function EditWorkout() {
   const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
   const [equipment, setEquipment] = useState<string[]>([]);
   const [equipmentInput, setEquipmentInput] = useState("");
+  const [customEquipment, setCustomEquipment] = useState<{ id: string; label: string; icon_url: string | null }[]>([]);
+  const [equipmentUploading, setEquipmentUploading] = useState(false);
 
   const [exerciseItems, setExerciseItems] = useState<WorkoutExercise[]>([]);
   const [groups, setGroups] = useState<ExerciseGroup[]>([]);
@@ -338,6 +340,55 @@ export default function EditWorkout() {
     },
     enabled: !!id,
   });
+
+  // Fetch custom equipment
+  const { data: customEquipmentData } = useQuery({
+    queryKey: ["custom-equipment", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("custom_equipment")
+        .select("*")
+        .eq("trainer_id", user!.id)
+        .order("created_at");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  useEffect(() => {
+    if (customEquipmentData) setCustomEquipment(customEquipmentData.map(c => ({ id: c.id, label: c.label, icon_url: c.icon_url })));
+  }, [customEquipmentData]);
+
+  const handleEquipmentIconUpload = async (file: File) => {
+    if (!user?.id) return;
+    setEquipmentUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/equip-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("task-icons").upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from("task-icons").getPublicUrl(path);
+      
+      const label = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+      const { data: newItem, error: insertErr } = await supabase
+        .from("custom_equipment")
+        .insert({ trainer_id: user.id, label, icon_url: publicUrl })
+        .select()
+        .single();
+      if (insertErr) throw insertErr;
+      
+      const customId = `custom:${newItem.id}`;
+      setCustomEquipment(prev => [...prev, { id: newItem.id, label: newItem.label, icon_url: newItem.icon_url }]);
+      setEquipment(prev => [...prev, customId]);
+      queryClient.invalidateQueries({ queryKey: ["custom-equipment"] });
+    } catch (err) {
+      console.error("Upload failed", err);
+      toast({ title: "Upload failed", variant: "destructive" });
+    } finally {
+      setEquipmentUploading(false);
+    }
+  };
 
   const { data: exercises } = useQuery({
     queryKey: ["exercises", user?.id],
@@ -899,12 +950,21 @@ export default function EditWorkout() {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs text-muted-foreground shrink-0">Equipment:</span>
               {equipment.map((eq) => {
-                const item = getEquipmentItem(eq);
-                const IconComp = item?.icon;
+                const isCustom = eq.startsWith("custom:");
+                const customId = isCustom ? eq.replace("custom:", "") : null;
+                const customItem = customId ? customEquipment.find(c => c.id === customId) : null;
+                const builtInItem = !isCustom ? getEquipmentItem(eq) : null;
+                const IconComp = builtInItem?.icon;
+                const label = customItem?.label || builtInItem?.label || eq;
+                const iconUrl = customItem?.icon_url;
                 return (
                   <span key={eq} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-secondary text-secondary-foreground text-xs capitalize">
-                    {IconComp && <IconComp className="h-3.5 w-3.5" />}
-                    {item?.label || eq}
+                    {iconUrl ? (
+                      <img src={iconUrl} alt={label} className="h-3.5 w-3.5 object-contain" />
+                    ) : IconComp ? (
+                      <IconComp className="h-3.5 w-3.5" />
+                    ) : null}
+                    {label}
                     <button onClick={() => setEquipment(prev => prev.filter(e => e !== eq))} className="hover:text-destructive ml-0.5">
                       <X className="h-3 w-3" />
                     </button>
@@ -923,6 +983,33 @@ export default function EditWorkout() {
                   {item.label}
                 </button>
               ))}
+              {/* Custom equipment from DB */}
+              {customEquipment.filter(c => !equipment.includes(`custom:${c.id}`)).map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setEquipment(prev => [...prev, `custom:${item.id}`])}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded border border-dashed border-border text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                >
+                  {item.icon_url ? (
+                    <img src={item.icon_url} alt={item.label} className="h-3 w-3 object-contain" />
+                  ) : (
+                    <Dumbbell className="h-3 w-3" />
+                  )}
+                  {item.label}
+                </button>
+              ))}
+              {/* Upload custom icon */}
+              <label className="inline-flex items-center gap-1 px-2 py-1 rounded border border-dashed border-border text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer">
+                <Upload className="h-3 w-3" />
+                {equipmentUploading ? "Uploading…" : "+ Upload"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  disabled={equipmentUploading}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleEquipmentIconUpload(f); }}
+                />
+              </label>
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
