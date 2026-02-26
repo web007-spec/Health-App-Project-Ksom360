@@ -16,6 +16,7 @@ import { CollectionHeader } from "@/components/workout-collections/CollectionHea
 import { CategoryCard } from "@/components/workout-collections/CategoryCard";
 import { CategoryDetailView } from "@/components/workout-collections/CategoryDetailView";
 import { WorkoutPhonePreview } from "@/components/workout-collections/WorkoutPhonePreview";
+import { CollectionClientsTab } from "@/components/workout-collections/CollectionClientsTab";
 import { AddWorkoutTypePicker } from "@/components/AddWorkoutTypePicker";
 import { CreateOndemandWorkoutDialog } from "@/components/CreateOndemandWorkoutDialog";
 import {
@@ -326,12 +327,8 @@ export default function WorkoutCollectionDetail() {
             </div>
           </TabsContent>
 
-          <TabsContent value="clients" className="mt-4">
-            <Card className="text-center py-12">
-              <CardContent className="pt-6 text-muted-foreground">
-                Client assignment management coming soon
-              </CardContent>
-            </Card>
+          <TabsContent value="clients" className="mt-6">
+            <CollectionClientsTab collectionId={id!} />
           </TabsContent>
         </Tabs>
 
