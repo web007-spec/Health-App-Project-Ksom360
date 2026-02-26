@@ -23,6 +23,129 @@ interface WorkoutPhonePreviewProps {
   categories: PreviewCategory[];
 }
 
+function WorkoutImage({ src, fallbackSrc, className }: { src?: string | null; fallbackSrc?: string | null; className?: string }) {
+  const url = src || fallbackSrc;
+  if (url) {
+    return <img src={url} alt="" className={`w-full h-full object-cover ${className || ""}`} />;
+  }
+  return (
+    <div className={`w-full h-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center ${className || ""}`}>
+      <Play className="h-3 w-3 text-muted-foreground/50" />
+    </div>
+  );
+}
+
+function LargeCardLayout({ workouts, catImage }: { workouts: any[]; catImage?: string | null }) {
+  return (
+    <div className="flex gap-2 overflow-hidden">
+      {workouts.map((cw) => {
+        const w = cw.ondemand_workouts;
+        if (!w) return null;
+        return (
+          <div key={cw.id} className="w-[120px] shrink-0 rounded-lg overflow-hidden">
+            <div className="h-[70px] bg-muted relative">
+              <WorkoutImage src={w.cover_image_url} fallbackSrc={catImage} />
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
+                <span className="text-[8px] font-medium text-white line-clamp-1">{w.name}</span>
+                <span className="text-[7px] text-white/70">
+                  {w.duration_minutes ? `${w.duration_minutes} MIN` : ""}
+                  {w.level ? ` · ${w.level.toUpperCase()}` : ""}
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SquareCardLayout({ workouts, catImage }: { workouts: any[]; catImage?: string | null }) {
+  return (
+    <div className="grid grid-cols-2 gap-1.5">
+      {workouts.map((cw) => {
+        const w = cw.ondemand_workouts;
+        if (!w) return null;
+        return (
+          <div key={cw.id} className="rounded-lg overflow-hidden">
+            <div className="aspect-square bg-muted relative">
+              <WorkoutImage src={w.cover_image_url} fallbackSrc={catImage} />
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
+                <span className="text-[8px] font-medium text-white line-clamp-1">{w.name}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function NarrowCardLayout({ workouts, catImage }: { workouts: any[]; catImage?: string | null }) {
+  return (
+    <div className="flex gap-1.5 overflow-hidden">
+      {workouts.map((cw) => {
+        const w = cw.ondemand_workouts;
+        if (!w) return null;
+        return (
+          <div key={cw.id} className="w-[75px] shrink-0 rounded-lg overflow-hidden">
+            <div className="h-[100px] bg-muted relative">
+              <WorkoutImage src={w.cover_image_url} fallbackSrc={catImage} />
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1">
+                <span className="text-[7px] font-medium text-white line-clamp-2">{w.name}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ListLayout({ workouts, catImage }: { workouts: any[]; catImage?: string | null }) {
+  return (
+    <div className="space-y-1.5">
+      {workouts.map((cw) => {
+        const w = cw.ondemand_workouts;
+        if (!w) return null;
+        return (
+          <div key={cw.id} className="flex gap-2 items-center rounded-lg overflow-hidden">
+            <div className="w-12 h-10 rounded bg-muted shrink-0 overflow-hidden">
+              <WorkoutImage src={w.cover_image_url} fallbackSrc={catImage} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[9px] font-medium text-foreground line-clamp-1">{w.name}</p>
+              <p className="text-[7px] text-muted-foreground">
+                {w.duration_minutes ? `${w.duration_minutes} min` : ""}
+                {w.level ? ` · ${w.level}` : ""}
+              </p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function CategoryWorkouts({ layout, workouts, catImage }: { layout: string; workouts: any[]; catImage?: string | null }) {
+  if (workouts.length === 0) {
+    return <p className="text-[9px] text-muted-foreground py-2 text-center">No workouts</p>;
+  }
+
+  const displayed = workouts.slice(0, layout === "list" ? 4 : 3);
+
+  switch (layout) {
+    case "square":
+      return <SquareCardLayout workouts={displayed} catImage={catImage} />;
+    case "narrow":
+      return <NarrowCardLayout workouts={displayed} catImage={catImage} />;
+    case "list":
+      return <ListLayout workouts={displayed} catImage={catImage} />;
+    default:
+      return <LargeCardLayout workouts={displayed} catImage={catImage} />;
+  }
+}
+
 export function WorkoutPhonePreview({ collectionName, categories }: WorkoutPhonePreviewProps) {
   const activeCategories = categories.filter((c) => c.is_active !== false);
 
@@ -67,7 +190,8 @@ export function WorkoutPhonePreview({ collectionName, categories }: WorkoutPhone
             )}
 
             {activeCategories.map((cat) => {
-              const workouts = (cat.category_workouts || []).slice(0, 3);
+              const workouts = cat.category_workouts || [];
+              const layout = cat.card_layout || "large";
               return (
                 <div key={cat.id}>
                   <div className="flex items-center justify-between mb-2">
@@ -75,37 +199,7 @@ export function WorkoutPhonePreview({ collectionName, categories }: WorkoutPhone
                     <span className="text-[9px] text-primary font-medium">See more</span>
                   </div>
 
-                  {workouts.length === 0 ? (
-                    <p className="text-[9px] text-muted-foreground py-2 text-center">No workouts</p>
-                  ) : (
-                    <div className="flex gap-2 overflow-hidden">
-                      {workouts.map((cw) => {
-                        const w = cw.ondemand_workouts;
-                        if (!w) return null;
-                        return (
-                          <div key={cw.id} className="w-[120px] shrink-0 rounded-lg overflow-hidden">
-                            <div className="h-[70px] bg-muted relative">
-                              {(w.cover_image_url || cat.cover_image_url) ? (
-                                <img src={w.cover_image_url || cat.cover_image_url!} alt="" className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
-                                  <Play className="h-4 w-4 text-muted-foreground/50" />
-                                </div>
-                              )}
-                              {/* Overlay info */}
-                              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
-                                <span className="text-[8px] font-medium text-white line-clamp-1">{w.name}</span>
-                                <span className="text-[7px] text-white/70">
-                                  {w.duration_minutes ? `${w.duration_minutes} MIN` : ""}
-                                  {w.level ? ` · ${w.level.toUpperCase()}` : ""}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                  <CategoryWorkouts layout={layout} workouts={workouts} catImage={cat.cover_image_url} />
 
                   <hr className="border-border mt-3" />
                 </div>
