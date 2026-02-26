@@ -15,6 +15,7 @@ import { AddWorkoutToCategoryDialog } from "@/components/AddWorkoutToCategoryDia
 import { CollectionHeader } from "@/components/workout-collections/CollectionHeader";
 import { CategoryCard } from "@/components/workout-collections/CategoryCard";
 import { CategoryDetailView } from "@/components/workout-collections/CategoryDetailView";
+import { WorkoutPhonePreview } from "@/components/workout-collections/WorkoutPhonePreview";
 import { AddWorkoutTypePicker } from "@/components/AddWorkoutTypePicker";
 import { CreateOndemandWorkoutDialog } from "@/components/CreateOndemandWorkoutDialog";
 import {
@@ -242,79 +243,87 @@ export default function WorkoutCollectionDetail() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="mt-6 space-y-6">
-            <CollectionHeader
-              collection={collection}
-              onTogglePublished={(val) => togglePublished.mutate(val === "published")}
-            />
+          <TabsContent value="overview" className="mt-6">
+            <div className="flex gap-8">
+              {/* Left: main content */}
+              <div className="flex-1 min-w-0 space-y-6">
+                <CollectionHeader
+                  collection={collection}
+                  onTogglePublished={(val) => togglePublished.mutate(val === "published")}
+                />
 
-            <div className="border-t border-border" />
+                <div className="border-t border-border" />
 
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">Categories ({categories.length})</h2>
-              <Button onClick={() => setCreateCategoryOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create New Category
-              </Button>
-            </div>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-foreground">Categories ({categories.length})</h2>
+                  <Button onClick={() => setCreateCategoryOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create New Category
+                  </Button>
+                </div>
 
-            {categories.length === 0 ? (
-              <div className="flex items-center justify-center gap-8 py-16">
-                {/* Step 1 */}
-                <div className="flex flex-col items-center text-center max-w-[160px]">
-                  <div className="h-16 w-16 rounded-xl bg-muted/60 flex items-center justify-center mb-3">
-                    <FolderOpen className="h-8 w-8 text-muted-foreground/50" />
+                {categories.length === 0 ? (
+                  <div className="flex items-center justify-center gap-8 py-16">
+                    <div className="flex flex-col items-center text-center max-w-[160px]">
+                      <div className="h-16 w-16 rounded-xl bg-muted/60 flex items-center justify-center mb-3">
+                        <FolderOpen className="h-8 w-8 text-muted-foreground/50" />
+                      </div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Step 1</p>
+                      <p className="text-sm font-medium text-foreground">Create Categories</p>
+                    </div>
+                    <div className="text-muted-foreground/30 text-2xl tracking-[0.3em] mt-[-2rem]">···›</div>
+                    <div className="flex flex-col items-center text-center max-w-[160px]">
+                      <div className="h-16 w-16 rounded-xl bg-muted/60 flex items-center justify-center mb-3">
+                        <FolderInput className="h-8 w-8 text-muted-foreground/50" />
+                      </div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Step 2</p>
+                      <p className="text-sm font-medium text-foreground">Add Workouts into Categories</p>
+                    </div>
+                    <div className="text-muted-foreground/30 text-2xl tracking-[0.3em] mt-[-2rem]">···›</div>
+                    <div className="flex flex-col items-center text-center max-w-[160px]">
+                      <div className="h-16 w-16 rounded-xl bg-muted/60 flex items-center justify-center mb-3">
+                        <CloudUpload className="h-8 w-8 text-muted-foreground/50" />
+                      </div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Step 3</p>
+                      <p className="text-sm font-medium text-foreground">Publish and add clients</p>
+                    </div>
                   </div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Step 1</p>
-                  <p className="text-sm font-medium text-foreground">Create Categories</p>
-                </div>
-                {/* Arrow */}
-                <div className="text-muted-foreground/30 text-2xl tracking-[0.3em] mt-[-2rem]">···›</div>
-                {/* Step 2 */}
-                <div className="flex flex-col items-center text-center max-w-[160px]">
-                  <div className="h-16 w-16 rounded-xl bg-muted/60 flex items-center justify-center mb-3">
-                    <FolderInput className="h-8 w-8 text-muted-foreground/50" />
-                  </div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Step 2</p>
-                  <p className="text-sm font-medium text-foreground">Add Workouts into Categories</p>
-                </div>
-                {/* Arrow */}
-                <div className="text-muted-foreground/30 text-2xl tracking-[0.3em] mt-[-2rem]">···›</div>
-                {/* Step 3 */}
-                <div className="flex flex-col items-center text-center max-w-[160px]">
-                  <div className="h-16 w-16 rounded-xl bg-muted/60 flex items-center justify-center mb-3">
-                    <CloudUpload className="h-8 w-8 text-muted-foreground/50" />
-                  </div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Step 3</p>
-                  <p className="text-sm font-medium text-foreground">Publish and add clients</p>
-                </div>
+                ) : (
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext
+                      items={categories.map((c: any) => c.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-2">
+                        {categories.map((category: any) => (
+                          <CategoryCard
+                            key={category.id}
+                            category={category}
+                            onDelete={(cId) => deleteCategory.mutate(cId)}
+                            onAddWorkout={handleAddWorkout}
+                            onToggleActive={(cId, isActive) =>
+                              toggleCategoryActive.mutate({ categoryId: cId, isActive })
+                            }
+                            onChangeLayout={(cId, layout) =>
+                              changeCategoryLayout.mutate({ categoryId: cId, layout })
+                            }
+                            onNavigate={(cId) => setActiveCategoryId(cId)}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                )}
               </div>
-            ) : (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext
-                  items={categories.map((c: any) => c.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="space-y-2">
-                    {categories.map((category: any) => (
-                      <CategoryCard
-                        key={category.id}
-                        category={category}
-                        onDelete={(cId) => deleteCategory.mutate(cId)}
-                        onAddWorkout={handleAddWorkout}
-                        onToggleActive={(cId, isActive) =>
-                          toggleCategoryActive.mutate({ categoryId: cId, isActive })
-                        }
-                        onChangeLayout={(cId, layout) =>
-                          changeCategoryLayout.mutate({ categoryId: cId, layout })
-                        }
-                        onNavigate={(cId) => setActiveCategoryId(cId)}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            )}
+
+              {/* Right: phone preview */}
+              <div className="hidden xl:block w-[300px] shrink-0">
+                <WorkoutPhonePreview
+                  collectionName={collection.name}
+                  categories={categories}
+                />
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="clients" className="mt-4">
