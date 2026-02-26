@@ -1,0 +1,2 @@
+DELETE FROM workout_collection_categories WHERE collection_id IN ('5924a036-6d34-4df3-b1ae-66b14b92f7f0', '4939a405-a47e-4c5a-952a-56772f5c1717', 'a67a6b0d-3d98-4d2b-a2be-9976c241a1e2');
+DELETE FROM workout_collections WHERE id IN ('5924a036-6d34-4df3-b1ae-66b14b92f7f0', '4939a405-a47e-4c5a-952a-56772f5c1717', 'a67a6b0d-3d98-4d2b-a2be-9976c241a1e2');
