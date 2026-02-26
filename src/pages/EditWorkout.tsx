@@ -402,34 +402,37 @@ export default function EditWorkout() {
   // Auto-calculate duration
   const calculatedDuration = useMemo(() => {
     let totalSeconds = 0;
-    const groupIds = [...new Set(exerciseItems.filter(i => i.group_id).map(i => i.group_id!))];
-    const ungrouped = exerciseItems.filter(i => !i.group_id && i.exercise_type === "normal");
-    const restItems = exerciseItems.filter(i => i.exercise_type === "rest");
 
-    for (const item of ungrouped) {
-      const sets = item.sets || 1;
-      const workPerSet = item.target_type === "time" ? (item.time_seconds || 30) : 30;
-      const rest = item.rest_seconds || 30;
-      totalSeconds += (workPerSet + rest) * sets;
+    for (const item of exerciseItems) {
+      // Standalone rest items
+      if (item.exercise_type === "rest" && !item.group_id) {
+        totalSeconds += item.rest_seconds || 0;
+        continue;
+      }
+
+      if (item.exercise_type !== "normal") continue;
+
+      // Grouped exercises: multiply by group sets
+      if (item.group_id) {
+        const group = groups.find(g => g.id === item.group_id);
+        const rounds = group?.sets || 1;
+        const workPerRound = item.target_type === "time" ? (item.time_seconds || 30) : 30;
+        totalSeconds += (workPerRound + (item.rest_seconds || 0)) * rounds;
+      } else {
+        // Ungrouped exercises: multiply by own sets
+        const sets = item.sets || 1;
+        const workPerSet = item.target_type === "time" ? (item.time_seconds || 30) : 30;
+        totalSeconds += (workPerSet + (item.rest_seconds || 0)) * sets;
+      }
     }
 
-    for (const groupId of groupIds) {
-      const groupItems = exerciseItems.filter(i => i.group_id === groupId && i.exercise_type === "normal");
-      const group = groups.find(g => g.id === groupId);
-      const rounds = group?.sets || 1;
-      const groupRestItem = exerciseItems.find(i => i.group_id === groupId && i.exercise_type === "rest");
-      const restBetweenRounds = groupRestItem?.rest_seconds || 60;
-
-      for (const item of groupItems) {
-        const workPerRound = item.target_type === "time" ? (item.time_seconds || 45) : 45;
-        totalSeconds += workPerRound * rounds;
+    // Add rest items inside groups
+    for (const item of exerciseItems) {
+      if (item.exercise_type === "rest" && item.group_id) {
+        const group = groups.find(g => g.id === item.group_id);
+        const rounds = group?.sets || 1;
         totalSeconds += (item.rest_seconds || 0) * rounds;
       }
-      totalSeconds += restBetweenRounds * Math.max(0, rounds - 1);
-    }
-
-    for (const item of restItems.filter(i => !i.group_id)) {
-      totalSeconds += item.rest_seconds || 60;
     }
 
     return Math.max(1, Math.ceil(totalSeconds / 60));
@@ -780,7 +783,7 @@ export default function EditWorkout() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-screen bg-background overflow-hidden">
       {/* Top Bar */}
       <div className="flex items-center justify-between px-4 py-2 bg-card border-b shrink-0">
         <div className="flex items-center gap-3">
@@ -810,7 +813,7 @@ export default function EditWorkout() {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Panel - Builder */}
-        <div className="flex-1 flex flex-col overflow-hidden border-r">
+        <div className="flex-1 flex flex-col overflow-hidden border-r min-w-0">
           {/* Instructions */}
           <div className="px-4 pt-4 pb-2">
             <p className="text-xs font-bold uppercase tracking-wide mb-1">Instructions</p>
@@ -954,7 +957,7 @@ export default function EditWorkout() {
         </div>
 
         {/* Right Panel - Exercise Library */}
-        <div className="w-[520px] flex flex-col overflow-hidden">
+        <div className="w-[520px] shrink-0 flex flex-col overflow-hidden">
           <div className="p-3 border-b space-y-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
