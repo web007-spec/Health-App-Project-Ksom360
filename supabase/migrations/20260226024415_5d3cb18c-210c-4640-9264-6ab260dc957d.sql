@@ -1,0 +1,1 @@
+ALTER TABLE public.client_feature_settings ADD COLUMN IF NOT EXISTS on_demand_enabled boolean NOT NULL DEFAULT true;

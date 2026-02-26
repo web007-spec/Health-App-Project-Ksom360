@@ -7,6 +7,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -148,6 +150,34 @@ export function ClientOnDemandTab({ clientId, trainerId }: ClientOnDemandTabProp
   const [workoutPickerOpen, setWorkoutPickerOpen] = useState(false);
   const [programPickerOpen, setProgramPickerOpen] = useState(false);
 
+  // ── On-Demand toggle ──
+  const { data: onDemandEnabled = true } = useQuery({
+    queryKey: ["on-demand-enabled", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_feature_settings")
+        .select("on_demand_enabled")
+        .eq("client_id", clientId)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.on_demand_enabled ?? true;
+    },
+  });
+
+  const toggleOnDemand = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const { error } = await supabase
+        .from("client_feature_settings")
+        .update({ on_demand_enabled: enabled })
+        .eq("client_id", clientId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["on-demand-enabled", clientId] });
+      queryClient.invalidateQueries({ queryKey: ["client-feature-settings", clientId] });
+    },
+  });
+
   // ── Queries ──
   const { data: assignedResources, isLoading: loadingResources } = useQuery({
     queryKey: ["client-resource-access", clientId],
@@ -275,6 +305,19 @@ export function ClientOnDemandTab({ clientId, trainerId }: ClientOnDemandTabProp
 
   return (
     <div className="space-y-10">
+      {/* ── On-Demand Toggle ── */}
+      <div className="flex items-center justify-between rounded-lg border border-border p-4">
+        <div>
+          <Label htmlFor="on-demand-toggle" className="text-base font-semibold">On-Demand</Label>
+          <p className="text-sm text-muted-foreground">Show the On-Demand tab in your client's bottom navigation</p>
+        </div>
+        <Switch
+          id="on-demand-toggle"
+          checked={onDemandEnabled}
+          onCheckedChange={(checked) => toggleOnDemand.mutate(checked)}
+        />
+      </div>
+
       {/* ── Resource Collections ── */}
       <section className="space-y-4">
         <div className="flex items-baseline gap-3">
