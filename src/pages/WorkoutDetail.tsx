@@ -110,7 +110,7 @@ export default function WorkoutDetail() {
     })) || [];
 
   const totalExercises = transformedSections.reduce(
-    (sum: number, section: any) => sum + section.exercises.length * section.rounds,
+    (sum: number, section: any) => sum + section.exercises.filter((e: any) => e.exercise_id).length,
     0
   );
 
