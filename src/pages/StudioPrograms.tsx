@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, GraduationCap } from "lucide-react";
+import { Plus, Search, GraduationCap, Filter, ChevronUp, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +31,8 @@ export default function StudioPrograms() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [bannerVisible, setBannerVisible] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [programName, setProgramName] = useState("");
   const [programDescription, setProgramDescription] = useState("");
@@ -101,28 +103,78 @@ export default function StudioPrograms() {
   return (
     <DashboardLayout>
       <div className="p-6 space-y-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold">Studio Programs</h1>
-            <p className="text-muted-foreground mt-2">
-              Create and sell structured multi-week training programs
-            </p>
-          </div>
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Studio Program
-          </Button>
-        </div>
+        {/* Page title */}
+        <h1 className="text-3xl font-bold text-foreground">Studio Programs</h1>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search programs..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+        {/* Hero Banner */}
+        {!bannerVisible ? (
+          <button
+            onClick={() => setBannerVisible(true)}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Show Banner <ChevronDown className="h-3.5 w-3.5" />
+          </button>
+        ) : (
+          <div className="rounded-xl bg-gradient-to-br from-amber-50 to-orange-50/60 dark:from-amber-950/30 dark:to-orange-900/20 border border-amber-200/50 dark:border-amber-800/30 p-6 md:p-8 relative overflow-hidden">
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="flex-1 space-y-3">
+                <p className="text-xs font-bold tracking-widest uppercase text-foreground/70">Studio Program</p>
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground">Flexible Programs for Clients</h2>
+                <p className="text-muted-foreground text-sm leading-relaxed max-w-md">
+                  Create and sell programs your clients can start and stop anytime, without you lifting a finger.
+                </p>
+                <div className="flex items-center gap-3 pt-3">
+                  <Button onClick={() => setCreateDialogOpen(true)} className="gap-2 bg-primary hover:bg-primary/90">
+                    <Plus className="h-4 w-4" />
+                    Create Studio Program
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="border-primary/30 text-primary hover:bg-primary/10"
+                    onClick={() => setSearchOpen(!searchOpen)}
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" className="gap-2 text-muted-foreground">
+                    <Filter className="h-4 w-4" />
+                    Filter
+                  </Button>
+                </div>
+              </div>
+
+              {/* Decorative right side */}
+              <div className="hidden md:flex items-center justify-center w-72">
+                <div className="relative w-full h-40 rounded-xl bg-gradient-to-br from-purple-300/40 to-amber-200/40 dark:from-purple-800/30 dark:to-amber-700/30 flex items-center justify-center overflow-hidden">
+                  <GraduationCap className="h-16 w-16 text-foreground/20" />
+                  <div className="absolute -bottom-2 -right-2 h-12 w-12 rounded-full bg-primary/20" />
+                  <div className="absolute -top-2 -left-2 h-8 w-8 rounded-full bg-amber-400/30" />
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setBannerVisible(false)}
+              className="absolute bottom-3 right-4 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Hide Banner <ChevronUp className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+
+        {/* Search bar */}
+        {searchOpen && (
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search programs..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+              autoFocus
+            />
+          </div>
+        )}
 
         {isLoading ? (
           <div className="text-center py-12">Loading programs...</div>
@@ -147,42 +199,43 @@ export default function StudioPrograms() {
                 key={program.id}
                 className="cursor-pointer hover:shadow-lg transition-shadow overflow-hidden"
               >
-                {program.cover_image_url ? (
-                  <img
-                    src={program.cover_image_url}
-                    alt={program.name}
-                    className="w-full h-48 object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-48 bg-muted flex items-center justify-center">
-                    <GraduationCap className="h-12 w-12 text-muted-foreground" />
-                  </div>
-                )}
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="line-clamp-1">{program.name}</span>
-                    <Badge variant={program.status === "draft" ? "secondary" : "default"}>
-                      {program.status === "draft" ? "Draft" : "Published"}
+                <div className="relative">
+                  {program.cover_image_url ? (
+                    <img
+                      src={program.cover_image_url}
+                      alt={program.name}
+                      className="w-full h-48 object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-48 bg-muted flex items-center justify-center">
+                      <GraduationCap className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                  )}
+                  {/* Badges overlaid on image */}
+                  <div className="absolute bottom-3 left-3 flex gap-2">
+                    <Badge variant={program.status === "draft" ? "secondary" : "default"} className="text-xs">
+                      {program.status === "draft" ? "● Draft" : "● Published"}
                     </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                    <Badge variant="secondary" className="text-xs">
+                      {program.duration_weeks} {program.duration_weeks === 1 ? "Week" : "Weeks"}
+                    </Badge>
+                  </div>
+                </div>
+                <CardContent className="p-4 space-y-1">
+                  <h3 className="font-semibold text-foreground line-clamp-1">{program.name}</h3>
                   {program.description && (
                     <p className="text-sm text-muted-foreground line-clamp-2">
                       {program.description}
                     </p>
                   )}
-                </CardContent>
-                <CardFooter className="text-sm text-muted-foreground flex justify-between">
-                  <span>{program.duration_weeks} Weeks</span>
-                  <span>
+                  <p className="text-sm text-muted-foreground pt-1">
                     Available for{" "}
                     <strong className="text-foreground">
                       {program.client_studio_program_access?.[0]?.count || 0}
                     </strong>{" "}
                     clients
-                  </span>
-                </CardFooter>
+                  </p>
+                </CardContent>
               </Card>
             ))}
           </div>
