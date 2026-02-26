@@ -352,18 +352,7 @@ export default function WorkoutDetail() {
 
         {/* Workout Info */}
         {(() => {
-          const equipmentSet = new Set<string>();
-          transformedSections.forEach((section: any) => {
-            section.exercises.forEach((ex: any) => {
-              if (ex.equipment) {
-                ex.equipment.split(",").forEach((e: string) => {
-                  const trimmed = e.trim();
-                  if (trimmed) equipmentSet.add(trimmed);
-                });
-              }
-            });
-          });
-          const equipmentList = Array.from(equipmentSet);
+          const equipmentList: string[] = (workout as any).equipment || [];
 
           return (
             <Card className="mb-6">

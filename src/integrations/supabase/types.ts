@@ -5636,6 +5636,7 @@ export type Database = {
           description: string | null
           difficulty: Database["public"]["Enums"]["workout_difficulty"]
           duration_minutes: number
+          equipment: string[] | null
           id: string
           image_url: string | null
           is_template: boolean | null
@@ -5652,6 +5653,7 @@ export type Database = {
           description?: string | null
           difficulty: Database["public"]["Enums"]["workout_difficulty"]
           duration_minutes: number
+          equipment?: string[] | null
           id?: string
           image_url?: string | null
           is_template?: boolean | null
@@ -5668,6 +5670,7 @@ export type Database = {
           description?: string | null
           difficulty?: Database["public"]["Enums"]["workout_difficulty"]
           duration_minutes?: number
+          equipment?: string[] | null
           id?: string
           image_url?: string | null
           is_template?: boolean | null

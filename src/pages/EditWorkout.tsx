@@ -300,6 +300,8 @@ export default function EditWorkout() {
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
+  const [equipment, setEquipment] = useState<string[]>([]);
+  const [equipmentInput, setEquipmentInput] = useState("");
 
   const [exerciseItems, setExerciseItems] = useState<WorkoutExercise[]>([]);
   const [groups, setGroups] = useState<ExerciseGroup[]>([]);
@@ -354,6 +356,7 @@ export default function EditWorkout() {
     setCategory(workout.category || "");
     setDifficulty(workout.difficulty || "beginner");
     setExistingImageUrl(workout.image_url || null);
+    setEquipment((workout as any).equipment || []);
 
     const items: WorkoutExercise[] = [];
     const loadedGroups: ExerciseGroup[] = [];
@@ -586,7 +589,8 @@ export default function EditWorkout() {
           difficulty: difficulty,
           duration_minutes: calculatedDuration,
           image_url: imageUrl,
-        })
+          equipment: equipment.length > 0 ? equipment : null,
+        } as any)
         .eq("id", id);
       if (workoutError) throw workoutError;
 
@@ -887,6 +891,37 @@ export default function EditWorkout() {
                 </label>
               )}
             </div>
+          </div>
+
+          {/* Equipment Tags */}
+          <div className="flex items-center gap-2 px-4 py-2 border-b text-xs flex-wrap">
+            <span className="text-muted-foreground shrink-0">Equipment:</span>
+            {equipment.map((eq) => (
+              <span key={eq} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs capitalize">
+                {eq}
+                <button onClick={() => setEquipment(prev => prev.filter(e => e !== eq))} className="hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const val = equipmentInput.trim();
+                if (val && !equipment.includes(val.toLowerCase())) {
+                  setEquipment(prev => [...prev, val.toLowerCase()]);
+                  setEquipmentInput("");
+                }
+              }}
+              className="inline-flex"
+            >
+              <Input
+                value={equipmentInput}
+                onChange={(e) => setEquipmentInput(e.target.value)}
+                placeholder="+ Add equipment"
+                className="h-7 w-28 text-xs"
+              />
+            </form>
           </div>
 
           {/* Exercises Header */}
