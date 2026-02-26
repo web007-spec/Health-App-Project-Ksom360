@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Package, Play, Trash2, GraduationCap, Search } from "lucide-react";
+import { Package, Play, Trash2, GraduationCap, Search, Plus, FolderOpen, MoreVertical } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -58,7 +58,48 @@ function PromoCard({
   );
 }
 
-/* ── Assigned item row ── */
+/* ── Everfit-style folder card for assigned items ── */
+function FolderCard({
+  icon: Icon,
+  name,
+  clientCount,
+  resourceCount,
+  countLabel,
+  onRemove,
+}: {
+  icon: React.ElementType;
+  name: string;
+  clientCount: number;
+  resourceCount: number;
+  countLabel: string;
+  onRemove: () => void;
+}) {
+  return (
+    <Card className="w-[200px] overflow-hidden">
+      <CardContent className="p-0">
+        <div className="flex items-center justify-between p-3 pb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <FolderOpen className="h-4 w-4 text-muted-foreground shrink-0" />
+            <p className="font-semibold text-sm truncate">{name}</p>
+          </div>
+          <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={onRemove}>
+            <MoreVertical className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+        <div className="border-t px-3 py-2 space-y-0.5">
+          <p className="text-xs text-muted-foreground">
+            Available for <span className="font-semibold text-foreground">{clientCount} client{clientCount !== 1 ? "s" : ""}</span>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {countLabel}: <span className="font-semibold text-foreground">{resourceCount}</span>
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ── Assigned item row (used for workouts/programs) ── */
 function AssignedRow({
   icon: Icon,
   imageUrl,
@@ -228,7 +269,12 @@ export function ClientOnDemandTab({ clientId, trainerId }: ClientOnDemandTabProp
     <div className="space-y-10">
       {/* ── Resource Collections ── */}
       <section className="space-y-4">
-        <h3 className="text-xl font-bold">Resource Collections</h3>
+        <div className="flex items-baseline gap-3">
+          <h3 className="text-xl font-bold">Resource Collections</h3>
+          {!!assignedResources?.length && (
+            <span className="text-sm text-muted-foreground">Add up to 10 collections</span>
+          )}
+        </div>
 
         {loadingResources ? (
           <p className="text-muted-foreground text-sm">Loading...</p>
@@ -243,21 +289,29 @@ export function ClientOnDemandTab({ clientId, trainerId }: ClientOnDemandTabProp
             onAction={() => setResourcePickerOpen(true)}
           />
         ) : (
-          <div className="space-y-3">
-            <div className="grid gap-3">
-              {assignedResources.map((access: any) => (
-                <AssignedRow
+          <div className="flex flex-wrap gap-4">
+            {assignedResources.map((access: any) => {
+              const col = access.resource_collections;
+              return (
+                <FolderCard
                   key={access.id}
                   icon={Package}
-                  name={access.resource_collections?.name}
-                  description={access.resource_collections?.description}
+                  name={col?.name}
+                  clientCount={1}
+                  resourceCount={0}
+                  countLabel="Resources"
                   onRemove={() => removeResourceMutation.mutate(access.id)}
                 />
-              ))}
-            </div>
-            <Button variant="outline" size="sm" className="gap-2" onClick={() => setResourcePickerOpen(true)}>
-              + Add Another
-            </Button>
+              );
+            })}
+            {assignedResources.length < 10 && (
+              <div
+                onClick={() => setResourcePickerOpen(true)}
+                className="w-[200px] h-[140px] border-2 border-dashed border-muted-foreground/20 rounded-lg flex items-center justify-center cursor-pointer hover:border-primary/40 transition-colors"
+              >
+                <Plus className="h-8 w-8 text-muted-foreground/40" />
+              </div>
+            )}
           </div>
         )}
       </section>
