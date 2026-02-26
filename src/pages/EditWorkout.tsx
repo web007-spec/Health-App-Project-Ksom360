@@ -117,7 +117,7 @@ function ExerciseRow({
   const thumbnail = exerciseInfo?.image_url || (exerciseInfo?.video_url?.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/) ? `https://img.youtube.com/vi/${exerciseInfo.video_url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)[1]}/mqdefault.jpg` : null);
 
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-2 px-3 py-2 border-b hover:bg-muted/30 transition-colors overflow-hidden">
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2 px-3 py-2 border-b hover:bg-muted/30 transition-colors min-w-0">
       <Checkbox checked={item.selected} onCheckedChange={() => onToggleSelect(item.id)} className="shrink-0" />
 
       <div className="w-14 h-10 rounded bg-muted overflow-hidden shrink-0">
@@ -954,7 +954,7 @@ export default function EditWorkout() {
         </div>
 
         {/* Right Panel - Exercise Library */}
-        <div className="w-[520px] shrink-0 flex flex-col overflow-hidden">
+        <div className="w-[460px] shrink-0 flex flex-col overflow-hidden">
           <div className="p-3 border-b space-y-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
