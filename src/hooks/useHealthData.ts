@@ -36,7 +36,8 @@ export interface HealthStats {
 // Hook for fetching health data
 export const useHealthData = (clientId?: string, dataType?: string, days: number = 7) => {
   const { user } = useAuth();
-  const targetClientId = clientId || user?.id;
+  const impersonatedId = typeof window !== 'undefined' ? localStorage.getItem('impersonatedClientId') : null;
+  const targetClientId = clientId || impersonatedId || user?.id;
   
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
@@ -69,7 +70,8 @@ export const useHealthData = (clientId?: string, dataType?: string, days: number
 // Hook for fetching health stats summary
 export const useHealthStats = (clientId?: string) => {
   const { user } = useAuth();
-  const targetClientId = clientId || user?.id;
+  const impersonatedId = typeof window !== 'undefined' ? localStorage.getItem('impersonatedClientId') : null;
+  const targetClientId = clientId || impersonatedId || user?.id;
   
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -126,7 +128,8 @@ export const useHealthStats = (clientId?: string) => {
 // Hook for health connections
 export const useHealthConnections = (clientId?: string) => {
   const { user } = useAuth();
-  const targetClientId = clientId || user?.id;
+  const impersonatedId = typeof window !== 'undefined' ? localStorage.getItem('impersonatedClientId') : null;
+  const targetClientId = clientId || impersonatedId || user?.id;
   
   return useQuery({
     queryKey: ['health-connections', targetClientId],
