@@ -187,12 +187,26 @@ async function queryIOSStepsAndCalories(since: Date): Promise<HealthDataPoint[]>
       limit: 500,
     });
 
+    // Deduplicate steps by aggregating per hour to avoid double-counting
+    // from iPhone + Apple Watch both recording steps
+    const stepsByHour = new Map<string, number>();
     for (const sample of stepsResult?.resultData ?? []) {
+      const date = new Date(sample.startDate ?? sample.date);
+      // Round to hour for dedup key
+      const hourKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`;
+      const existing = stepsByHour.get(hourKey) || 0;
+      // Take the MAX value per hour (Apple Watch and iPhone overlap)
+      stepsByHour.set(hourKey, Math.max(existing, Math.round(sample.value)));
+    }
+    
+    for (const [hourKey, value] of stepsByHour) {
+      const parts = hourKey.split('-').map(Number);
+      const hourDate = new Date(parts[0], parts[1], parts[2], parts[3]);
       points.push({
         data_type: 'steps',
-        value: Math.round(sample.value),
+        value,
         unit: 'count',
-        recorded_at: sample.startDate ?? sample.date,
+        recorded_at: hourDate.toISOString(),
         source: 'apple_health',
       });
     }
@@ -204,17 +218,99 @@ async function queryIOSStepsAndCalories(since: Date): Promise<HealthDataPoint[]>
       limit: 500,
     });
 
+    // Deduplicate calories the same way
+    const calsByHour = new Map<string, number>();
     for (const sample of calResult?.resultData ?? []) {
+      const date = new Date(sample.startDate ?? sample.date);
+      const hourKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`;
+      const existing = calsByHour.get(hourKey) || 0;
+      calsByHour.set(hourKey, Math.max(existing, Math.round(sample.value)));
+    }
+    
+    for (const [hourKey, value] of calsByHour) {
+      const parts = hourKey.split('-').map(Number);
+      const hourDate = new Date(parts[0], parts[1], parts[2], parts[3]);
       points.push({
         data_type: 'calories_burned',
-        value: Math.round(sample.value),
+        value,
         unit: 'kcal',
-        recorded_at: sample.startDate ?? sample.date,
+        recorded_at: hourDate.toISOString(),
         source: 'apple_health',
       });
     }
   } catch (err) {
     console.error('iOS steps/calories query error:', err);
+  }
+
+  return points;
+}
+
+// ─── iOS Exercise & Workouts ────────────────────────────────────────────────
+
+async function queryIOSExerciseAndWorkouts(since: Date): Promise<HealthDataPoint[]> {
+  const hk = await getHealthKit();
+  if (!hk) return [];
+
+  const points: HealthDataPoint[] = [];
+
+  try {
+    // Active exercise minutes
+    const exerciseResult = await hk.queryHKitSampleType({
+      sampleName: 'HKQuantityTypeIdentifierAppleExerciseTime',
+      startDate: since.toISOString(),
+      endDate: new Date().toISOString(),
+      limit: 500,
+    });
+
+    // Aggregate active minutes per day to avoid duplicates
+    const minutesByDay = new Map<string, number>();
+    for (const sample of exerciseResult?.resultData ?? []) {
+      const date = new Date(sample.startDate ?? sample.date);
+      const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+      const existing = minutesByDay.get(dayKey) || 0;
+      minutesByDay.set(dayKey, existing + Math.round(sample.value));
+    }
+
+    for (const [dayKey, value] of minutesByDay) {
+      const parts = dayKey.split('-').map(Number);
+      const dayDate = new Date(parts[0], parts[1], parts[2], 12);
+      points.push({
+        data_type: 'active_minutes',
+        value,
+        unit: 'minutes',
+        recorded_at: dayDate.toISOString(),
+        source: 'apple_health',
+      });
+    }
+
+    // Workouts
+    try {
+      const workoutResult = await hk.queryHKitSampleType({
+        sampleName: 'HKWorkoutTypeIdentifier',
+        startDate: since.toISOString(),
+        endDate: new Date().toISOString(),
+        limit: 100,
+      });
+
+      for (const sample of workoutResult?.resultData ?? []) {
+        points.push({
+          data_type: 'workout',
+          value: Math.round((sample.duration ?? 0) / 60), // duration in minutes
+          unit: 'minutes',
+          recorded_at: sample.startDate ?? sample.date,
+          source: 'apple_health',
+          metadata: {
+            workout_type: sample.workoutActivityType ?? sample.activityType ?? 'unknown',
+            calories: sample.totalEnergyBurned ?? 0,
+          } as Json,
+        });
+      }
+    } catch {
+      // HKWorkoutTypeIdentifier may not be available on all devices
+      console.warn('Workout query not supported');
+    }
+  } catch (err) {
+    console.error('iOS exercise/workout query error:', err);
   }
 
   return points;
@@ -341,11 +437,12 @@ export const syncHealthData = async (clientId: string): Promise<{ success: boole
     let healthDataPoints: HealthDataPoint[] = [];
 
     if (platform === 'ios') {
-      const [hrPoints, activityPoints] = await Promise.all([
+      const [hrPoints, activityPoints, exercisePoints] = await Promise.all([
         queryIOSHeartRate(sevenDaysAgo),
         queryIOSStepsAndCalories(sevenDaysAgo),
+        queryIOSExerciseAndWorkouts(sevenDaysAgo),
       ]);
-      healthDataPoints = [...hrPoints, ...activityPoints];
+      healthDataPoints = [...hrPoints, ...activityPoints, ...exercisePoints];
     } else {
       const [hrPoints, activityPoints] = await Promise.all([
         queryAndroidHeartRate(sevenDaysAgo),
