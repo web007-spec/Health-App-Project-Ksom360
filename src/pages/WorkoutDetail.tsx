@@ -15,6 +15,10 @@ import { WorkoutPlayer, unlockAudioForMobile } from "@/components/WorkoutPlayer"
 import { WorkoutSummary } from "@/components/WorkoutSummary";
 import { awardBadges } from "@/hooks/useBadgeAwarder";
 
+interface CustomEquipmentMap {
+  [id: string]: { label: string; icon_url: string | null };
+}
+
 interface CompletionData {
   setLogs: Record<string, { reps: string; weight: string; completed: boolean }>;
   elapsedSeconds: number;
@@ -54,6 +58,18 @@ export default function WorkoutDetail() {
       return data;
     },
     enabled: !!id && !!user?.id && isClient,
+  });
+
+  // Fetch custom equipment icons
+  const { data: customEquipmentMap } = useQuery({
+    queryKey: ["custom-equipment-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("custom_equipment").select("id, label, icon_url");
+      if (error) throw error;
+      const map: CustomEquipmentMap = {};
+      data?.forEach(c => { map[c.id] = { label: c.label, icon_url: c.icon_url }; });
+      return map;
+    },
   });
 
   const { data: workout, isLoading } = useQuery({
@@ -385,12 +401,21 @@ export default function WorkoutDetail() {
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Equipment</p>
                     <div className="flex flex-wrap gap-4">
                       {equipmentList.map((eq) => {
-                        const item = getEquipmentItem(eq);
-                        const IconComp = item?.icon || Dumbbell;
+                        const isCustom = eq.startsWith("custom:");
+                        const customId = isCustom ? eq.replace("custom:", "") : null;
+                        const customItem = customId && customEquipmentMap ? customEquipmentMap[customId] : null;
+                        const builtInItem = !isCustom ? getEquipmentItem(eq) : null;
+                        const IconComp = builtInItem?.icon || Dumbbell;
+                        const label = customItem?.label || builtInItem?.label || eq;
+                        const iconUrl = customItem?.icon_url;
                         return (
                           <div key={eq} className="flex flex-col items-center gap-1">
-                            <IconComp className="h-7 w-7 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground capitalize">{item?.label || eq}</span>
+                            {iconUrl ? (
+                              <img src={iconUrl} alt={label} className="h-7 w-7 object-contain" />
+                            ) : (
+                              <IconComp className="h-7 w-7 text-muted-foreground" />
+                            )}
+                            <span className="text-xs text-muted-foreground capitalize">{label}</span>
                           </div>
                         );
                       })}
