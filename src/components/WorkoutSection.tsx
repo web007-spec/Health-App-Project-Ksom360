@@ -205,7 +205,7 @@ export function WorkoutSection({
                   </div>
 
                   {!showTimedFields && (
-                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                       <div>
                         <Label className="text-xs">Sets</Label>
                         <Input
@@ -224,7 +224,7 @@ export function WorkoutSection({
                           className="h-8"
                         />
                       </div>
-                      <div className="col-span-2">
+                      <div>
                         <Label className="text-xs">Duration</Label>
                         <div className="flex items-center gap-1">
                           <Input
@@ -246,19 +246,18 @@ export function WorkoutSection({
                               if (val && exercise.exercise_type === "duration_hr") inSeconds = val * 3600;
                               onUpdateExercise(section.id, exercise.id, { duration_seconds: inSeconds });
                             }}
-                            className="h-8 flex-1"
+                            className="h-8 min-w-0 flex-1"
                           />
                           <Select
                             value={exercise.exercise_type === "duration_min" ? "min" : exercise.exercise_type === "duration_hr" ? "hr" : "sec"}
                             onValueChange={(unit) => {
-                              const rawSeconds = exercise.duration_seconds || 0;
                               let newType = "sec";
                               if (unit === "min") newType = "duration_min";
                               if (unit === "hr") newType = "duration_hr";
                               onUpdateExercise(section.id, exercise.id, { exercise_type: newType });
                             }}
                           >
-                            <SelectTrigger className="h-8 w-[68px] shrink-0 px-2 text-xs">
+                            <SelectTrigger className="h-8 w-[60px] shrink-0 px-2 text-xs">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
