@@ -85,8 +85,8 @@ export function WorkoutPhonePreview({ collectionName, categories }: WorkoutPhone
                         return (
                           <div key={cw.id} className="w-[120px] shrink-0 rounded-lg overflow-hidden">
                             <div className="h-[70px] bg-muted relative">
-                              {w.cover_image_url ? (
-                                <img src={w.cover_image_url} alt="" className="w-full h-full object-cover" />
+                              {(w.cover_image_url || cat.cover_image_url) ? (
+                                <img src={w.cover_image_url || cat.cover_image_url!} alt="" className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
                                   <Play className="h-4 w-4 text-muted-foreground/50" />
