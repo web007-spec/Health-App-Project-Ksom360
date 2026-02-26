@@ -954,7 +954,7 @@ export default function EditWorkout() {
         </div>
 
         {/* Right Panel - Exercise Library */}
-        <div className="w-[460px] shrink-0 flex flex-col overflow-hidden">
+        <div className="w-[340px] lg:w-[400px] xl:w-[460px] shrink-0 flex flex-col overflow-hidden">
           <div className="p-3 border-b space-y-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
