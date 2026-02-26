@@ -83,16 +83,20 @@ function SquareCardLayout({ workouts, catImage }: { workouts: any[]; catImage?: 
 
 function NarrowCardLayout({ workouts, catImage }: { workouts: any[]; catImage?: string | null }) {
   return (
-    <div className="flex gap-1.5 overflow-hidden">
+    <div className="flex gap-2 overflow-hidden">
       {workouts.map((cw) => {
         const w = cw.ondemand_workouts;
         if (!w) return null;
         return (
-          <div key={cw.id} className="w-[75px] shrink-0 rounded-lg overflow-hidden">
-            <div className="h-[100px] bg-muted relative">
+          <div key={cw.id} className="w-[100px] shrink-0 rounded-lg overflow-hidden">
+            <div className="h-[140px] bg-muted relative">
               <WorkoutImage src={w.cover_image_url} fallbackSrc={catImage} />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1">
-                <span className="text-[7px] font-medium text-white line-clamp-2">{w.name}</span>
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
+                <span className="text-[8px] font-semibold text-white line-clamp-2">{w.name}</span>
+                <span className="text-[7px] text-white/70">
+                  {w.duration_minutes ? `${w.duration_minutes}+ MIN` : ""}
+                  {w.level ? ` - ${w.level.toUpperCase()}` : ""}
+                </span>
               </div>
             </div>
           </div>
