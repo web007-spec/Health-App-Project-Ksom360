@@ -37,19 +37,19 @@ function WorkoutImage({ src, fallbackSrc, className }: { src?: string | null; fa
 
 function LargeCardLayout({ workouts, catImage }: { workouts: any[]; catImage?: string | null }) {
   return (
-    <div className="flex gap-2 overflow-hidden">
+    <div className="space-y-2">
       {workouts.map((cw) => {
         const w = cw.ondemand_workouts;
         if (!w) return null;
         return (
-          <div key={cw.id} className="w-[120px] shrink-0 rounded-lg overflow-hidden">
-            <div className="h-[70px] bg-muted relative">
+          <div key={cw.id} className="w-full rounded-lg overflow-hidden">
+            <div className="h-[120px] bg-muted relative">
               <WorkoutImage src={w.cover_image_url} fallbackSrc={catImage} />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1.5">
-                <span className="text-[8px] font-medium text-white line-clamp-1">{w.name}</span>
-                <span className="text-[7px] text-white/70">
-                  {w.duration_minutes ? `${w.duration_minutes} MIN` : ""}
-                  {w.level ? ` · ${w.level.toUpperCase()}` : ""}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                <span className="text-[10px] font-semibold text-white line-clamp-1">{w.name}</span>
+                <span className="text-[8px] text-white/70">
+                  {w.duration_minutes ? `${w.duration_minutes}+ MIN` : ""}
+                  {w.level ? ` - ${w.level.toUpperCase()}` : ""}
                 </span>
               </div>
             </div>
