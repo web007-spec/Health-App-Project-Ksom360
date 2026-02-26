@@ -50,7 +50,8 @@ export default function ClientVibes() {
 
   useEffect(() => {
     if (sounds.length > 0) {
-      const urls = sounds.map((s: any) => s.audio_url).filter(Boolean);
+      // Only preload first few sounds to avoid memory crashes on iOS Safari
+      const urls = sounds.slice(0, 4).map((s: any) => s.audio_url).filter(Boolean);
       preloadAudioUrls(urls);
     }
   }, [sounds]);
@@ -65,7 +66,11 @@ export default function ClientVibes() {
   });
 
   useEffect(() => {
-    mixer.restoreFromStorage();
+    try {
+      mixer.restoreFromStorage();
+    } catch (e) {
+      console.warn("[ClientVibes] Failed to restore audio state:", e);
+    }
   }, []);
 
   useEffect(() => {
