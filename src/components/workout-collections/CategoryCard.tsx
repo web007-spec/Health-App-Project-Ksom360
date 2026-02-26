@@ -11,7 +11,6 @@ import {
   Play,
   Dumbbell,
   Trash2,
-  LayoutGrid,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -53,104 +52,91 @@ export function CategoryCard({
   const previewWorkouts = (category.category_workouts || []).slice(0, 3);
 
   return (
-    <>
-      <Card
-        ref={setNodeRef}
-        style={style}
-        className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => onNavigate(category.id)}
-      >
-        <CardHeader className="flex flex-row items-center gap-3 space-y-0 py-3 px-4">
-          <div
-            {...attributes}
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <GripVertical className="h-5 w-5 text-muted-foreground" />
-          </div>
+    <Card
+      ref={setNodeRef}
+      style={style}
+      className="cursor-pointer hover:shadow-md transition-shadow"
+      onClick={() => onNavigate(category.id)}
+    >
+      <CardHeader className="flex flex-row items-center gap-3 space-y-0 py-3 px-4">
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="h-5 w-5 text-muted-foreground" />
+        </div>
 
-          {/* Thumbnail stack */}
-          <div className="flex -space-x-2">
-            {previewWorkouts.length > 0 ? (
-              previewWorkouts.map((cw: any) => (
-                <div key={cw.id} className="w-10 h-10 rounded overflow-hidden border-2 border-background flex-shrink-0">
-                  {cw.ondemand_workouts?.thumbnail_url ? (
-                    <img
-                      src={cw.ondemand_workouts.thumbnail_url}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-muted flex items-center justify-center">
-                      <Play className="h-3 w-3 text-muted-foreground" />
-                    </div>
-                  )}
-                </div>
-              ))
-            ) : (
-              <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
-                <Dumbbell className="h-4 w-4 text-muted-foreground" />
+        {/* Thumbnail stack */}
+        <div className="flex -space-x-2">
+          {previewWorkouts.length > 0 ? (
+            previewWorkouts.map((cw: any) => (
+              <div key={cw.id} className="w-10 h-10 rounded overflow-hidden border-2 border-background flex-shrink-0">
+                {cw.ondemand_workouts?.thumbnail_url ? (
+                  <img
+                    src={cw.ondemand_workouts.thumbnail_url}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-muted flex items-center justify-center">
+                    <Play className="h-3 w-3 text-muted-foreground" />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            ))
+          ) : (
+            <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
+              <Dumbbell className="h-4 w-4 text-muted-foreground" />
+            </div>
+          )}
+        </div>
 
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm">{category.name}</p>
-            <p className="text-xs text-muted-foreground">{workoutCount} Workouts</p>
-          </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm">{category.name}</p>
+          <p className="text-xs text-muted-foreground">{workoutCount} Workouts</p>
+        </div>
 
-          {/* Active toggle */}
-          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <Switch
-              checked={category.is_active !== false}
-              onCheckedChange={(checked) => onToggleActive(category.id, checked)}
-            />
-          </div>
+        {/* Active toggle */}
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <Switch
+            checked={category.is_active !== false}
+            onCheckedChange={(checked) => onToggleActive(category.id, checked)}
+          />
+        </div>
 
-          {/* Format button */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1 text-xs"
-            onClick={(e) => {
-              e.stopPropagation();
-              setLayoutPickerOpen(true);
-            }}
-          >
-            <LayoutGrid className="h-3.5 w-3.5" />
-            Format
-          </Button>
+        {/* Format button */}
+        <div onClick={(e) => e.stopPropagation()}>
+          <CardLayoutPicker
+            open={layoutPickerOpen}
+            onOpenChange={setLayoutPickerOpen}
+            currentLayout={category.card_layout || "large"}
+            onSelect={(layout) => onChangeLayout(category.id, layout)}
+          />
+        </div>
 
-          {/* 3-dot menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(category.id);
-                }}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Category
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </CardHeader>
-      </Card>
-
-      <CardLayoutPicker
-        open={layoutPickerOpen}
-        onOpenChange={setLayoutPickerOpen}
-        currentLayout={category.card_layout || "large"}
-        onSelect={(layout) => onChangeLayout(category.id, layout)}
-      />
-    </>
+        {/* 3-dot menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(category.id);
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Category
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </CardHeader>
+    </Card>
   );
 }
