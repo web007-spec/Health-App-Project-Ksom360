@@ -109,10 +109,15 @@ export default function WorkoutDetail() {
         })) || [],
     })) || [];
 
-  const totalExercises = transformedSections.reduce(
-    (sum: number, section: any) => sum + section.exercises.filter((e: any) => e.exercise_id).length,
-    0
-  );
+  const totalExercises = transformedSections.reduce((sum: number, section: any) => {
+    const nonRestExercises = section.exercises.filter((e: any) => e.exercise_id);
+    const isGrouped = ["superset", "circuit"].includes(section.section_type);
+
+    if (!isGrouped) return sum + nonRestExercises.length;
+
+    const uniqueIds = new Set(nonRestExercises.map((e: any) => e.exercise_id));
+    return sum + uniqueIds.size;
+  }, 0);
 
   // Calculate true duration from actual exercise data (same formula as WorkoutPlayer)
   const calculatedTotalSeconds = transformedSections.reduce((acc: number, section: any) => {
