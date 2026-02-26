@@ -18,18 +18,18 @@ export function CollectionClientsTab({ collectionId }: CollectionClientsTabProps
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
-  // Fetch all trainer's clients
+  // Fetch all trainer's clients via trainer_clients join
   const { data: allClients } = useQuery({
-    queryKey: ["trainer-clients", user?.id],
+    queryKey: ["trainer-clients-for-collection", user?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("profiles")
-        .select("id, full_name, email, avatar_url")
-        .eq("role", "client")
+      const { data, error } = await supabase
+        .from("trainer_clients")
+        .select("client_id, client:profiles!trainer_clients_client_id_fkey(id, full_name, email, avatar_url)")
         .eq("trainer_id", user!.id)
-        .order("full_name");
+        .eq("status", "active")
+        .order("assigned_at", { ascending: false });
       if (error) throw error;
-      return data as { id: string; full_name: string | null; email: string | null; avatar_url: string | null }[];
+      return (data || []).map((row: any) => row.client).filter(Boolean) as { id: string; full_name: string | null; email: string | null; avatar_url: string | null }[];
     },
     enabled: !!user?.id,
   });
