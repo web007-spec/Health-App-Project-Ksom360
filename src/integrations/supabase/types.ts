@@ -673,6 +673,7 @@ export type Database = {
           nudge_recovery: boolean
           nudge_sleep: boolean
           nudge_workout: boolean
+          on_demand_enabled: boolean
           pace_enabled: boolean
           parent_link_enabled: boolean
           pinned_insight_text: string | null
@@ -759,6 +760,7 @@ export type Database = {
           nudge_recovery?: boolean
           nudge_sleep?: boolean
           nudge_workout?: boolean
+          on_demand_enabled?: boolean
           pace_enabled?: boolean
           parent_link_enabled?: boolean
           pinned_insight_text?: string | null
@@ -845,6 +847,7 @@ export type Database = {
           nudge_recovery?: boolean
           nudge_sleep?: boolean
           nudge_workout?: boolean
+          on_demand_enabled?: boolean
           pace_enabled?: boolean
           parent_link_enabled?: boolean
           pinned_insight_text?: string | null
