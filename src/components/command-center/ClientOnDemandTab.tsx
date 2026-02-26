@@ -152,10 +152,16 @@ export function ClientOnDemandTab({ clientId, trainerId }: ClientOnDemandTabProp
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_collection_access")
-        .select("*, resource_collections(*)")
+        .select("*, resource_collections(*, collection_sections(section_resources(id)))")
         .eq("client_id", clientId);
       if (error) throw error;
-      return data;
+      // Compute resource_count for each
+      return data?.map((a: any) => ({
+        ...a,
+        resource_count: a.resource_collections?.collection_sections?.reduce(
+          (sum: number, s: any) => sum + (s.section_resources?.length || 0), 0
+        ) || 0,
+      }));
     },
   });
 
@@ -298,7 +304,7 @@ export function ClientOnDemandTab({ clientId, trainerId }: ClientOnDemandTabProp
                   icon={Package}
                   name={col?.name}
                   clientCount={1}
-                  resourceCount={0}
+                  resourceCount={access.resource_count || 0}
                   countLabel="Resources"
                   onRemove={() => removeResourceMutation.mutate(access.id)}
                 />
