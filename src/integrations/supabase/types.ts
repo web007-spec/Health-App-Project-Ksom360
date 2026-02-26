@@ -5565,7 +5565,7 @@ export type Database = {
       workout_plan_exercises: {
         Row: {
           duration_seconds: number | null
-          exercise_id: string
+          exercise_id: string | null
           exercise_type: string | null
           id: string
           notes: string | null
@@ -5579,7 +5579,7 @@ export type Database = {
         }
         Insert: {
           duration_seconds?: number | null
-          exercise_id: string
+          exercise_id?: string | null
           exercise_type?: string | null
           id?: string
           notes?: string | null
@@ -5593,7 +5593,7 @@ export type Database = {
         }
         Update: {
           duration_seconds?: number | null
-          exercise_id?: string
+          exercise_id?: string | null
           exercise_type?: string | null
           id?: string
           notes?: string | null
