@@ -9,6 +9,7 @@ import {
   getPlatform
 } from '@/services/healthSyncService';
 import { useAuth } from './useAuth';
+import { useEffectiveClientId } from './useEffectiveClientId';
 import { useEffect } from 'react';
 
 export interface HealthDataRow {
@@ -35,9 +36,8 @@ export interface HealthStats {
 
 // Hook for fetching health data
 export const useHealthData = (clientId?: string, dataType?: string, days: number = 7) => {
-  const { user } = useAuth();
-  const impersonatedId = typeof window !== 'undefined' ? localStorage.getItem('impersonatedClientId') : null;
-  const targetClientId = clientId || impersonatedId || user?.id;
+  const effectiveClientId = useEffectiveClientId();
+  const targetClientId = clientId || effectiveClientId;
   
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
@@ -69,9 +69,8 @@ export const useHealthData = (clientId?: string, dataType?: string, days: number
 
 // Hook for fetching health stats summary
 export const useHealthStats = (clientId?: string) => {
-  const { user } = useAuth();
-  const impersonatedId = typeof window !== 'undefined' ? localStorage.getItem('impersonatedClientId') : null;
-  const targetClientId = clientId || impersonatedId || user?.id;
+  const effectiveClientId = useEffectiveClientId();
+  const targetClientId = clientId || effectiveClientId;
   
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -90,24 +89,72 @@ export const useHealthStats = (clientId?: string) => {
         };
       }
       
-      const { data, error } = await supabase
-        .from('health_data')
-        .select('*')
-        .eq('client_id', targetClientId)
-        .gte('recorded_at', today.toISOString());
-      
-      if (error) throw error;
-      
-      const healthData = data || [];
-      
-      // Calculate stats
-      const stepsData = healthData.filter(d => d.data_type === 'steps');
-      const caloriesData = healthData.filter(d => d.data_type === 'calories_burned');
-      const heartRateData = healthData.filter(d => d.data_type === 'heart_rate');
-      const restingHrData = healthData.filter(d => d.data_type === 'resting_heart_rate');
-      const activeMinData = healthData.filter(d => d.data_type === 'active_minutes');
-      const workoutData = healthData.filter(d => d.data_type === 'workout');
-      
+      const [
+        stepsRes,
+        caloriesRes,
+        heartRateRes,
+        restingHrRes,
+        activeMinutesRes,
+        workoutsRes,
+      ] = await Promise.all([
+        supabase
+          .from('health_data')
+          .select('value')
+          .eq('client_id', targetClientId)
+          .eq('data_type', 'steps')
+          .gte('recorded_at', today.toISOString()),
+        supabase
+          .from('health_data')
+          .select('value')
+          .eq('client_id', targetClientId)
+          .eq('data_type', 'calories_burned')
+          .gte('recorded_at', today.toISOString()),
+        supabase
+          .from('health_data')
+          .select('value')
+          .eq('client_id', targetClientId)
+          .eq('data_type', 'heart_rate')
+          .gte('recorded_at', today.toISOString()),
+        supabase
+          .from('health_data')
+          .select('value')
+          .eq('client_id', targetClientId)
+          .eq('data_type', 'resting_heart_rate')
+          .gte('recorded_at', today.toISOString())
+          .order('recorded_at', { ascending: false })
+          .limit(1),
+        supabase
+          .from('health_data')
+          .select('value')
+          .eq('client_id', targetClientId)
+          .eq('data_type', 'active_minutes')
+          .gte('recorded_at', today.toISOString()),
+        supabase
+          .from('health_data')
+          .select('id', { count: 'exact', head: true })
+          .eq('client_id', targetClientId)
+          .eq('data_type', 'workout')
+          .gte('recorded_at', today.toISOString()),
+      ]);
+
+      const errors = [
+        stepsRes.error,
+        caloriesRes.error,
+        heartRateRes.error,
+        restingHrRes.error,
+        activeMinutesRes.error,
+        workoutsRes.error,
+      ].filter(Boolean);
+
+      if (errors.length > 0) throw errors[0];
+
+      const stepsData = stepsRes.data || [];
+      const caloriesData = caloriesRes.data || [];
+      const heartRateData = heartRateRes.data || [];
+      const restingHrData = restingHrRes.data || [];
+      const activeMinData = activeMinutesRes.data || [];
+      const workoutsCount = workoutsRes.count || 0;
+
       return {
         todaySteps: stepsData.reduce((sum, d) => sum + Number(d.value), 0),
         todayCalories: caloriesData.reduce((sum, d) => sum + Number(d.value), 0),
@@ -115,10 +162,10 @@ export const useHealthStats = (clientId?: string) => {
           ? Math.round(heartRateData.reduce((sum, d) => sum + Number(d.value), 0) / heartRateData.length)
           : 0,
         restingHeartRate: restingHrData.length > 0 
-          ? Math.round(restingHrData[restingHrData.length - 1].value)
+          ? Math.round(Number(restingHrData[0].value))
           : 0,
         activeMinutes: activeMinData.reduce((sum, d) => sum + Number(d.value), 0),
-        workoutsCount: workoutData.length,
+        workoutsCount,
       };
     },
     enabled: !!targetClientId,
@@ -127,9 +174,8 @@ export const useHealthStats = (clientId?: string) => {
 
 // Hook for health connections
 export const useHealthConnections = (clientId?: string) => {
-  const { user } = useAuth();
-  const impersonatedId = typeof window !== 'undefined' ? localStorage.getItem('impersonatedClientId') : null;
-  const targetClientId = clientId || impersonatedId || user?.id;
+  const effectiveClientId = useEffectiveClientId();
+  const targetClientId = clientId || effectiveClientId;
   
   return useQuery({
     queryKey: ['health-connections', targetClientId],
@@ -145,11 +191,11 @@ export const useHealthConnections = (clientId?: string) => {
 export const useSyncHealth = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const impersonatedId = typeof window !== 'undefined' ? localStorage.getItem('impersonatedClientId') : null;
+  const effectiveClientId = useEffectiveClientId();
   
   return useMutation({
     mutationFn: async () => {
-      const targetId = impersonatedId || user?.id;
+      const targetId = effectiveClientId || user?.id;
       if (!targetId) throw new Error('Not authenticated');
       return syncHealthData(targetId);
     },
@@ -165,11 +211,11 @@ export const useSyncHealth = () => {
 export const useConnectHealth = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const impersonatedId = typeof window !== 'undefined' ? localStorage.getItem('impersonatedClientId') : null;
+  const effectiveClientId = useEffectiveClientId();
   
   return useMutation({
     mutationFn: async () => {
-      const targetId = impersonatedId || user?.id;
+      const targetId = effectiveClientId || user?.id;
       if (!targetId) throw new Error('Not authenticated');
       
       const granted = await requestHealthPermissions();
@@ -193,11 +239,11 @@ export const useDisconnectHealth = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const platform = getPlatform();
-  const impersonatedId = typeof window !== 'undefined' ? localStorage.getItem('impersonatedClientId') : null;
+  const effectiveClientId = useEffectiveClientId();
   
   return useMutation({
     mutationFn: async () => {
-      const targetId = impersonatedId || user?.id;
+      const targetId = effectiveClientId || user?.id;
       if (!targetId) throw new Error('Not authenticated');
       const provider = platform === 'ios' ? 'apple_health' : 'health_connect';
       return disconnectHealthProvider(targetId, provider);
