@@ -4787,6 +4787,57 @@ export type Database = {
           },
         ]
       }
+      studio_program_workouts: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          id: string
+          is_rest_day: boolean
+          notes: string | null
+          order_index: number
+          program_id: string
+          week_number: number
+          workout_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          is_rest_day?: boolean
+          notes?: string | null
+          order_index?: number
+          program_id: string
+          week_number?: number
+          workout_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          is_rest_day?: boolean
+          notes?: string | null
+          order_index?: number
+          program_id?: string
+          week_number?: number
+          workout_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_program_workouts_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "studio_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_program_workouts_workout_id_fkey"
+            columns: ["workout_id"]
+            isOneToOne: false
+            referencedRelation: "ondemand_workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       studio_programs: {
         Row: {
           cover_image_url: string | null

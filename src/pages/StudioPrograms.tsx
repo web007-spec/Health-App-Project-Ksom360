@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,6 +30,7 @@ import {
 export default function StudioPrograms() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -198,6 +200,7 @@ export default function StudioPrograms() {
               <Card
                 key={program.id}
                 className="cursor-pointer hover:shadow-lg transition-shadow overflow-hidden"
+                onClick={() => navigate(`/studio-programs/${program.id}`)}
               >
                 <div className="relative">
                   {program.cover_image_url ? (
