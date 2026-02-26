@@ -230,22 +230,12 @@ export function WorkoutSection({
                           <Input
                             type="number"
                             placeholder="45"
-                            value={
-                              exercise.duration_seconds
-                                ? exercise.exercise_type === "duration_min"
-                                  ? Math.round(exercise.duration_seconds / 60)
-                                  : exercise.exercise_type === "duration_hr"
-                                    ? Math.round(exercise.duration_seconds / 3600)
-                                    : exercise.duration_seconds
-                                : ""
+                            value={exercise.duration_seconds ?? ""}
+                            onChange={(e) =>
+                              onUpdateExercise(section.id, exercise.id, {
+                                duration_seconds: e.target.value ? parseInt(e.target.value) : null,
+                              })
                             }
-                            onChange={(e) => {
-                              const val = e.target.value ? parseInt(e.target.value) : null;
-                              let inSeconds = val;
-                              if (val && exercise.exercise_type === "duration_min") inSeconds = val * 60;
-                              if (val && exercise.exercise_type === "duration_hr") inSeconds = val * 3600;
-                              onUpdateExercise(section.id, exercise.id, { duration_seconds: inSeconds });
-                            }}
                             className="h-8 min-w-0 flex-1"
                           />
                           <Select
