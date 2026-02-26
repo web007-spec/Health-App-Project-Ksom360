@@ -45,6 +45,7 @@ export const useHealthData = (clientId?: string, dataType?: string, days: number
   return useQuery({
     queryKey: ['health-data', targetClientId, dataType, days],
     queryFn: async () => {
+      console.log('[HealthData] targetClientId:', targetClientId, 'dataType:', dataType, 'days:', days);
       if (!targetClientId) return [];
       
       let query = supabase
@@ -60,7 +61,11 @@ export const useHealthData = (clientId?: string, dataType?: string, days: number
       
       const { data, error } = await query;
       
-      if (error) throw error;
+      if (error) {
+        console.error('[HealthData] Query error:', error, 'for clientId:', targetClientId);
+        throw error;
+      }
+      console.log('[HealthData] Got', data?.length, 'rows for', dataType, 'clientId:', targetClientId);
       return data as HealthDataRow[];
     },
     enabled: !!targetClientId,
@@ -78,7 +83,9 @@ export const useHealthStats = (clientId?: string) => {
   return useQuery({
     queryKey: ['health-stats', targetClientId],
     queryFn: async (): Promise<HealthStats> => {
+      console.log('[HealthStats] targetClientId:', targetClientId, 'effectiveClientId:', effectiveClientId, 'passedClientId:', clientId);
       if (!targetClientId) {
+        console.warn('[HealthStats] No targetClientId, returning zeros');
         return {
           todaySteps: 0,
           todayCalories: 0,
@@ -146,7 +153,10 @@ export const useHealthStats = (clientId?: string) => {
         workoutsRes.error,
       ].filter(Boolean);
 
-      if (errors.length > 0) throw errors[0];
+      if (errors.length > 0) {
+        console.error('[HealthStats] Query errors:', errors);
+        throw errors[0];
+      }
 
       const stepsData = stepsRes.data || [];
       const caloriesData = caloriesRes.data || [];
