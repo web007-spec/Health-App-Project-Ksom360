@@ -81,6 +81,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { FastingRouteGuard } from "./components/FastingRouteGuard";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import GuardianSummary from "./pages/GuardianSummary";
+import StudioProgramDetail from "./pages/StudioProgramDetail";
 
 const queryClient = new QueryClient();
 
@@ -118,6 +119,7 @@ const App = () => (
           <Route path="/workout-collections/:id" element={<ProtectedRoute allowedRoles={["trainer"]}><WorkoutCollectionDetail /></ProtectedRoute>} />
           <Route path="/workout-labels" element={<ProtectedRoute allowedRoles={["trainer"]}><WorkoutLabels /></ProtectedRoute>} />
           <Route path="/studio-programs" element={<ProtectedRoute allowedRoles={["trainer"]}><StudioPrograms /></ProtectedRoute>} />
+          <Route path="/studio-programs/:id" element={<ProtectedRoute allowedRoles={["trainer"]}><StudioProgramDetail /></ProtectedRoute>} />
           <Route path="/programs" element={<ProtectedRoute allowedRoles={["trainer"]}><Programs /></ProtectedRoute>} />
           <Route path="/recipes" element={<ProtectedRoute allowedRoles={["trainer"]}><Recipes /></ProtectedRoute>} />
           <Route path="/recipes/:id" element={<ProtectedRoute allowedRoles={["trainer"]}><RecipeDetail /></ProtectedRoute>} />
