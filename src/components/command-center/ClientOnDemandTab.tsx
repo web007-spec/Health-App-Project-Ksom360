@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Package, Play, Dumbbell, Trash2, Plus } from "lucide-react";
+import { Package, Play, Dumbbell, Trash2, Plus, GraduationCap } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -23,6 +23,7 @@ export function ClientOnDemandTab({ clientId, trainerId }: ClientOnDemandTabProp
   const queryClient = useQueryClient();
   const [resourcePickerOpen, setResourcePickerOpen] = useState(false);
   const [workoutPickerOpen, setWorkoutPickerOpen] = useState(false);
+  const [programPickerOpen, setProgramPickerOpen] = useState(false);
 
   // Fetch assigned resource collections
   const { data: assignedResources, isLoading: loadingResources } = useQuery({
@@ -44,6 +45,19 @@ export function ClientOnDemandTab({ clientId, trainerId }: ClientOnDemandTabProp
       const { data, error } = await supabase
         .from("client_workout_collection_access")
         .select("*, workout_collections(*)")
+        .eq("client_id", clientId);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch assigned studio programs
+  const { data: assignedPrograms, isLoading: loadingPrograms } = useQuery({
+    queryKey: ["client-studio-program-access", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_studio_program_access")
+        .select("*, studio_programs(*)")
         .eq("client_id", clientId);
       if (error) throw error;
       return data;
@@ -76,6 +90,20 @@ export function ClientOnDemandTab({ clientId, trainerId }: ClientOnDemandTabProp
       return data;
     },
     enabled: workoutPickerOpen,
+  });
+
+  // Fetch all trainer studio programs for picker
+  const { data: allStudioPrograms } = useQuery({
+    queryKey: ["trainer-studio-programs", trainerId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("studio_programs")
+        .select("*")
+        .eq("trainer_id", trainerId);
+      if (error) throw error;
+      return data;
+    },
+    enabled: programPickerOpen,
   });
 
   const assignResourceMutation = useMutation({
@@ -136,10 +164,41 @@ export function ClientOnDemandTab({ clientId, trainerId }: ClientOnDemandTabProp
     },
   });
 
+  const assignProgramMutation = useMutation({
+    mutationFn: async (programId: string) => {
+      const { error } = await supabase
+        .from("client_studio_program_access")
+        .insert({ client_id: clientId, program_id: programId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client-studio-program-access", clientId] });
+      toast({ title: "Studio program assigned" });
+      setProgramPickerOpen(false);
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const removeProgramMutation = useMutation({
+    mutationFn: async (accessId: string) => {
+      const { error } = await supabase
+        .from("client_studio_program_access")
+        .delete()
+        .eq("id", accessId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client-studio-program-access", clientId] });
+      toast({ title: "Studio program removed" });
+    },
+  });
+
   const assignedResourceIds = assignedResources?.map((a: any) => a.collection_id) || [];
   const assignedWorkoutIds = assignedWorkouts?.map((a: any) => a.collection_id) || [];
+  const assignedProgramIds = assignedPrograms?.map((a: any) => a.program_id) || [];
   const availableResources = allResourceCollections?.filter((c: any) => !assignedResourceIds.includes(c.id)) || [];
   const availableWorkouts = allWorkoutCollections?.filter((c: any) => !assignedWorkoutIds.includes(c.id)) || [];
+  const availablePrograms = allStudioPrograms?.filter((p: any) => !assignedProgramIds.includes(p.id)) || [];
 
   return (
     <div className="space-y-8">
@@ -251,6 +310,62 @@ export function ClientOnDemandTab({ clientId, trainerId }: ClientOnDemandTabProp
         )}
       </section>
 
+      {/* Studio Programs */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-semibold">Studio Programs</h3>
+          <Button size="sm" className="gap-2" onClick={() => setProgramPickerOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Assign Program
+          </Button>
+        </div>
+
+        {loadingPrograms ? (
+          <p className="text-muted-foreground text-sm">Loading...</p>
+        ) : !assignedPrograms?.length ? (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <GraduationCap className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+              <p className="text-muted-foreground text-sm">No studio programs assigned yet</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-3">
+            {assignedPrograms.map((access: any) => {
+              const prog = access.studio_programs;
+              return (
+                <Card key={access.id}>
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {prog?.cover_image_url ? (
+                        <img src={prog.cover_image_url} alt={prog.name} className="h-10 w-10 rounded-lg object-cover" />
+                      ) : (
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <GraduationCap className="h-5 w-5 text-primary" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-medium">{prog?.name}</p>
+                        {prog?.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-1">{prog.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeProgramMutation.mutate(access.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       {/* Resource Collection Picker */}
       <Dialog open={resourcePickerOpen} onOpenChange={setResourcePickerOpen}>
         <DialogContent>
@@ -313,6 +428,44 @@ export function ClientOnDemandTab({ clientId, trainerId }: ClientOnDemandTabProp
                       <p className="font-medium text-sm">{col.name}</p>
                       {col.description && (
                         <p className="text-xs text-muted-foreground line-clamp-1">{col.description}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Studio Program Picker */}
+      <Dialog open={programPickerOpen} onOpenChange={setProgramPickerOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign a Studio Program</DialogTitle>
+          </DialogHeader>
+          {!availablePrograms.length ? (
+            <p className="text-muted-foreground text-sm py-4 text-center">
+              No more programs available to assign
+            </p>
+          ) : (
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {availablePrograms.map((prog: any) => (
+                <Card
+                  key={prog.id}
+                  className="cursor-pointer hover:bg-accent/50 transition-colors"
+                  onClick={() => assignProgramMutation.mutate(prog.id)}
+                >
+                  <CardContent className="p-3 flex items-center gap-3">
+                    {prog.cover_image_url ? (
+                      <img src={prog.cover_image_url} alt={prog.name} className="h-8 w-8 rounded object-cover" />
+                    ) : (
+                      <GraduationCap className="h-5 w-5 text-primary shrink-0" />
+                    )}
+                    <div>
+                      <p className="font-medium text-sm">{prog.name}</p>
+                      {prog.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-1">{prog.description}</p>
                       )}
                     </div>
                   </CardContent>
