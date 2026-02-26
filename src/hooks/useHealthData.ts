@@ -142,11 +142,13 @@ export const useHealthConnections = (clientId?: string) => {
 export const useSyncHealth = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const impersonatedId = typeof window !== 'undefined' ? localStorage.getItem('impersonatedClientId') : null;
   
   return useMutation({
     mutationFn: async () => {
-      if (!user?.id) throw new Error('Not authenticated');
-      return syncHealthData(user.id);
+      const targetId = impersonatedId || user?.id;
+      if (!targetId) throw new Error('Not authenticated');
+      return syncHealthData(targetId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['health-data'] });
@@ -160,10 +162,12 @@ export const useSyncHealth = () => {
 export const useConnectHealth = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const impersonatedId = typeof window !== 'undefined' ? localStorage.getItem('impersonatedClientId') : null;
   
   return useMutation({
     mutationFn: async () => {
-      if (!user?.id) throw new Error('Not authenticated');
+      const targetId = impersonatedId || user?.id;
+      if (!targetId) throw new Error('Not authenticated');
       
       const granted = await requestHealthPermissions();
       if (!granted) {
@@ -171,7 +175,7 @@ export const useConnectHealth = () => {
       }
       
       // Sync initial data after connecting
-      return syncHealthData(user.id);
+      return syncHealthData(targetId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['health-connections'] });
@@ -186,12 +190,14 @@ export const useDisconnectHealth = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const platform = getPlatform();
+  const impersonatedId = typeof window !== 'undefined' ? localStorage.getItem('impersonatedClientId') : null;
   
   return useMutation({
     mutationFn: async () => {
-      if (!user?.id) throw new Error('Not authenticated');
+      const targetId = impersonatedId || user?.id;
+      if (!targetId) throw new Error('Not authenticated');
       const provider = platform === 'ios' ? 'apple_health' : 'health_connect';
-      return disconnectHealthProvider(user.id, provider);
+      return disconnectHealthProvider(targetId, provider);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['health-connections'] });
