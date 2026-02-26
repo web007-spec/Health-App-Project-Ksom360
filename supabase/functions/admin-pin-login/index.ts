@@ -28,11 +28,12 @@ serve(async (req: Request) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Find the trainer account
+    // Find the primary trainer account (ksomfast@yahoo.com)
     const { data: trainerProfile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("id, email")
       .eq("role", "trainer")
+      .eq("email", "ksomfast@yahoo.com")
       .limit(1)
       .single();
 
