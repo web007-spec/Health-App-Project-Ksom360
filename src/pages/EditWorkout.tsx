@@ -199,18 +199,16 @@ function ExerciseRow({
         />
       )}
 
-      {item.target_type !== "time" && (
-        <Select value={String(item.rest_seconds)} onValueChange={(v) => onUpdate(item.id, { rest_seconds: parseInt(v) })}>
-          <SelectTrigger className="h-9 w-28 text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {REST_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
+      <Select value={String(item.rest_seconds)} onValueChange={(v) => onUpdate(item.id, { rest_seconds: parseInt(v) })}>
+        <SelectTrigger className="h-9 w-28 text-sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {REST_OPTIONS.map((o) => (
+            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       <div {...attributes} {...listeners} className="cursor-grab p-1">
         <GripVertical className="h-4 w-4 text-muted-foreground" />
