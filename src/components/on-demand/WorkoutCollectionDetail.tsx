@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Play, Dumbbell, ChevronRight, ArrowLeft } from "lucide-react";
+import { Dumbbell, ChevronRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ClientCardsByLayout, type CardItem } from "./CardLayouts";
 
 interface WorkoutCollectionDetailProps {
   collection: any;
@@ -18,7 +18,6 @@ export function WorkoutCollectionDetail({ collection, open, onOpenChange }: Work
     ?.filter((c: any) => c.is_active)
     ?.sort((a: any, b: any) => a.order_index - b.order_index) || [];
 
-  // Flatten all workouts for "For you" view
   const allWorkouts = activeCategories.flatMap((cat: any) =>
     (cat.category_workouts || []).map((cw: any) => ({
       ...cw.ondemand_workouts,
@@ -26,74 +25,11 @@ export function WorkoutCollectionDetail({ collection, open, onOpenChange }: Work
     }))
   );
 
-  const getLabels = (workout: any) => {
-    const labels = workout?.workout_workout_labels?.map((l: any) => l.workout_labels) || [];
-    return {
-      level: labels.find((l: any) => l?.category === "level"),
-      duration: labels.find((l: any) => l?.category === "duration"),
-    };
-  };
-
-  const renderWorkoutCard = (workout: any, size: "large" | "small" = "small") => {
-    const { level, duration } = getLabels(workout);
-    const height = size === "large" ? "h-40" : "h-32";
-
-    return (
-      <div
-        key={workout.id}
-        className={`relative overflow-hidden rounded-xl cursor-pointer group flex-shrink-0 ${
-          size === "large" ? "w-44" : "w-36"
-        }`}
-        onClick={() => {
-          if (workout.video_url) {
-            window.open(workout.video_url, "_blank");
-          }
-        }}
-      >
-        {workout.thumbnail_url ? (
-          <img
-            src={workout.thumbnail_url}
-            alt={workout.name}
-            className={`w-full ${height} object-cover group-hover:scale-105 transition-transform duration-300`}
-          />
-        ) : (
-          <div className={`w-full ${height} bg-gradient-to-br from-muted to-muted/60 flex items-center justify-center`}>
-            {workout.type === "video" ? (
-              <Play className="h-6 w-6 text-muted-foreground" />
-            ) : (
-              <Dumbbell className="h-6 w-6 text-muted-foreground" />
-            )}
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-        {/* Play button overlay */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="bg-black/50 rounded-full p-2 backdrop-blur-sm">
-            <Play className="h-4 w-4 text-white fill-white" />
-          </div>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 p-2">
-          <p className="text-white font-semibold text-xs line-clamp-2 drop-shadow-lg">
-            {workout.name}
-          </p>
-          <div className="flex items-center gap-1 mt-0.5">
-            {duration && (
-              <span className="text-white/70 text-[9px] font-medium uppercase">
-                {duration.value}
-              </span>
-            )}
-            {level && (
-              <>
-                <span className="text-white/40 text-[9px]">·</span>
-                <span className="text-white/70 text-[9px] font-medium uppercase">
-                  {level.value}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+  const handleWorkoutClick = (workoutId: string) => {
+    const workout = allWorkouts.find((w: any) => w.id === workoutId);
+    if (workout?.video_url) {
+      window.open(workout.video_url, "_blank");
+    }
   };
 
   return (
@@ -154,6 +90,18 @@ export function WorkoutCollectionDetail({ collection, open, onOpenChange }: Work
                   const workouts = category.category_workouts || [];
                   if (workouts.length === 0) return null;
 
+                  const layout = category.card_layout || "large";
+                  const items: CardItem[] = workouts
+                    .map((cw: any) => cw.ondemand_workouts)
+                    .filter(Boolean)
+                    .map((w: any) => ({
+                      id: w.id,
+                      name: w.name,
+                      cover_image_url: w.thumbnail_url || w.cover_image_url,
+                      duration_minutes: w.duration_minutes,
+                      level: w.workout_workout_labels?.find((l: any) => l.workout_labels?.category === "level")?.workout_labels?.value,
+                    }));
+
                   return (
                     <div key={category.id}>
                       <div className="flex items-center justify-between mb-3">
@@ -168,11 +116,12 @@ export function WorkoutCollectionDetail({ collection, open, onOpenChange }: Work
                           </button>
                         )}
                       </div>
-                      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
-                        {workouts.map((cw: any) =>
-                          renderWorkoutCard(cw.ondemand_workouts)
-                        )}
-                      </div>
+                      <ClientCardsByLayout
+                        layout={layout}
+                        items={items}
+                        fallbackImage={category.cover_image_url}
+                        onClick={handleWorkoutClick}
+                      />
                     </div>
                   );
                 })}
