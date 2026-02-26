@@ -108,20 +108,20 @@ function NarrowCardLayout({ workouts, catImage }: { workouts: any[]; catImage?: 
 
 function ListLayout({ workouts, catImage }: { workouts: any[]; catImage?: string | null }) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       {workouts.map((cw) => {
         const w = cw.ondemand_workouts;
         if (!w) return null;
         return (
-          <div key={cw.id} className="flex gap-2 items-center rounded-lg overflow-hidden">
-            <div className="w-12 h-10 rounded bg-muted shrink-0 overflow-hidden">
+          <div key={cw.id} className="flex gap-3 items-center">
+            <div className="w-16 h-16 rounded-lg bg-muted shrink-0 overflow-hidden">
               <WorkoutImage src={w.cover_image_url} fallbackSrc={catImage} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[9px] font-medium text-foreground line-clamp-1">{w.name}</p>
-              <p className="text-[7px] text-muted-foreground">
-                {w.duration_minutes ? `${w.duration_minutes} min` : ""}
-                {w.level ? ` · ${w.level}` : ""}
+              <p className="text-[10px] font-semibold text-foreground line-clamp-1">{w.name}</p>
+              <p className="text-[8px] text-muted-foreground">
+                {w.duration_minutes ? `${w.duration_minutes}+ MIN` : ""}
+                {w.level ? ` - ${w.level.toUpperCase()}` : ""}
               </p>
             </div>
           </div>
