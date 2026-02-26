@@ -96,7 +96,8 @@ export default function WorkoutDetail() {
         .map((wpe: any) => ({
           id: wpe.id,
           exercise_id: wpe.exercise_id,
-          exercise_name: wpe.exercise?.name,
+          is_rest: !wpe.exercise_id,
+          exercise_name: wpe.exercise?.name || (!wpe.exercise_id ? "Rest" : ""),
           exercise_image: wpe.exercise?.image_url,
           exercise_video: wpe.exercise?.video_url,
           exercise_description: wpe.exercise?.description,
@@ -408,13 +409,22 @@ export default function WorkoutDetail() {
                         />
                       )}
                       <div className="flex-1">
-                        <h4 className="font-semibold">{exercise.exercise_name}</h4>
+                        <h4 className="font-semibold">{exercise.exercise_name || "Exercise"}</h4>
                         <div className="text-sm text-muted-foreground mt-1">
-                          {exercise.sets && `${exercise.sets} sets`}
-                          {exercise.reps && ` × ${exercise.reps} reps`}
-                          {exercise.duration_seconds && ` • ${exercise.duration_seconds >= 3600 ? `${Math.round(exercise.duration_seconds / 3600)}hr` : exercise.duration_seconds >= 60 ? `${Math.round(exercise.duration_seconds / 60)}min` : `${exercise.duration_seconds}s`}`}
-                          {exercise.rest_seconds && ` • ${exercise.rest_seconds >= 60 ? `${Math.round(exercise.rest_seconds / 60)}min rest` : `${exercise.rest_seconds}s rest`}`}
-                          {exercise.tempo && ` • Tempo: ${exercise.tempo}`}
+                          {exercise.is_rest ? (
+                            <>
+                              Rest
+                              {exercise.duration_seconds && ` • ${exercise.duration_seconds >= 60 ? `${Math.round(exercise.duration_seconds / 60)}min` : `${exercise.duration_seconds}s`}`}
+                            </>
+                          ) : (
+                            <>
+                              {exercise.sets && `${exercise.sets} sets`}
+                              {exercise.reps && ` × ${exercise.reps} reps`}
+                              {exercise.duration_seconds && ` • ${exercise.duration_seconds >= 3600 ? `${Math.round(exercise.duration_seconds / 3600)}hr` : exercise.duration_seconds >= 60 ? `${Math.round(exercise.duration_seconds / 60)}min` : `${exercise.duration_seconds}s`}`}
+                              {exercise.rest_seconds && ` • ${exercise.rest_seconds >= 60 ? `${Math.round(exercise.rest_seconds / 60)}min rest` : `${exercise.rest_seconds}s rest`}`}
+                              {exercise.tempo && ` • Tempo: ${exercise.tempo}`}
+                            </>
+                          )}
                         </div>
                         {exercise.notes && (
                           <p className="text-sm text-muted-foreground mt-1">{exercise.notes}</p>
