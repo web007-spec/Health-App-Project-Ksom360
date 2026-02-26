@@ -26,9 +26,9 @@ export function ClientBottomNav() {
   const { settings } = useClientFeatureSettings();
   const onDemandEnabled = (settings as any)?.on_demand_enabled !== false;
 
-  // If on-demand is enabled, swap Plans for On-Demand
+  // Show all 5 tabs when on-demand is enabled, otherwise just the base 4
   const navItems = onDemandEnabled
-    ? [baseItems[0], onDemandItem, baseItems[2], baseItems[3]]
+    ? [baseItems[0], baseItems[1], onDemandItem, baseItems[2], baseItems[3]]
     : baseItems;
 
   return (
