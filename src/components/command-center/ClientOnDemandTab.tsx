@@ -2,9 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Package, Play, Trash2, GraduationCap } from "lucide-react";
+import { Package, Play, Trash2, GraduationCap, Search } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -366,7 +367,7 @@ export function ClientOnDemandTab({ clientId, trainerId }: ClientOnDemandTabProp
   );
 }
 
-/* ── Reusable picker dialog ── */
+/* ── Reusable Everfit-style picker dialog ── */
 function PickerDialog({
   open,
   onOpenChange,
@@ -375,6 +376,7 @@ function PickerDialog({
   icon: Icon,
   imageKey,
   onSelect,
+  countLabel = "Resources",
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -383,42 +385,92 @@ function PickerDialog({
   icon: React.ElementType;
   imageKey?: string;
   onSelect: (id: string) => void;
+  countLabel?: string;
 }) {
+  const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const filtered = items.filter((item: any) =>
+    item.name?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleAdd = () => {
+    if (selectedId) {
+      onSelect(selectedId);
+      setSelectedId(null);
+      setSearch("");
+    }
+  };
+
+  const handleClose = (v: boolean) => {
+    if (!v) { setSelectedId(null); setSearch(""); }
+    onOpenChange(v);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader className="flex flex-row items-center justify-between gap-4">
+          <DialogTitle className="text-xl">Choose a Collection</DialogTitle>
+          <div className="relative w-56">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search collection name"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-9"
+            />
+          </div>
         </DialogHeader>
-        {!items.length ? (
-          <p className="text-muted-foreground text-sm py-4 text-center">
-            No more items available to assign
+
+        <p className="text-sm font-medium text-muted-foreground">
+          All Collections ({filtered.length})
+        </p>
+
+        {!filtered.length ? (
+          <p className="text-muted-foreground text-sm py-8 text-center">
+            No collections found
           </p>
         ) : (
-          <div className="space-y-2 max-h-80 overflow-y-auto">
-            {items.map((item: any) => (
-              <Card
-                key={item.id}
-                className="cursor-pointer hover:bg-accent/50 transition-colors"
-                onClick={() => onSelect(item.id)}
-              >
-                <CardContent className="p-3 flex items-center gap-3">
-                  {imageKey && item[imageKey] ? (
-                    <img src={item[imageKey]} alt={item.name} className="h-8 w-8 rounded object-cover" />
-                  ) : (
-                    <Icon className="h-5 w-5 text-primary shrink-0" />
-                  )}
+          <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+            {filtered.map((item: any) => {
+              const isSelected = selectedId === item.id;
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => setSelectedId(item.id)}
+                  className={`
+                    border rounded-lg p-4 cursor-pointer flex items-center justify-between transition-colors
+                    ${isSelected
+                      ? "border-primary bg-primary/5 ring-1 ring-primary"
+                      : "border-border hover:border-primary/40"
+                    }
+                  `}
+                >
                   <div>
-                    <p className="font-medium text-sm">{item.name}</p>
-                    {item.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-1">{item.description}</p>
-                    )}
+                    <p className="font-semibold">{item.name}</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      Available for <span className="font-semibold">0 clients</span>
+                      {" · "}
+                      {countLabel}: <span className="font-semibold">{item.resource_count ?? 0}</span>
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                  <div className={`
+                    h-5 w-5 rounded-full border-2 shrink-0 flex items-center justify-center
+                    ${isSelected ? "border-primary" : "border-muted-foreground/30"}
+                  `}>
+                    {isSelected && <div className="h-2.5 w-2.5 rounded-full bg-primary" />}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
+
+        <div className="flex justify-end gap-3 pt-2">
+          <Button variant="outline" onClick={() => handleClose(false)}>Cancel</Button>
+          <Button disabled={!selectedId} onClick={handleAdd}>Add</Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
