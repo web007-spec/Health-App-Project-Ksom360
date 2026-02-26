@@ -176,6 +176,14 @@ export default function ResourceCollections() {
         .select()
         .single();
       if (error) throw error;
+
+      // Auto-create a default section for the new collection
+      await supabase.from("collection_sections").insert({
+        collection_id: data.id,
+        name: "Section Name",
+        order_index: 0,
+      });
+
       return data;
     },
     onSuccess: (data) => {
