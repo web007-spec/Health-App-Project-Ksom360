@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Play, Clock, Dumbbell } from "lucide-react";
+import { ArrowLeft, Play, Clock, Dumbbell, Weight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { WorkoutPlayer, unlockAudioForMobile } from "@/components/WorkoutPlayer";
 import { WorkoutSummary } from "@/components/WorkoutSummary";
@@ -101,6 +101,7 @@ export default function WorkoutDetail() {
           exercise_image: wpe.exercise?.image_url,
           exercise_video: wpe.exercise?.video_url,
           exercise_description: wpe.exercise?.description,
+          equipment: wpe.exercise?.equipment,
           sets: wpe.sets,
           reps: wpe.reps,
           duration_seconds: wpe.duration_seconds,
@@ -350,31 +351,61 @@ export default function WorkoutDetail() {
         </div>
 
         {/* Workout Info */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            {workout.description && (
-              <p className="text-muted-foreground mb-4">{workout.description}</p>
-            )}
-            
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-              <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <div className="text-2xl font-bold">{calculatedMinutes}</div>
-                <div className="text-sm text-muted-foreground">Minutes</div>
-              </div>
-              <div>
-                <Dumbbell className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <div className="text-2xl font-bold">{transformedSections.length}</div>
-                <div className="text-sm text-muted-foreground">Sections</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold mx-auto mb-2">💪</div>
-                <div className="text-2xl font-bold">{totalExercises}</div>
-                <div className="text-sm text-muted-foreground">Exercises</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {(() => {
+          const equipmentSet = new Set<string>();
+          transformedSections.forEach((section: any) => {
+            section.exercises.forEach((ex: any) => {
+              if (ex.equipment) {
+                ex.equipment.split(",").forEach((e: string) => {
+                  const trimmed = e.trim();
+                  if (trimmed) equipmentSet.add(trimmed);
+                });
+              }
+            });
+          });
+          const equipmentList = Array.from(equipmentSet);
+
+          return (
+            <Card className="mb-6">
+              <CardContent className="p-6">
+                {workout.description && (
+                  <p className="text-muted-foreground mb-4">{workout.description}</p>
+                )}
+                
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <div className="text-2xl font-bold">{calculatedMinutes}</div>
+                    <div className="text-sm text-muted-foreground">Minutes</div>
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold mx-auto mb-2">💪</div>
+                    <div className="text-2xl font-bold">{totalExercises}</div>
+                    <div className="text-sm text-muted-foreground">Exercises</div>
+                  </div>
+                  <div>
+                    <Dumbbell className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <div className="text-2xl font-bold">{equipmentList.length || "—"}</div>
+                    <div className="text-sm text-muted-foreground">Equipment</div>
+                  </div>
+                </div>
+
+                {equipmentList.length > 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Equipment</p>
+                    <div className="flex flex-wrap gap-2">
+                      {equipmentList.map((eq) => (
+                        <Badge key={eq} variant="secondary" className="capitalize">
+                          {eq}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Workout Preview */}
         <div className="space-y-6">
