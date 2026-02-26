@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Package, Play, Trash2, GraduationCap, Search, Plus, FolderOpen, MoreVertical } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import {
@@ -140,6 +141,7 @@ function AssignedRow({
 }
 
 export function ClientOnDemandTab({ clientId, trainerId }: ClientOnDemandTabProps) {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [resourcePickerOpen, setResourcePickerOpen] = useState(false);
@@ -336,7 +338,7 @@ export function ClientOnDemandTab({ clientId, trainerId }: ClientOnDemandTabProp
             title="Assign a Workout Collection"
             description="Offer on-demand workouts that your clients can browse and start anytime"
             buttonLabel="Choose Collection"
-            onAction={() => setWorkoutPickerOpen(true)}
+            onAction={() => navigate("/workout-collections")}
           />
         ) : (
           <div className="space-y-3">
