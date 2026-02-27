@@ -52,8 +52,14 @@ const handler = async (req: Request): Promise<Response> => {
     const mode: string = body.mode ?? "stats";
     const dataType: string | undefined = body.data_type;
     const days: number = body.days ?? 7;
+    // Timezone offset in minutes (e.g. -330 for IST = UTC+5:30)
+    const tzOffsetMin: number = body.tz_offset ?? 0;
 
     if (!clientId) throw new Error("Missing client_id");
+
+    console.log(
+      `[read-health-stats] caller=${user.id} client=${clientId} mode=${mode} days=${days} tz_offset=${tzOffsetMin}`
+    );
 
     // ── Authorisation check ─────────────────────────────────────────────
     // Caller must be the client themselves OR an assigned trainer.
@@ -124,14 +130,23 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // ── Stats (default) ─────────────────────────────────────────────────
-    const todayLocal = new Date();
-    todayLocal.setHours(0, 0, 0, 0);
+    // Compute "midnight local" using the client's timezone offset so that
+    // "today's stats" match what the user sees on their device, not UTC.
+    const nowMs = Date.now();
+    const localNowMs = nowMs + tzOffsetMin * 60_000;
+    const localMidnight = new Date(localNowMs);
+    localMidnight.setUTCHours(0, 0, 0, 0);            // midnight in "local" day
+    const todayISO = new Date(localMidnight.getTime() - tzOffsetMin * 60_000).toISOString();
+
+    console.log(
+      `[read-health-stats] stats: tz_offset=${tzOffsetMin} todayISO=${todayISO}`
+    );
 
     const { data: todayData, error: todayErr } = await admin
       .from("health_data")
       .select("*")
       .eq("client_id", clientId)
-      .gte("recorded_at", todayLocal.toISOString());
+      .gte("recorded_at", todayISO);
 
     if (todayErr) {
       console.error("[read-health-stats] stats query error:", todayErr);

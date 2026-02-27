@@ -16,9 +16,12 @@ import { useEffect } from 'react';
 async function edgeFnRead(body: Record<string, unknown>): Promise<any> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error('No session for edge fn read');
+  // Pass the client's timezone offset so the edge function computes
+  // "today" relative to the user's local midnight, not UTC midnight.
+  const tz_offset = -(new Date().getTimezoneOffset());  // JS gives offset inverted
   const res = await supabase.functions.invoke('read-health-stats', {
     headers: { Authorization: `Bearer ${session.access_token}` },
-    body,
+    body: { ...body, tz_offset },
   });
   if (res.error) throw res.error;
   return res.data;
@@ -155,7 +158,8 @@ export const useHealthStats = (clientId?: string) => {
         }
       }
       
-      // Diagnostic for own-user zero-data
+      // Fallback for own-user zero-data — try edge function as well
+      // (handles case where RLS is misconfigured or client_id mismatch)
       if ((!data || data.length === 0) && !isImpersonating) {
         const { data: allData, error: allErr } = await supabase
           .from('health_data')
@@ -164,6 +168,22 @@ export const useHealthStats = (clientId?: string) => {
           .order('recorded_at', { ascending: false })
           .limit(10);
         console.warn('[useHealthStats] NO TODAY DATA (own user). All-time check:', allErr ? `ERROR: ${allErr.message}` : `${allData?.length} rows`, allData?.map(r => `${r.data_type}=${r.value} @ ${r.recorded_at}`));
+        
+        // If there IS data in the table but the today-filter returned nothing,
+        // OR direct query errored out, try the edge function which uses
+        // service-role and computes stats server-side.
+        if ((allData && allData.length > 0) || error) {
+          console.warn('[useHealthStats] Own-user data exists but today query returned 0 — trying edge fn');
+          try {
+            const efRes = await edgeFnRead({ client_id: targetClientId, mode: 'stats' });
+            if (efRes?.stats) {
+              console.log('[useHealthStats] edge fn (own-user) returned stats:', JSON.stringify(efRes.stats));
+              return efRes.stats as HealthStats;
+            }
+          } catch (efErr: any) {
+            console.error('[useHealthStats] edge fn (own-user) fallback failed:', efErr.message);
+          }
+        }
       }
       
       if (error) throw error;
@@ -212,7 +232,7 @@ export const useHealthStats = (clientId?: string) => {
   });
 };
 
-// Hook for health connections
+// Hook for health connections — also exposes error for debug panels
 export const useHealthConnections = (clientId?: string) => {
   const { user } = useAuth();
   const effectiveId = useEffectiveClientId();

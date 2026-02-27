@@ -13,6 +13,13 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
+    // Stamp build timestamp into index.html for WebView cache-busting
+    {
+      name: 'html-build-timestamp',
+      transformIndexHtml(html: string) {
+        return html.replace('__BUILD_TIMESTAMP__', new Date().toISOString());
+      },
+    },
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: false, // Don't auto-inject registerSW.js — we handle it in main.tsx to avoid conflicts with Capacitor
@@ -90,6 +97,10 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   ].filter(Boolean),
+  // Inject build timestamp into index.html for cache-busting on native WebView
+  define: {
+    __BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
+  },
   build: {
     rollupOptions: {
       external: [

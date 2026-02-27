@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "build:ios": "vite build && npx cap copy ios && npx cap sync ios",
+    "build:ios:open": "vite build && npx cap copy ios && npx cap sync ios && npx cap open ios",
     "lint": "eslint .",
     "preview": "vite preview",
     "postinstall": "bash scripts/fix-healthkit-spm.sh"

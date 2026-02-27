@@ -20,8 +20,8 @@ import { useState } from 'react';
 export default function ClientHealth() {
   const { user } = useAuth();
   const effectiveClientId = useEffectiveClientId();
-  const { data: connections, isLoading: connectionsLoading } = useHealthConnections(effectiveClientId);
-  const { data: stats } = useHealthStats(effectiveClientId);
+  const { data: connections, isLoading: connectionsLoading, error: connectionsError } = useHealthConnections(effectiveClientId);
+  const { data: stats, error: statsError } = useHealthStats(effectiveClientId);
   const syncMutation = useSyncHealth();
   const queryClient = useQueryClient();
   const [seeding, setSeeding] = useState(false);
@@ -130,10 +130,18 @@ export default function ClientHealth() {
               <p><strong>isImpersonating:</strong> {String(effectiveClientId !== user?.id)}</p>
               <p><strong>isNative:</strong> {String(isNative)}</p>
               <p><strong>connections:</strong> {connectionsLoading ? 'loading...' : JSON.stringify(connections)}</p>
+              <p><strong>connectionsError:</strong> <span className={connectionsError ? 'text-red-600 font-bold' : ''}>{connectionsError ? String(connectionsError) : 'none'}</span></p>
               <p><strong>isConnected:</strong> {String(isConnected)}</p>
               <p><strong>hasAnyStats:</strong> {String(hasAnyStats)}</p>
               <p><strong>showDataSection:</strong> {String(showDataSection)}</p>
               <p><strong>stats:</strong> {JSON.stringify(stats)}</p>
+              <p><strong>statsError:</strong> <span className={statsError ? 'text-red-600 font-bold' : ''}>{statsError ? String(statsError) : 'none'}</span></p>
+              <p><strong>tz offset:</strong> {new Date().getTimezoneOffset()} min (UTC{new Date().getTimezoneOffset() <= 0 ? '+' : '-'}{Math.abs(new Date().getTimezoneOffset() / 60)})</p>
+              <div className="mt-2 flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => { queryClient.invalidateQueries({ queryKey: ['health-stats'] }); queryClient.invalidateQueries({ queryKey: ['health-connections'] }); queryClient.invalidateQueries({ queryKey: ['health-data'] }); toast.info('Force-refreshed all health queries'); }}>
+                  Force Refresh Queries
+                </Button>
+              </div>
             </AlertDescription>
           </Alert>
         )}

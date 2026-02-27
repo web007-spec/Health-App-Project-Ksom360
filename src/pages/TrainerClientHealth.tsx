@@ -11,17 +11,19 @@ import { useHealthConnections, useHealthData, useRealtimeHealthData, useHealthSt
 import { useAuth } from '@/hooks/useAuth';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Watch, CheckCircle2, XCircle, Activity, Heart, Flame, Footprints, Bug } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 export default function TrainerClientHealth() {
   const { clientId } = useParams<{ clientId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showDebug, setShowDebug] = useState(false);
+  const queryClient = useQueryClient();
   
   // Enable realtime updates for this client
   if (clientId) {
@@ -46,13 +48,13 @@ export default function TrainerClientHealth() {
   });
   
   // Fetch health connections
-  const { data: connections, isLoading: connectionsLoading } = useHealthConnections(clientId);
+  const { data: connections, isLoading: connectionsLoading, error: connectionsError } = useHealthConnections(clientId);
   
   // Fetch recent workouts from health data
   const { data: recentWorkouts } = useHealthData(clientId, 'workout', 30);
   
   // Fetch stats to determine if data exists (even if connections query fails due to RLS)
-  const { data: stats } = useHealthStats(clientId);
+  const { data: stats, error: statsError } = useHealthStats(clientId);
   
   const isConnected = connections?.some(c => c.is_connected);
   const connection = connections?.find(c => c.is_connected);
@@ -127,9 +129,17 @@ export default function TrainerClientHealth() {
               <p><strong>auth.uid (trainer):</strong> {user?.id ?? 'null'}</p>
               <p><strong>clientId:</strong> {clientId ?? 'null'}</p>
               <p><strong>connections:</strong> {connectionsLoading ? 'loading...' : JSON.stringify(connections)}</p>
+              <p><strong>connectionsError:</strong> <span className={connectionsError ? 'text-red-600 font-bold' : ''}>{connectionsError ? String(connectionsError) : 'none'}</span></p>
               <p><strong>isConnected:</strong> {String(isConnected)}</p>
               <p><strong>hasAnyStats:</strong> {String(hasAnyStats)}</p>
               <p><strong>stats:</strong> {JSON.stringify(stats)}</p>
+              <p><strong>statsError:</strong> <span className={statsError ? 'text-red-600 font-bold' : ''}>{statsError ? String(statsError) : 'none'}</span></p>
+              <p><strong>tz offset:</strong> {new Date().getTimezoneOffset()} min</p>
+              <div className="mt-2 flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => { queryClient.invalidateQueries({ queryKey: ['health-stats'] }); queryClient.invalidateQueries({ queryKey: ['health-connections'] }); queryClient.invalidateQueries({ queryKey: ['health-data'] }); toast.info('Force-refreshed all health queries'); }}>
+                  Force Refresh Queries
+                </Button>
+              </div>
             </AlertDescription>
           </Alert>
         )}
