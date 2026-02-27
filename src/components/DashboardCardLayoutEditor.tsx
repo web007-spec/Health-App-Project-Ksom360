@@ -14,6 +14,7 @@ interface DashboardCardLayoutEditorProps {
   title?: string;
   description?: string;
   clientName?: string;
+  clientId?: string;
   showPreview?: boolean;
 }
 
@@ -24,6 +25,7 @@ export function DashboardCardLayoutEditor({
   title = "Dashboard Card Layout",
   description = "Drag to reorder, toggle to show/hide cards on the client dashboard.",
   clientName,
+  clientId,
   showPreview = true,
 }: DashboardCardLayoutEditorProps) {
   const { toast } = useToast();
@@ -159,7 +161,7 @@ export function DashboardCardLayoutEditor({
 
       {showPreview && (
         <div className="hidden md:block shrink-0">
-          <TodayScreenPhonePreview cards={cards} clientName={clientName} />
+          <TodayScreenPhonePreview cards={cards} clientName={clientName} clientId={clientId} />
         </div>
       )}
     </div>

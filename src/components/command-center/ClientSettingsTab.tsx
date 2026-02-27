@@ -729,6 +729,7 @@ function ClientDashboardLayoutSection({ clientId, trainerId }: { clientId: strin
       title="Dashboard Card Layout"
       description={isClientOverride ? "Custom layout for this client. Overrides the global default." : "Using global default layout. Save changes to create a client-specific override."}
       clientName={profile?.full_name || undefined}
+      clientId={clientId}
     />
   );
 }
