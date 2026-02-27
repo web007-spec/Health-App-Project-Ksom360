@@ -6,17 +6,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useHealthConnections, useHealthData, useRealtimeHealthData } from '@/hooks/useHealthData';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useHealthConnections, useHealthData, useRealtimeHealthData, useHealthStats } from '@/hooks/useHealthData';
+import { useAuth } from '@/hooks/useAuth';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Watch, CheckCircle2, XCircle, Activity, Heart, Flame, Footprints } from 'lucide-react';
+import { ArrowLeft, Watch, CheckCircle2, XCircle, Activity, Heart, Flame, Footprints, Bug } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow, format } from 'date-fns';
+import { useState } from 'react';
 
 export default function TrainerClientHealth() {
   const { clientId } = useParams<{ clientId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [showDebug, setShowDebug] = useState(false);
   
   // Enable realtime updates for this client
   if (clientId) {
@@ -46,8 +51,15 @@ export default function TrainerClientHealth() {
   // Fetch recent workouts from health data
   const { data: recentWorkouts } = useHealthData(clientId, 'workout', 30);
   
+  // Fetch stats to determine if data exists (even if connections query fails due to RLS)
+  const { data: stats } = useHealthStats(clientId);
+  
   const isConnected = connections?.some(c => c.is_connected);
   const connection = connections?.find(c => c.is_connected);
+  const hasAnyStats = stats && (stats.todaySteps > 0 || stats.todayCalories > 0 || stats.avgHeartRate > 0 || stats.workoutsCount > 0);
+  const showDataSection = isConnected || hasAnyStats;
+  
+  console.log('[TrainerClientHealth] auth.uid:', user?.id, 'clientId:', clientId, 'isConnected:', isConnected, 'hasAnyStats:', hasAnyStats, 'connections:', JSON.stringify(connections));
   
   if (clientLoading) {
     return (
@@ -101,7 +113,26 @@ export default function TrainerClientHealth() {
               </>
             )}
           </Badge>
+          <Button variant="ghost" size="icon" onClick={() => setShowDebug(d => !d)} title="Debug info">
+            <Bug className="h-4 w-4" />
+          </Button>
         </div>
+        
+        {/* Debug banner */}
+        {showDebug && (
+          <Alert variant="default" className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/30">
+            <Bug className="h-4 w-4" />
+            <AlertTitle>Health Debug Info</AlertTitle>
+            <AlertDescription className="text-xs font-mono space-y-1">
+              <p><strong>auth.uid (trainer):</strong> {user?.id ?? 'null'}</p>
+              <p><strong>clientId:</strong> {clientId ?? 'null'}</p>
+              <p><strong>connections:</strong> {connectionsLoading ? 'loading...' : JSON.stringify(connections)}</p>
+              <p><strong>isConnected:</strong> {String(isConnected)}</p>
+              <p><strong>hasAnyStats:</strong> {String(hasAnyStats)}</p>
+              <p><strong>stats:</strong> {JSON.stringify(stats)}</p>
+            </AlertDescription>
+          </Alert>
+        )}
         
         {isConnected && connection && (
           <Card>
@@ -130,7 +161,7 @@ export default function TrainerClientHealth() {
           </Card>
         )}
         
-        {!isConnected && (
+        {!isConnected && !hasAnyStats && (
           <Card>
             <CardHeader className="text-center">
               <Watch className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
@@ -143,7 +174,7 @@ export default function TrainerClientHealth() {
           </Card>
         )}
         
-        {isConnected && (
+        {showDataSection && (
           <>
             <div>
               <h2 className="text-lg font-semibold mb-4">Today's Activity</h2>

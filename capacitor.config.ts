@@ -1,12 +1,22 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.e2639f10dea7413a8fe8ad86d72b42ec',
-  appName: 'everfit-stride-cloud',
+  appId: 'com.rahulkumar.ksom360',
+  appName: 'KS360',
   webDir: 'dist',
+  // For development: uncomment the server block below to load from a live dev server
+  // server: {
+  //   url: 'http://YOUR_LOCAL_IP:5173',
+  //   cleartext: true
+  // },
+  ios: {
+    // Prevent stale WebView cache — always load fresh bundled assets
+    allowsLinkPreview: false,
+  },
+  // Force WebView to bypass stale cache on every app launch
   server: {
-    url: 'https://e2639f10-dea7-413a-8fe8-ad86d72b42ec.lovableproject.com?forceHideBadge=true',
-    cleartext: true
+    // Append a unique build timestamp to all asset URLs to bust cache
+    androidScheme: 'https',
   },
   plugins: {
     CapacitorHealthConnect: {

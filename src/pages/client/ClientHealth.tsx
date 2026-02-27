@@ -5,9 +5,10 @@ import { WeeklyActivityChart } from '@/components/health/WeeklyActivityChart';
 import { HealthSnapshotDialog } from '@/components/health/HealthSnapshotDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useHealthConnections, useSyncHealth, isNativePlatform } from '@/hooks/useHealthData';
+import { useHealthConnections, useSyncHealth, isNativePlatform, useHealthStats } from '@/hooks/useHealthData';
 import { useAuth } from '@/hooks/useAuth';
-import { RefreshCw, Settings, Watch, AlertCircle, Database, Camera } from 'lucide-react';
+import { useEffectiveClientId } from '@/hooks/useEffectiveClientId';
+import { RefreshCw, Settings, Watch, AlertCircle, Database, Camera, Bug } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -18,15 +19,30 @@ import { useState } from 'react';
 
 export default function ClientHealth() {
   const { user } = useAuth();
-  const { data: connections, isLoading: connectionsLoading } = useHealthConnections();
+  const effectiveClientId = useEffectiveClientId();
+  const { data: connections, isLoading: connectionsLoading } = useHealthConnections(effectiveClientId);
+  const { data: stats } = useHealthStats(effectiveClientId);
   const syncMutation = useSyncHealth();
   const queryClient = useQueryClient();
   const [seeding, setSeeding] = useState(false);
   const [snapshotOpen, setSnapshotOpen] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
+  
+  // Detect if trainer is impersonating a client on web (on native, allow sync)
+  const isImpersonating = effectiveClientId !== user?.id && !isNativePlatform();
+  
+  // Debug logging for health dashboard
+  console.log('[HealthDashboard] auth uid:', user?.id, 'effectiveClientId:', effectiveClientId, 'isImpersonating:', isImpersonating, 'isNative:', isNativePlatform(), 'connectionsLoading:', connectionsLoading, 'connections:', JSON.stringify(connections));
   
   const isConnected = connections?.some(c => c.is_connected);
   const lastSync = connections?.find(c => c.is_connected)?.last_sync_at;
   const isNative = isNativePlatform();
+  
+  // FIX: Also show data section if we have non-zero stats (data exists even if connections query failed)
+  const hasAnyStats = stats && (stats.todaySteps > 0 || stats.todayCalories > 0 || stats.avgHeartRate > 0 || stats.workoutsCount > 0);
+  const showDataSection = isConnected || !isNative || hasAnyStats;
+  
+  console.log('[HealthDashboard] isConnected:', isConnected, 'lastSync:', lastSync, 'hasAnyStats:', hasAnyStats, 'showDataSection:', showDataSection);
   
   const handleSync = async () => {
     try {
@@ -81,7 +97,7 @@ export default function ClientHealth() {
               <Camera className="h-4 w-4 mr-2" />
               AI Snapshot
             </Button>
-            {isConnected && (
+            {isConnected && !isImpersonating && (
               <Button 
                 variant="outline" 
                 onClick={handleSync}
@@ -97,10 +113,32 @@ export default function ClientHealth() {
                 Settings
               </Link>
             </Button>
+            <Button variant="ghost" size="icon" onClick={() => setShowDebug(d => !d)} title="Debug info">
+              <Bug className="h-4 w-4" />
+            </Button>
           </div>
         </div>
         
-        {!isNative && !isConnected && (
+        {/* Debug banner — toggled via bug icon */}
+        {showDebug && (
+          <Alert variant="default" className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/30">
+            <Bug className="h-4 w-4" />
+            <AlertTitle>Health Debug Info</AlertTitle>
+            <AlertDescription className="text-xs font-mono space-y-1">
+              <p><strong>auth.uid:</strong> {user?.id ?? 'null'}</p>
+              <p><strong>effectiveClientId:</strong> {effectiveClientId ?? 'null'}</p>
+              <p><strong>isImpersonating:</strong> {String(effectiveClientId !== user?.id)}</p>
+              <p><strong>isNative:</strong> {String(isNative)}</p>
+              <p><strong>connections:</strong> {connectionsLoading ? 'loading...' : JSON.stringify(connections)}</p>
+              <p><strong>isConnected:</strong> {String(isConnected)}</p>
+              <p><strong>hasAnyStats:</strong> {String(hasAnyStats)}</p>
+              <p><strong>showDataSection:</strong> {String(showDataSection)}</p>
+              <p><strong>stats:</strong> {JSON.stringify(stats)}</p>
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {!isNative && !isConnected && !hasAnyStats && (
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Web Preview Mode</AlertTitle>
@@ -119,7 +157,7 @@ export default function ClientHealth() {
           </Alert>
         )}
         
-        {isNative && !isConnected && !connectionsLoading && (
+        {isNative && !isConnected && !connectionsLoading && !hasAnyStats && (
           <Card>
             <CardHeader className="text-center">
               <Watch className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
@@ -138,16 +176,16 @@ export default function ClientHealth() {
           </Card>
         )}
         
-        {(isConnected || !isNative) && (
+        {showDataSection && (
           <>
             <div>
               <h2 className="text-lg font-semibold mb-4">Today's Summary</h2>
-              <ActivitySummary />
+              <ActivitySummary clientId={effectiveClientId} />
             </div>
             
             <div className="grid gap-6 lg:grid-cols-2">
-              <HeartRateChart />
-              <WeeklyActivityChart />
+              <HeartRateChart clientId={effectiveClientId} />
+              <WeeklyActivityChart clientId={effectiveClientId} />
             </div>
           </>
         )}
