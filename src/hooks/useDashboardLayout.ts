@@ -68,6 +68,7 @@ export function useDashboardLayout(trainerId: string | undefined, clientId?: str
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard-layout"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-layout-client"] });
     },
   });
 
