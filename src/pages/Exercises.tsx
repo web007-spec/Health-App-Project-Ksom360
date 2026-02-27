@@ -37,6 +37,7 @@ export default function Exercises() {
   const [equipmentFilter, setEquipmentFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [tagFilter, setTagFilter] = useState("all");
+  const [nameFilter, setNameFilter] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -111,7 +112,11 @@ export default function Exercises() {
         et.exercise_id === exercise.id && et.tag_id === tagFilter
       );
 
-    return matchesSearch && matchesMuscle && matchesEquipment && matchesCategory && matchesTag;
+    // "Needs name" filter: exercises with system-generated names (e.g. "Exercise 1", "Untitled", or names that look auto-generated)
+    const matchesNameFilter = nameFilter === "all" || 
+      (nameFilter === "needs_name" && /^(exercise\s*\d*|untitled|unnamed|new exercise)$/i.test(exercise.name.trim()));
+
+    return matchesSearch && matchesMuscle && matchesEquipment && matchesCategory && matchesTag && matchesNameFilter;
   }) || [];
 
   // Sort exercises
@@ -347,6 +352,16 @@ export default function Exercises() {
                     {tag.name.charAt(0).toUpperCase() + tag.name.slice(1)}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={nameFilter} onValueChange={(v) => { setNameFilter(v); resetPage(); }}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Name Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Names</SelectItem>
+                <SelectItem value="needs_name">Needs Name</SelectItem>
               </SelectContent>
             </Select>
 

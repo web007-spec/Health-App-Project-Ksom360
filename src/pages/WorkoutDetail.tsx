@@ -8,11 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Play, Clock, Dumbbell } from "lucide-react";
+import { ArrowLeft, Play, Clock, Dumbbell, Weight } from "lucide-react";
+import { getEquipmentItem } from "@/lib/equipmentConfig";
 import { useAuth } from "@/hooks/useAuth";
 import { WorkoutPlayer, unlockAudioForMobile } from "@/components/WorkoutPlayer";
 import { WorkoutSummary } from "@/components/WorkoutSummary";
 import { awardBadges } from "@/hooks/useBadgeAwarder";
+
+interface CustomEquipmentMap {
+  [id: string]: { label: string; icon_url: string | null };
+}
 
 interface CompletionData {
   setLogs: Record<string, { reps: string; weight: string; completed: boolean }>;
@@ -53,6 +58,18 @@ export default function WorkoutDetail() {
       return data;
     },
     enabled: !!id && !!user?.id && isClient,
+  });
+
+  // Fetch custom equipment icons
+  const { data: customEquipmentMap } = useQuery({
+    queryKey: ["custom-equipment-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("custom_equipment").select("id, label, icon_url");
+      if (error) throw error;
+      const map: CustomEquipmentMap = {};
+      data?.forEach(c => { map[c.id] = { label: c.label, icon_url: c.icon_url }; });
+      return map;
+    },
   });
 
   const { data: workout, isLoading } = useQuery({
@@ -96,10 +113,12 @@ export default function WorkoutDetail() {
         .map((wpe: any) => ({
           id: wpe.id,
           exercise_id: wpe.exercise_id,
-          exercise_name: wpe.exercise?.name,
+          is_rest: !wpe.exercise_id,
+          exercise_name: wpe.exercise?.name || (!wpe.exercise_id ? "Rest" : ""),
           exercise_image: wpe.exercise?.image_url,
           exercise_video: wpe.exercise?.video_url,
           exercise_description: wpe.exercise?.description,
+          equipment: wpe.exercise?.equipment,
           sets: wpe.sets,
           reps: wpe.reps,
           duration_seconds: wpe.duration_seconds,
@@ -109,10 +128,15 @@ export default function WorkoutDetail() {
         })) || [],
     })) || [];
 
-  const totalExercises = transformedSections.reduce(
-    (sum: number, section: any) => sum + section.exercises.length * section.rounds,
-    0
-  );
+  const totalExercises = transformedSections.reduce((sum: number, section: any) => {
+    const nonRestExercises = section.exercises.filter((e: any) => e.exercise_id);
+    const isGrouped = ["superset", "circuit"].includes(section.section_type);
+
+    if (!isGrouped) return sum + nonRestExercises.length;
+
+    const uniqueIds = new Set(nonRestExercises.map((e: any) => e.exercise_id));
+    return sum + uniqueIds.size;
+  }, 0);
 
   // Calculate true duration from actual exercise data (same formula as WorkoutPlayer)
   const calculatedTotalSeconds = transformedSections.reduce((acc: number, section: any) => {
@@ -344,31 +368,64 @@ export default function WorkoutDetail() {
         </div>
 
         {/* Workout Info */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            {workout.description && (
-              <p className="text-muted-foreground mb-4">{workout.description}</p>
-            )}
-            
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-              <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <div className="text-2xl font-bold">{calculatedMinutes}</div>
-                <div className="text-sm text-muted-foreground">Minutes</div>
-              </div>
-              <div>
-                <Dumbbell className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <div className="text-2xl font-bold">{transformedSections.length}</div>
-                <div className="text-sm text-muted-foreground">Sections</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold mx-auto mb-2">💪</div>
-                <div className="text-2xl font-bold">{totalExercises}</div>
-                <div className="text-sm text-muted-foreground">Exercises</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {(() => {
+          const equipmentList: string[] = (workout as any).equipment || [];
+
+          return (
+            <Card className="mb-6">
+              <CardContent className="p-6">
+                {workout.description && (
+                  <p className="text-muted-foreground mb-4">{workout.description}</p>
+                )}
+                
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <div className="text-2xl font-bold">{calculatedMinutes}</div>
+                    <div className="text-sm text-muted-foreground">Minutes</div>
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold mx-auto mb-2">💪</div>
+                    <div className="text-2xl font-bold">{totalExercises}</div>
+                    <div className="text-sm text-muted-foreground">Exercises</div>
+                  </div>
+                  <div>
+                    <Dumbbell className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <div className="text-2xl font-bold">{equipmentList.length || "—"}</div>
+                    <div className="text-sm text-muted-foreground">Equipment</div>
+                  </div>
+                </div>
+
+                {equipmentList.length > 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Equipment</p>
+                    <div className="flex flex-wrap gap-4">
+                      {equipmentList.map((eq) => {
+                        const isCustom = eq.startsWith("custom:");
+                        const customId = isCustom ? eq.replace("custom:", "") : null;
+                        const customItem = customId && customEquipmentMap ? customEquipmentMap[customId] : null;
+                        const builtInItem = !isCustom ? getEquipmentItem(eq) : null;
+                        const IconComp = builtInItem?.icon || Dumbbell;
+                        const label = customItem?.label || builtInItem?.label || eq;
+                        const iconUrl = customItem?.icon_url;
+                        return (
+                          <div key={eq} className="flex flex-col items-center gap-1">
+                            {iconUrl ? (
+                              <img src={iconUrl} alt={label} className="h-7 w-7 object-contain" />
+                            ) : (
+                              <IconComp className="h-7 w-7 text-muted-foreground" />
+                            )}
+                            <span className="text-xs text-muted-foreground capitalize">{label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* Workout Preview */}
         <div className="space-y-6">
@@ -403,13 +460,22 @@ export default function WorkoutDetail() {
                         />
                       )}
                       <div className="flex-1">
-                        <h4 className="font-semibold">{exercise.exercise_name}</h4>
+                        <h4 className="font-semibold">{exercise.exercise_name || "Exercise"}</h4>
                         <div className="text-sm text-muted-foreground mt-1">
-                          {exercise.sets && `${exercise.sets} sets`}
-                          {exercise.reps && ` × ${exercise.reps} reps`}
-                          {exercise.duration_seconds && ` • ${exercise.duration_seconds >= 3600 ? `${Math.round(exercise.duration_seconds / 3600)}hr` : exercise.duration_seconds >= 60 ? `${Math.round(exercise.duration_seconds / 60)}min` : `${exercise.duration_seconds}s`}`}
-                          {exercise.rest_seconds && ` • ${exercise.rest_seconds >= 60 ? `${Math.round(exercise.rest_seconds / 60)}min rest` : `${exercise.rest_seconds}s rest`}`}
-                          {exercise.tempo && ` • Tempo: ${exercise.tempo}`}
+                          {exercise.is_rest ? (
+                            <>
+                              Rest
+                              {exercise.duration_seconds && ` • ${exercise.duration_seconds >= 60 ? `${Math.round(exercise.duration_seconds / 60)}min` : `${exercise.duration_seconds}s`}`}
+                            </>
+                          ) : (
+                            <>
+                              {!["superset", "circuit"].includes(section.section_type) && exercise.sets && `${exercise.sets} sets`}
+                              {exercise.reps && ` × ${exercise.reps} reps`}
+                              {exercise.duration_seconds && ` • ${exercise.duration_seconds >= 3600 ? `${Math.round(exercise.duration_seconds / 3600)}hr` : exercise.duration_seconds >= 60 ? `${Math.round(exercise.duration_seconds / 60)}min` : `${exercise.duration_seconds}s`}`}
+                              {exercise.rest_seconds && ` • ${exercise.rest_seconds >= 60 ? `${Math.round(exercise.rest_seconds / 60)}min rest` : `${exercise.rest_seconds}s rest`}`}
+                              {exercise.tempo && ` • Tempo: ${exercise.tempo}`}
+                            </>
+                          )}
                         </div>
                         {exercise.notes && (
                           <p className="text-sm text-muted-foreground mt-1">{exercise.notes}</p>

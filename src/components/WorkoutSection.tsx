@@ -205,7 +205,7 @@ export function WorkoutSection({
                   </div>
 
                   {!showTimedFields && (
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                       <div>
                         <Label className="text-xs">Sets</Label>
                         <Input
@@ -225,14 +225,39 @@ export function WorkoutSection({
                         />
                       </div>
                       <div>
-                        <Label className="text-xs">Duration (sec)</Label>
+                        <Label className="text-xs">Duration</Label>
                         <Input
                           type="number"
                           placeholder="45"
-                          value={exercise.duration_seconds || ""}
-                          onChange={(e) => onUpdateExercise(section.id, exercise.id, { duration_seconds: e.target.value ? parseInt(e.target.value) : null })}
+                          value={exercise.duration_seconds ?? ""}
+                          onChange={(e) =>
+                            onUpdateExercise(section.id, exercise.id, {
+                              duration_seconds: e.target.value ? parseInt(e.target.value) : null,
+                            })
+                          }
                           className="h-8"
                         />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Unit</Label>
+                        <Select
+                          value={exercise.exercise_type === "duration_min" ? "min" : exercise.exercise_type === "duration_hr" ? "hr" : "sec"}
+                          onValueChange={(unit) => {
+                            let newType = "sec";
+                            if (unit === "min") newType = "duration_min";
+                            if (unit === "hr") newType = "duration_hr";
+                            onUpdateExercise(section.id, exercise.id, { exercise_type: newType });
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="sec">sec</SelectItem>
+                            <SelectItem value="min">min</SelectItem>
+                            <SelectItem value="hr">hr</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div>
                         <Label className="text-xs">Rest (sec)</Label>

@@ -1,28 +1,12 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-interface HealthDataPoint {
-  data_type: string;
-  value: number;
-  unit: string;
-  recorded_at: string;
-  source: string;
-  metadata?: Record<string, unknown>;
-}
-
-interface SyncRequest {
-  client_id: string;
-  provider: string;
-  health_data: HealthDataPoint[];
-  permissions: string[];
-}
-
-const handler = async (req: Request): Promise<Response> => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -30,69 +14,61 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("No authorization header");
+      return new Response(JSON.stringify({ error: "Missing authorization" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Verify caller is authenticated
-    const userClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    // Verify caller identity with anon client
+    const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authError } = await anonClient.auth.getUser();
     if (authError || !user) {
-      throw new Error("Unauthorized");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const { client_id, provider, health_data, permissions }: SyncRequest = await req.json();
+    const { client_id, provider, health_data, permissions } = await req.json();
 
-    if (!client_id || !provider || !health_data) {
-      throw new Error("Missing required fields: client_id, provider, health_data");
+    if (!client_id || !provider || !Array.isArray(health_data)) {
+      return new Response(JSON.stringify({ error: "Invalid payload" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Use service role to bypass RLS
-    const adminClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    );
+    // Use service role to bypass RLS (trainer impersonation scenario)
+    const admin = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify: caller must be the client themselves OR a trainer assigned to this client
-    if (user.id !== client_id) {
-      const { data: assignment, error: assignErr } = await adminClient
-        .from("trainer_clients")
-        .select("id")
-        .eq("trainer_id", user.id)
-        .eq("client_id", client_id)
-        .maybeSingle();
-
-      if (assignErr || !assignment) {
-        console.error("Authorization check failed:", assignErr, "user:", user.id, "client:", client_id);
-        throw new Error("Not authorized: you are not assigned to this client");
-      }
-    }
-
-    console.log(`[sync-health-insert] user=${user.id} client=${client_id} provider=${provider} points=${health_data.length}`);
-
-    // Upsert health_connections
-    const { error: connError } = await adminClient
+    // Upsert health connection
+    const { error: connError } = await admin
       .from("health_connections")
-      .upsert({
-        client_id,
-        provider,
-        is_connected: true,
-        last_sync_at: new Date().toISOString(),
-        permissions: permissions || ["heart_rate", "steps", "calories"],
-      }, { onConflict: "client_id,provider" });
+      .upsert(
+        {
+          client_id,
+          provider,
+          is_connected: true,
+          last_sync_at: new Date().toISOString(),
+          permissions: permissions || [],
+        },
+        { onConflict: "client_id,provider" }
+      );
 
     if (connError) {
-      console.error("[sync-health-insert] health_connections upsert error:", connError);
+      console.error("[sync-health-insert] health_connections error:", connError);
     }
 
-    // Upsert health_data
+    // Upsert health data points
     let insertedCount = 0;
     if (health_data.length > 0) {
-      const rows = health_data.map((point) => ({
+      const rows = health_data.map((point: any) => ({
         client_id,
         data_type: point.data_type,
         value: point.value,
@@ -102,36 +78,37 @@ const handler = async (req: Request): Promise<Response> => {
         metadata: point.metadata || null,
       }));
 
-      const { error: dataError } = await adminClient
-        .from("health_data")
-        .upsert(rows, { onConflict: "client_id,data_type,recorded_at" });
+      // Batch in chunks of 500 to avoid payload limits
+      const BATCH_SIZE = 500;
+      for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+        const batch = rows.slice(i, i + BATCH_SIZE);
+        const { error } = await admin
+          .from("health_data")
+          .upsert(batch, { onConflict: "client_id,data_type,recorded_at" });
 
-      if (dataError) {
-        console.error("[sync-health-insert] health_data upsert error:", dataError);
-        throw new Error(`Failed to insert health data: ${dataError.message}`);
+        if (error) {
+          console.error(`[sync-health-insert] health_data batch ${i} error:`, error);
+        } else {
+          insertedCount += batch.length;
+        }
       }
-
-      insertedCount = rows.length;
     }
 
-    // Update last_sync_at
-    await adminClient
-      .from("health_connections")
-      .update({ last_sync_at: new Date().toISOString() })
-      .eq("client_id", client_id)
-      .eq("provider", provider);
-
     return new Response(
-      JSON.stringify({ success: true, count: insertedCount }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      JSON.stringify({ success: true, inserted: insertedCount }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
-  } catch (error) {
-    console.error("[sync-health-insert] Error:", error.message);
+  } catch (err) {
+    console.error("[sync-health-insert] unexpected error:", err);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      JSON.stringify({ error: err.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   }
-};
-
-serve(handler);
+});

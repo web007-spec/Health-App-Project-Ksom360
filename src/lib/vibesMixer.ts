@@ -199,11 +199,21 @@ export function clearMix(items: MixItem[]): MixItem[] {
   return [];
 }
 
-/** Preload audio URLs into the buffer cache in the background */
+/** Preload audio URLs into the buffer cache in the background (sequentially to avoid memory spikes) */
 export function preloadAudioUrls(urls: string[]): void {
-  const ctx = getAudioContext();
-  for (const url of urls) {
-    if (!url || bufferCache.has(url)) continue;
+  let ctx: AudioContext;
+  try {
+    ctx = getAudioContext();
+  } catch {
+    return; // AudioContext not available (e.g. iOS before user gesture)
+  }
+  
+  // Process sequentially to avoid memory spikes on mobile
+  let i = 0;
+  const next = () => {
+    if (i >= urls.length) return;
+    const url = urls[i++];
+    if (!url || bufferCache.has(url)) { next(); return; }
     const fetchUrl = getProxiedUrl(url);
     fetch(fetchUrl)
       .then((res) => {
@@ -211,7 +221,8 @@ export function preloadAudioUrls(urls: string[]): void {
         return res.arrayBuffer();
       })
       .then((buf) => ctx.decodeAudioData(buf))
-      .then((audioBuf) => bufferCache.set(url, audioBuf))
-      .catch(() => {}); // silent — will fallback on actual play
-  }
+      .then((audioBuf) => { bufferCache.set(url, audioBuf); next(); })
+      .catch(() => next()); // silent — will fallback on actual play
+  };
+  next();
 }

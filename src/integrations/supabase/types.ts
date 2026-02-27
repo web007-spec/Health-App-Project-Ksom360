@@ -2230,6 +2230,30 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_equipment: {
+        Row: {
+          created_at: string
+          icon_url: string | null
+          id: string
+          label: string
+          trainer_id: string
+        }
+        Insert: {
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          label: string
+          trainer_id: string
+        }
+        Update: {
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          label?: string
+          trainer_id?: string
+        }
+        Relationships: []
+      }
       daily_checkins: {
         Row: {
           checkin_date: string
@@ -2265,6 +2289,48 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      dashboard_card_layouts: {
+        Row: {
+          cards: Json
+          client_id: string | null
+          created_at: string
+          id: string
+          trainer_id: string
+          updated_at: string
+        }
+        Insert: {
+          cards?: Json
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          trainer_id: string
+          updated_at?: string
+        }
+        Update: {
+          cards?: Json
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          trainer_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_card_layouts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_card_layouts_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       eating_window_meal_photos: {
         Row: {
@@ -5565,7 +5631,7 @@ export type Database = {
       workout_plan_exercises: {
         Row: {
           duration_seconds: number | null
-          exercise_id: string
+          exercise_id: string | null
           exercise_type: string | null
           id: string
           notes: string | null
@@ -5579,7 +5645,7 @@ export type Database = {
         }
         Insert: {
           duration_seconds?: number | null
-          exercise_id: string
+          exercise_id?: string | null
           exercise_type?: string | null
           id?: string
           notes?: string | null
@@ -5593,7 +5659,7 @@ export type Database = {
         }
         Update: {
           duration_seconds?: number | null
-          exercise_id?: string
+          exercise_id?: string | null
           exercise_type?: string | null
           id?: string
           notes?: string | null
@@ -5636,6 +5702,7 @@ export type Database = {
           description: string | null
           difficulty: Database["public"]["Enums"]["workout_difficulty"]
           duration_minutes: number
+          equipment: string[] | null
           id: string
           image_url: string | null
           is_template: boolean | null
@@ -5652,6 +5719,7 @@ export type Database = {
           description?: string | null
           difficulty: Database["public"]["Enums"]["workout_difficulty"]
           duration_minutes: number
+          equipment?: string[] | null
           id?: string
           image_url?: string | null
           is_template?: boolean | null
@@ -5668,6 +5736,7 @@ export type Database = {
           description?: string | null
           difficulty?: Database["public"]["Enums"]["workout_difficulty"]
           duration_minutes?: number
+          equipment?: string[] | null
           id?: string
           image_url?: string | null
           is_template?: boolean | null
