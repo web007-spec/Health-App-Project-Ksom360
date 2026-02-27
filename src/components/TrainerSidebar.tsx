@@ -68,7 +68,7 @@ export function TrainerSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        <div className="p-4 border-b border-sidebar-border">
+        <div className="p-4 border-b border-sidebar-border" style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)' }}>
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="EverFit Stride" className="h-10 w-10 rounded-lg object-contain" />
             {open && (

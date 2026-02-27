@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heart, Smartphone, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
 import { useConnectHealth, useDisconnectHealth, useSyncHealth, useHealthConnections, getPlatform, isNativePlatform } from '@/hooks/useHealthData';
+import { useAuth } from '@/hooks/useAuth';
+import { useEffectiveClientId } from '@/hooks/useEffectiveClientId';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -32,6 +34,12 @@ export function HealthConnectionCard({ provider }: HealthConnectionCardProps) {
   const connectMutation = useConnectHealth();
   const disconnectMutation = useDisconnectHealth();
   const syncMutation = useSyncHealth();
+  const { user } = useAuth();
+  const effectiveId = useEffectiveClientId();
+  
+  // Trainer previewing as client on WEB — disable sync/connect
+  // On native device, allow sync even when impersonating (HealthKit data belongs to this device)
+  const isImpersonating = effectiveId !== user?.id && !isNativePlatform();
   
   const info = providerInfo[provider];
   const Icon = info.icon;
@@ -132,7 +140,11 @@ export function HealthConnectionCard({ provider }: HealthConnectionCardProps) {
           )}
           
           <div className="flex gap-2">
-            {isConnected ? (
+            {isImpersonating ? (
+              <p className="text-sm text-muted-foreground italic">
+                Health sync can only be done from the client's own device.
+              </p>
+            ) : isConnected ? (
               <>
                 <Button 
                   onClick={handleSync} 

@@ -301,12 +301,12 @@ export function useAudioMixer() {
         loadMix(state.items, state.mixName ?? undefined);
       }
       if (state.mode) setActiveMode(state.mode);
-      // Skip auto-starting brainwave on restore — requires user gesture on iOS
-      // Just store the type so we can show it in the UI
-    } catch (e) {
-      console.warn("[useAudioMixer] Failed to restore from storage:", e);
-    }
-  }, [loadMix]);
+      if (state.brainwave) {
+        const bw = startBrainwaveAudio(state.brainwave.type, state.brainwave.volume);
+        setBrainwaveState(bw);
+      }
+    } catch {}
+  }, [loadMix, startBrainwaveAudio]);
 
   const isSoundActive = useCallback(
     (soundId: string) => mixItems.some((x) => x.soundId === soundId),

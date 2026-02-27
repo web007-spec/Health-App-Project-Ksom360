@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
+      injectRegister: false, // Don't auto-inject registerSW.js — we handle it in main.tsx to avoid conflicts with Capacitor
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
         name: "KSOM360",
@@ -92,7 +93,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       external: [
-        '@nicholasquinn/capacitor-healthkit',
+        '@johnjasonhudson/capacitor-healthkit',
         '@nicholasquinn/capacitor-healthconnect',
       ],
     },

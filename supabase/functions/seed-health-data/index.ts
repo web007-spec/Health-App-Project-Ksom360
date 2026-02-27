@@ -34,7 +34,22 @@ serve(async (req) => {
       });
     }
 
-    const clientId = user.id;
+    // Allow trainer to seed data for a specific client
+    let clientId = user.id;
+    let body: any = {};
+    try { body = await req.json(); } catch { /* no body is fine */ }
+    if (body?.targetClientId) {
+      // Verify the caller is a trainer for this client
+      const { data: link } = await supabase
+        .from("trainer_clients")
+        .select("id")
+        .eq("trainer_id", user.id)
+        .eq("client_id", body.targetClientId)
+        .maybeSingle();
+      if (link) {
+        clientId = body.targetClientId;
+      }
+    }
     const now = new Date();
     const healthData: any[] = [];
 

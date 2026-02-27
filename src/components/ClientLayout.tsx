@@ -107,7 +107,12 @@ export function ClientLayout({ children }: ClientLayoutProps) {
       {/* Top bar — safe-area padding keeps it below the iOS notch / status bar */}
       <header
         className="border-b border-border bg-card flex items-center justify-between px-4 shrink-0"
-        style={{ paddingTop: 'env(safe-area-inset-top, 0px)', minHeight: 'calc(3rem + env(safe-area-inset-top, 0px))' }}
+        style={{
+          paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)',
+          minHeight: 'calc(3.5rem + env(safe-area-inset-top, 0px))',
+          paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
+          paddingRight: 'max(env(safe-area-inset-right, 0px), 16px)',
+        }}
       >
         {isImpersonating ? (
           <>
@@ -126,7 +131,7 @@ export function ClientLayout({ children }: ClientLayoutProps) {
           <>
             {/* Lion logo with message badge */}
             <button
-              className="relative"
+              className="relative min-h-[44px] min-w-[44px] flex items-center justify-center"
               onClick={() => navigate("/client/messages")}
               aria-label="Messages"
             >

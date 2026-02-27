@@ -106,8 +106,16 @@ Light Theme 1: Clean & Athletic — warm white base, bold red accents, crisp con
     @apply border-border;
   }
 
+  html {
+    /* Ensure safe-area environment variables resolve on iOS */
+    padding: 0;
+    margin: 0;
+    height: 100%;
+  }
+
   body {
     @apply bg-background text-foreground;
+    min-height: 100%;
   }
 }
 

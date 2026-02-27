@@ -7,17 +7,12 @@ import { AddCardioActivityDialog } from "@/components/cardio/AddCardioActivityDi
 import { EditCardioActivityDialog } from "@/components/cardio/EditCardioActivityDialog";
 import { getIconComponent } from "@/components/cardio/cardioActivities";
 import { OnboardingPreviewSection } from "@/components/settings/OnboardingPreviewSection";
-import { DashboardCardLayoutEditor } from "@/components/DashboardCardLayoutEditor";
-import { useDashboardLayout } from "@/hooks/useDashboardLayout";
-import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 
 export default function TrainerSettings() {
-  const { user } = useAuth();
   const { activities, isLoading, addActivity, updateActivity, deleteActivity } = useCardioActivityTypes();
   const [addOpen, setAddOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<{ id: string; name: string; icon_name: string } | null>(null);
-  const { cards, save, isSaving } = useDashboardLayout(user?.id);
 
   return (
     <DashboardLayout>
@@ -80,15 +75,6 @@ export default function TrainerSettings() {
             </Button>
           </CardContent>
         </Card>
-
-        {/* Dashboard Card Layout (Global Default) */}
-        <DashboardCardLayoutEditor
-          cards={cards}
-          onSave={(c) => save({ cards: c })}
-          isSaving={isSaving}
-          title="Default Dashboard Layout"
-          description="Set the default card order and visibility for all client dashboards. Can be overridden per client."
-        />
 
         {/* Onboarding Flows Preview */}
         <OnboardingPreviewSection />

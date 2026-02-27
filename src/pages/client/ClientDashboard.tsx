@@ -613,60 +613,6 @@ export default function ClientDashboard() {
   const { config: engineConfig } = useEngineMode();
   const { toast } = useToast();
 
-  // Fetch trainer_id for this client
-  const { data: trainerRelation } = useQuery({
-    queryKey: ["client-trainer-id", clientId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("trainer_clients")
-        .select("trainer_id")
-        .eq("client_id", clientId!)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!clientId,
-  });
-
-  // Dashboard layout config
-  const { data: layoutCards } = useQuery({
-    queryKey: ["dashboard-layout-client", trainerRelation?.trainer_id, clientId],
-    queryFn: async () => {
-      // Try client-specific first
-      const { data: clientLayout } = await supabase
-        .from("dashboard_card_layouts" as any)
-        .select("cards")
-        .eq("client_id", clientId!)
-        .maybeSingle();
-      if (clientLayout) return (clientLayout as any).cards as Array<{ key: string; visible: boolean }>;
-
-      // Fall back to trainer default
-      const { data: trainerLayout } = await supabase
-        .from("dashboard_card_layouts" as any)
-        .select("cards")
-        .eq("trainer_id", trainerRelation!.trainer_id)
-        .is("client_id", null)
-        .maybeSingle();
-      if (trainerLayout) return (trainerLayout as any).cards as Array<{ key: string; visible: boolean }>;
-
-      return null;
-    },
-    enabled: !!clientId && !!trainerRelation?.trainer_id,
-  });
-
-  // Helper: check if a card is visible in the layout config
-  const isCardVisible = (key: string) => {
-    if (!layoutCards) return true; // no config = show all
-    const card = layoutCards.find(c => c.key === key);
-    return card ? card.visible : true;
-  };
-
-  // Helper: get card order index
-  const getCardOrder = (key: string) => {
-    if (!layoutCards) return 0;
-    const idx = layoutCards.findIndex(c => c.key === key);
-    return idx >= 0 ? idx : 999;
-  };
-
   // Unread messages count for floating lion badge
   // Use clientId (effectiveClientId) so it works correctly when trainer is previewing as a client
   const { data: unreadMessageCount = 0 } = useQuery({
@@ -747,6 +693,8 @@ export default function ClientDashboard() {
   }, []);
 
   // Check if profile is complete, redirect to onboarding if not
+  // Skip this check when a trainer is impersonating/previewing a client
+  const isImpersonating = !!localStorage.getItem("impersonatedClientId");
   const { data: profile } = useQuery({
     queryKey: ["profile-check", clientId],
     queryFn: async () => {
@@ -756,7 +704,7 @@ export default function ClientDashboard() {
         .eq("id", clientId)
         .single();
 
-      if (!data?.onboarding_completed) {
+      if (!data?.onboarding_completed && !isImpersonating) {
         navigate("/client/onboarding");
       }
       
@@ -1231,9 +1179,9 @@ export default function ClientDashboard() {
 
   return (
     <ClientLayout>
-      <div className="px-3 pt-4 pb-8 w-full flex flex-col gap-5">
-        {/* Header - always first, not configurable */}
-        <div className="flex items-center justify-between pt-2" style={{ order: -10 }}>
+      <div className="px-3 pt-4 pb-8 space-y-5 w-full">
+        {/* Header */}
+        <div className="flex items-center justify-between pt-2">
           <div>
             <p className="text-xs font-semibold text-muted-foreground tracking-wider">{todayDate}</p>
             <h1 className="text-2xl font-bold mt-0.5">Hello, {firstName}! {settings.greeting_emoji || '👋'}</h1>
@@ -1257,20 +1205,18 @@ export default function ClientDashboard() {
         <InAppNotifications />
 
         {/* Day Strip Calendar */}
-        {isCardVisible("calendar") && settings.calendar_days_ahead > 0 && clientId && (
-          <div style={{ order: getCardOrder("calendar") }}>
-            <DayStripCalendar
-              clientId={clientId}
-              daysAhead={settings.calendar_days_ahead}
-              trainingEnabled={settings.training_enabled}
-              tasksEnabled={settings.tasks_enabled}
-            />
-          </div>
+        {settings.calendar_days_ahead > 0 && clientId && (
+          <DayStripCalendar
+            clientId={clientId}
+            daysAhead={settings.calendar_days_ahead}
+            trainingEnabled={settings.training_enabled}
+            tasksEnabled={settings.tasks_enabled}
+          />
         )}
 
         {/* Today's Workouts — show FIRST when fasting is NOT enabled */}
-        {isCardVisible("workouts") && !settings.fasting_enabled && settings.training_enabled && (
-          <div style={{ order: getCardOrder("workouts") }}>
+        {!settings.fasting_enabled && settings.training_enabled && (
+          <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
               {isRestDay ? "Today" : hasSportEvents && todaysWorkouts.length === 0 ? "Today's Schedule" : `Today's Workout${hasMultiple ? "s" : ""}`}
             </h2>
@@ -1337,65 +1283,55 @@ export default function ClientDashboard() {
         )}
 
         {/* Fasting Protocol Card — hidden for Athletic engine */}
-        {isCardVisible("fasting") && settings.fasting_enabled && !engineConfig.fastingDisabled && (
-          <div style={{ order: getCardOrder("fasting") }}>
-            <FastingProtocolCard clientId={clientId} navigate={navigate} />
-          </div>
+        {settings.fasting_enabled && !engineConfig.fastingDisabled && (
+          <FastingProtocolCard clientId={clientId} navigate={navigate} />
         )}
 
         {/* Restore Recovery Hub Card */}
-        {isCardVisible("restore") && settings.restore_enabled && (
-          <div style={{ order: getCardOrder("restore") }}>
-            <Card
-              className="overflow-hidden border-primary/20 shadow-md cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => navigate("/client/vibes")}
-            >
-              <CardContent className="px-5 py-5 flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                  <Sparkles className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-bold">Restore</h3>
-                  <p className="text-xs text-muted-foreground">Soundscapes, breathing & guided recovery</p>
-                </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
-              </CardContent>
-            </Card>
-          </div>
+        {settings.restore_enabled && (
+          <Card
+            className="overflow-hidden border-primary/20 shadow-md cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => navigate("/client/vibes")}
+          >
+            <CardContent className="px-5 py-5 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Sparkles className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold">Restore</h3>
+                <p className="text-xs text-muted-foreground">Soundscapes, breathing & guided recovery</p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+            </CardContent>
+          </Card>
         )}
 
-        {/* Engine-driven dashboard cards */}
-        {isCardVisible("engine_cards") && (
-          <div style={{ order: getCardOrder("engine_cards") }} className="space-y-5">
-            {engineConfig.features.showFastingUI && <DashboardFocusSelector currentFocus={null} />}
-            <DailyCheckinCard />
-            <RecommendationCard />
-            <LevelProgressionCard />
-            <DashboardInsightCard />
-          </div>
-        )}
+        {/* Engine-driven dashboard cards (always show for all engines) */}
+        <>
+          {engineConfig.features.showFastingUI && <DashboardFocusSelector currentFocus={null} />}
+          <DailyCheckinCard />
+          <RecommendationCard />
+          <LevelProgressionCard />
+          <DashboardInsightCard />
+        </>
 
         {/* Break Your Fast Card — only for engines with fasting, during active eating window */}
-        {isCardVisible("fasting") && settings.fasting_enabled && !engineConfig.fastingDisabled && mealGateStatus === "allowed" && fastingState?.eating_window_ends_at && new Date(fastingState.eating_window_ends_at) > new Date() && (
-          <div style={{ order: getCardOrder("fasting") }}>
-            <BreakYourFastCard hasFlexibleMealPlan={settings.meal_plan_type === "flexible"} />
-          </div>
+        {settings.fasting_enabled && !engineConfig.fastingDisabled && mealGateStatus === "allowed" && fastingState?.eating_window_ends_at && new Date(fastingState.eating_window_ends_at) > new Date() && (
+          <BreakYourFastCard hasFlexibleMealPlan={settings.meal_plan_type === "flexible"} />
         )}
 
         {/* Coach Tip & Protocol Progress — only for engines with fasting */}
-        {isCardVisible("coach_tip") && settings.fasting_enabled && !engineConfig.fastingDisabled && (fastingState?.selected_protocol_id || fastingState?.maintenance_mode) && (
-          <div style={{ order: getCardOrder("coach_tip") }}>
-            <FastingCoachTipCard
-              protocolStartDate={fastingState?.protocol_start_date ?? null}
-              protocolDurationDays={coachTipProtocol?.duration_days ?? null}
-              hideProtocolProgress={!!fastingState?.maintenance_mode}
-            />
-          </div>
+        {settings.fasting_enabled && !engineConfig.fastingDisabled && (fastingState?.selected_protocol_id || fastingState?.maintenance_mode) && (
+          <FastingCoachTipCard
+            protocolStartDate={fastingState?.protocol_start_date ?? null}
+            protocolDurationDays={coachTipProtocol?.duration_days ?? null}
+            hideProtocolProgress={!!fastingState?.maintenance_mode}
+          />
         )}
 
         {/* Today's Workouts & Sport Events — right after fasting card when fasting is enabled */}
-        {isCardVisible("workouts") && settings.fasting_enabled && settings.training_enabled && (
-          <div style={{ order: getCardOrder("workouts") }}>
+        {settings.fasting_enabled && settings.training_enabled && (
+          <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
               {isRestDay ? "Today" : hasSportEvents && todaysWorkouts.length === 0 ? "Today's Schedule" : `Today's Workout${hasMultiple ? "s" : ""}`}
             </h2>
@@ -1585,8 +1521,8 @@ export default function ClientDashboard() {
         )}
 
         {/* Habits - only if tasks enabled */}
-        {isCardVisible("habits") && settings.tasks_enabled && habits && habits.length > 0 && (
-          <div style={{ order: getCardOrder("habits") }}>
+        {settings.tasks_enabled && habits && habits.length > 0 && (
+          <div>
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-lg font-bold">Habits</h2>
               <button onClick={() => navigate("/client/habits")} className="text-sm font-semibold text-primary">View all</button>
@@ -1619,8 +1555,8 @@ export default function ClientDashboard() {
         )}
 
         {/* Nutrition (Macros card) */}
-        {isCardVisible("nutrition") && settings.macros_enabled && !macroTargets && (
-          <div style={{ order: getCardOrder("nutrition") }}>
+        {settings.macros_enabled && !macroTargets && (
+          <div>
             <Card className="overflow-hidden cursor-pointer hover:shadow-sm transition-shadow" onClick={() => navigate("/client/macro-setup")}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
@@ -1640,8 +1576,8 @@ export default function ClientDashboard() {
           </div>
         )}
 
-        {isCardVisible("nutrition") && settings.macros_enabled && macroTargets && (
-          <div style={{ order: getCardOrder("nutrition") }}>
+        {settings.macros_enabled && macroTargets && (
+          <div>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Nutrition</h2>
@@ -1766,8 +1702,8 @@ export default function ClientDashboard() {
         )}
 
         {/* Food Journal fallback (no macros but food journal enabled) */}
-        {isCardVisible("food_journal") && settings.food_journal_enabled && !settings.macros_enabled && (
-          <div style={{ order: getCardOrder("food_journal") }}>
+        {settings.food_journal_enabled && !settings.macros_enabled && (
+          <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Food Journal</h2>
             <Card className="cursor-pointer hover:shadow-sm transition-shadow" onClick={() => navigate("/client/nutrition")}>
               <CardContent className="p-4 flex items-center gap-4">
@@ -1807,8 +1743,8 @@ export default function ClientDashboard() {
         )}
 
         {/* Step Tracker / Health - only if activity logging enabled */}
-        {isCardVisible("step_tracker") && settings.activity_logging_enabled && (
-          <div style={{ order: getCardOrder("step_tracker") }}>
+        {settings.activity_logging_enabled && (
+          <div>
             <h2 className="text-lg font-bold mb-2">Step tracker</h2>
             <Card className="cursor-pointer hover:shadow-sm transition-shadow min-h-[120px]" onClick={() => navigate("/client/health-connect")}>
               <CardContent className="p-5 flex items-center gap-4 h-full">
@@ -1825,8 +1761,8 @@ export default function ClientDashboard() {
         )}
 
         {/* Tasks - only if tasks enabled */}
-        {isCardVisible("tasks") && settings.tasks_enabled && tasks && tasks.length > 0 && (
-          <div style={{ order: getCardOrder("tasks") }}>
+        {settings.tasks_enabled && tasks && tasks.length > 0 && (
+          <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
               Tasks ({completedTaskCount}/{totalTaskCount})
             </h2>
@@ -1863,22 +1799,16 @@ export default function ClientDashboard() {
         )}
 
         {/* My Progress Section */}
-        {isCardVisible("progress") && settings.body_metrics_enabled && clientId && (
-          <div style={{ order: getCardOrder("progress") }}>
-            <MyProgressSection clientId={clientId} />
-          </div>
+        {settings.body_metrics_enabled && clientId && (
+          <MyProgressSection clientId={clientId} />
         )}
 
         {/* Latest Game Stats Card */}
-        {isCardVisible("game_stats") && (
-          <div style={{ order: getCardOrder("game_stats") }}>
-            <LatestGameStatsCard clientId={clientId} navigate={navigate} />
-          </div>
-        )}
+        <LatestGameStatsCard clientId={clientId} navigate={navigate} />
 
         {/* Completed Cardio Activities */}
-        {isCardVisible("cardio") && todayCardioSessions && todayCardioSessions.filter((s: any) => s.status === "completed").length > 0 && (
-          <div style={{ order: getCardOrder("cardio") }}>
+        {todayCardioSessions && todayCardioSessions.filter((s: any) => s.status === "completed").length > 0 && (
+          <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Activity</h2>
             <Card>
               <CardContent className="p-0 divide-y divide-border">

@@ -277,23 +277,7 @@ export default function Clients() {
               <Card>
                 <CardContent className="p-1 divide-y divide-border">
                   {allClients.map((client) => (
-                    <ClientListItem
-                      key={client.id}
-                      client={client}
-                      onChangeStatus={(c) => {
-                        setSelectedClient({
-                          id: c.id,
-                          status: c.status,
-                          name: c.client?.full_name || "Client",
-                        });
-                        setStatusDialogOpen(true);
-                      }}
-                      onAssignTask={(clientId) => {
-                        setSelectedClientForTask(clientId);
-                        setAssignTaskDialogOpen(true);
-                      }}
-                      onResendEmail={(clientId) => resendEmailMutation.mutate(clientId)}
-                    />
+                    <ClientListItem key={client.id} client={client} />
                   ))}
                 </CardContent>
               </Card>
@@ -317,23 +301,7 @@ export default function Clients() {
               <Card>
                 <CardContent className="p-1 divide-y divide-border">
                   {activeClients.map((client) => (
-                    <ClientListItem
-                      key={client.id}
-                      client={client}
-                      onChangeStatus={(c) => {
-                        setSelectedClient({
-                          id: c.id,
-                          status: c.status,
-                          name: c.client?.full_name || "Client",
-                        });
-                        setStatusDialogOpen(true);
-                      }}
-                      onAssignTask={(clientId) => {
-                        setSelectedClientForTask(clientId);
-                        setAssignTaskDialogOpen(true);
-                      }}
-                      onResendEmail={(clientId) => resendEmailMutation.mutate(clientId)}
-                    />
+                    <ClientListItem key={client.id} client={client} />
                   ))}
                 </CardContent>
               </Card>
@@ -357,23 +325,7 @@ export default function Clients() {
               <Card>
                 <CardContent className="p-1 divide-y divide-border">
                   {pausedClients.map((client) => (
-                    <ClientListItem
-                      key={client.id}
-                      client={client}
-                      onChangeStatus={(c) => {
-                        setSelectedClient({
-                          id: c.id,
-                          status: c.status,
-                          name: c.client?.full_name || "Client",
-                        });
-                        setStatusDialogOpen(true);
-                      }}
-                      onAssignTask={(clientId) => {
-                        setSelectedClientForTask(clientId);
-                        setAssignTaskDialogOpen(true);
-                      }}
-                      onResendEmail={(clientId) => resendEmailMutation.mutate(clientId)}
-                    />
+                    <ClientListItem key={client.id} client={client} />
                   ))}
                 </CardContent>
               </Card>

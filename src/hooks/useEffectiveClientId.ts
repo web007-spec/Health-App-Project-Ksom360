@@ -2,17 +2,11 @@ import { useAuth } from "@/hooks/useAuth";
 
 /**
  * Returns the effective client ID for client-side pages.
- * Priority: ?previewClientId query param > localStorage impersonation > logged-in user.
+ * When a trainer is impersonating a client (stored in localStorage),
+ * this returns the impersonated client's ID instead of the logged-in user's ID.
  */
 export function useEffectiveClientId() {
   const { user, userRole } = useAuth();
-
-  // Check for preview query param (used by live phone preview iframe)
-  const params = new URLSearchParams(window.location.search);
-  const previewClientId = params.get("previewClientId");
-  if (previewClientId) {
-    return previewClientId;
-  }
 
   const impersonatedId = localStorage.getItem("impersonatedClientId");
 

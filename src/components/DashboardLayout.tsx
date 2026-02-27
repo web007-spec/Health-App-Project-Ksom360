@@ -73,7 +73,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="min-h-screen flex w-full bg-background">
         <TrainerSidebar />
         <div className="flex-1 flex flex-col">
-          <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6">
+          <header
+            className="border-b border-border bg-card flex items-center justify-between px-6 shrink-0"
+            style={{
+              paddingTop: 'max(env(safe-area-inset-top, 0px), 0px)',
+              minHeight: 'calc(4rem + env(safe-area-inset-top, 0px))',
+            }}
+          >
             <div className="flex items-center gap-4">
               <SidebarTrigger />
               <Badge variant="outline" className="hidden sm:flex">
