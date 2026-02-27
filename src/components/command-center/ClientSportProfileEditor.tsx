@@ -102,6 +102,8 @@ export function ClientSportProfileEditor({ clientId, trainerId }: ClientSportPro
       team_name: "",
       bats: "",
       throws: "",
+      season_status: "auto",
+      season_override: null,
       client_id: clientId,
       trainer_id: trainerId,
     }]);
@@ -168,7 +170,18 @@ export function ClientSportProfileEditor({ clientId, trainerId }: ClientSportPro
                 <Label className="text-xs">Team Name</Label>
                 <Input value={profile.team_name || ""} onChange={e => updateField(index, "team_name", e.target.value)} placeholder="Team name" className="mt-1" />
               </div>
-              {profile.sport === "baseball" && (
+              <div className="col-span-2">
+                <Label className="text-xs">Season Status</Label>
+                <Select value={profile.season_override || "auto"} onValueChange={v => updateField(index, "season_override", v === "auto" ? "" : v)}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Auto-detect" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Auto-detect from schedule</SelectItem>
+                    <SelectItem value="in_season">In Season</SelectItem>
+                    <SelectItem value="off_season">Off Season</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {(profile.sport === "softball" || profile.sport === "baseball") && (
                 <>
                   <div>
                     <Label className="text-xs">Bats</Label>

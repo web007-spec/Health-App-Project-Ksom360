@@ -1575,6 +1575,8 @@ export type Database = {
           id: string
           jersey_number: string | null
           position: string | null
+          season_override: string | null
+          season_status: string
           sport: string
           team_name: string | null
           throws: string | null
@@ -1588,6 +1590,8 @@ export type Database = {
           id?: string
           jersey_number?: string | null
           position?: string | null
+          season_override?: string | null
+          season_status?: string
           sport?: string
           team_name?: string | null
           throws?: string | null
@@ -1601,6 +1605,8 @@ export type Database = {
           id?: string
           jersey_number?: string | null
           position?: string | null
+          season_override?: string | null
+          season_status?: string
           sport?: string
           team_name?: string | null
           throws?: string | null
