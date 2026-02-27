@@ -3,11 +3,14 @@ import { DashboardCardConfig } from "@/lib/dashboardCards";
 interface TodayScreenPhonePreviewProps {
   cards: DashboardCardConfig[];
   clientName?: string;
+  clientId?: string;
 }
 
-export function TodayScreenPhonePreview({ cards, clientName = "Client" }: TodayScreenPhonePreviewProps) {
-  // Use the live client dashboard via iframe
-  const iframeSrc = "/client/dashboard?preview=1";
+export function TodayScreenPhonePreview({ cards, clientName = "Client", clientId }: TodayScreenPhonePreviewProps) {
+  // Use the live client dashboard via iframe, passing clientId so it works without impersonation
+  const params = new URLSearchParams({ preview: "1" });
+  if (clientId) params.set("previewClientId", clientId);
+  const iframeSrc = `/client/dashboard?${params.toString()}`;
 
   return (
     <div className="sticky top-6">
