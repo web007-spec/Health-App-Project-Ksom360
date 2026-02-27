@@ -158,7 +158,7 @@ export function DashboardCardLayoutEditor({
       </Card>
 
       {showPreview && (
-        <div className="hidden lg:block shrink-0">
+        <div className="hidden md:block shrink-0">
           <TodayScreenPhonePreview cards={cards} clientName={clientName} />
         </div>
       )}
