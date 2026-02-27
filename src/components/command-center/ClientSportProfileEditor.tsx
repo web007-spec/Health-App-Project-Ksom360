@@ -72,6 +72,17 @@ function snapshotProfile(profile: EditableProfile) {
   return JSON.stringify(normalizeForSave(profile));
 }
 
+function getSaveErrorMessage(error: any) {
+  const message = error?.message || "";
+  if (message.includes("client_sport_profiles_client_id_trainer_id_sport_key")) {
+    return "This sport already exists for this client.";
+  }
+  if (message.includes("client_sport_profiles_client_id_trainer_id_key")) {
+    return "This sport profile conflicted with an older rule. Please try again.";
+  }
+  return "Please try again.";
+}
+
 export function ClientSportProfileEditor({ clientId, trainerId }: ClientSportProfileEditorProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -91,6 +102,7 @@ export function ClientSportProfileEditor({ clientId, trainerId }: ClientSportPro
   const [editProfiles, setEditProfiles] = useState<EditableProfile[]>([]);
   const [savedSnapshots, setSavedSnapshots] = useState<Record<string, string>>({});
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
+  const [blockedAutosaveIds, setBlockedAutosaveIds] = useState<Set<string>>(new Set());
   const [newSport, setNewSport] = useState("");
   const hasInitializedAutosave = useRef(false);
 
@@ -103,6 +115,7 @@ export function ClientSportProfileEditor({ clientId, trainerId }: ClientSportPro
       nextSnapshots[p.id] = snapshotProfile(p);
     });
     setSavedSnapshots(nextSnapshots);
+    setBlockedAutosaveIds(new Set());
     hasInitializedAutosave.current = false;
   }, [profiles]);
 
@@ -168,19 +181,32 @@ export function ClientSportProfileEditor({ clientId, trainerId }: ClientSportPro
         return next;
       });
 
+      setBlockedAutosaveIds((prev) => {
+        const next = new Set(prev);
+        if (tempId) next.delete(tempId);
+        next.delete(savedId);
+        return next;
+      });
+
       queryClient.invalidateQueries({ queryKey: ["client-sport-profiles", clientId] });
       queryClient.invalidateQueries({ queryKey: ["sport-profile", clientId] });
     },
-    onError: (_error, variables) => {
+    onError: (error, variables) => {
       setSavingIds((prev) => {
         const next = new Set(prev);
         next.delete(variables.profile.id);
         return next;
       });
 
+      setBlockedAutosaveIds((prev) => {
+        const next = new Set(prev);
+        next.add(variables.profile.id);
+        return next;
+      });
+
       toast({
         title: "Could not save this sport profile",
-        description: "Please try again.",
+        description: getSaveErrorMessage(error),
         variant: "destructive",
       });
     },
@@ -201,6 +227,11 @@ export function ClientSportProfileEditor({ clientId, trainerId }: ClientSportPro
         delete next[id];
         return next;
       });
+      setBlockedAutosaveIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       queryClient.invalidateQueries({ queryKey: ["client-sport-profiles", clientId] });
       queryClient.invalidateQueries({ queryKey: ["sport-profile", clientId] });
       toast({ title: "Sport profile removed" });
@@ -217,7 +248,7 @@ export function ClientSportProfileEditor({ clientId, trainerId }: ClientSportPro
 
     const timer = setTimeout(() => {
       dirtyProfiles.forEach((profile) => {
-        if (savingIds.has(profile.id)) return;
+        if (savingIds.has(profile.id) || blockedAutosaveIds.has(profile.id)) return;
 
         setSavingIds((prev) => new Set(prev).add(profile.id));
         saveMutation.mutate({ profile });
@@ -225,7 +256,7 @@ export function ClientSportProfileEditor({ clientId, trainerId }: ClientSportPro
     }, 900);
 
     return () => clearTimeout(timer);
-  }, [dirtyProfiles, saveMutation, savingIds]);
+  }, [blockedAutosaveIds, dirtyProfiles, saveMutation, savingIds]);
 
   const addSport = () => {
     if (!newSport) return;
@@ -258,9 +289,20 @@ export function ClientSportProfileEditor({ clientId, trainerId }: ClientSportPro
 
   const updateField = (profileId: string, field: keyof EditableProfile, value: string) => {
     setEditProfiles((prev) => prev.map((p) => (p.id === profileId ? { ...p, [field]: value } : p)));
+    setBlockedAutosaveIds((prev) => {
+      if (!prev.has(profileId)) return prev;
+      const next = new Set(prev);
+      next.delete(profileId);
+      return next;
+    });
   };
 
   const saveProfile = async (profile: EditableProfile) => {
+    setBlockedAutosaveIds((prev) => {
+      const next = new Set(prev);
+      next.delete(profile.id);
+      return next;
+    });
     setSavingIds((prev) => new Set(prev).add(profile.id));
     await saveMutation.mutateAsync({ profile });
     toast({ title: `${SPORT_LABELS[profile.sport] || "Sport"} profile saved` });
@@ -271,6 +313,11 @@ export function ClientSportProfileEditor({ clientId, trainerId }: ClientSportPro
     if (!pending.length) return;
 
     for (const profile of pending) {
+      setBlockedAutosaveIds((prev) => {
+        const next = new Set(prev);
+        next.delete(profile.id);
+        return next;
+      });
       setSavingIds((prev) => new Set(prev).add(profile.id));
       await saveMutation.mutateAsync({ profile });
     }
