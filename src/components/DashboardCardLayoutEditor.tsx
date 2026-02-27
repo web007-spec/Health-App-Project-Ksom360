@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { GripVertical, RotateCcw } from "lucide-react";
+import { GripVertical, RotateCcw, Eye, Pencil } from "lucide-react";
 import { DashboardCardConfig, DEFAULT_CARD_ORDER } from "@/lib/dashboardCards";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,11 +23,13 @@ export function DashboardCardLayoutEditor({
   title = "Dashboard Card Layout",
   description = "Drag to reorder, toggle to show/hide cards on the client dashboard.",
   clientName,
+  clientId,
 }: DashboardCardLayoutEditorProps) {
   const { toast } = useToast();
   const [cards, setCards] = useState<DashboardCardConfig[]>(initialCards);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [mode, setMode] = useState<"live" | "edit">("live");
 
   useEffect(() => {
     setCards(initialCards);
@@ -115,57 +117,95 @@ export function DashboardCardLayoutEditor({
             </div>
           </div>
 
-          {/* Header inside phone */}
-          <div className="px-4 pt-3 pb-2 border-b border-border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-foreground">{title}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{description}</p>
-              </div>
+          {/* Mode toggle bar */}
+          <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/30">
+            <div className="flex items-center gap-1.5">
+              {clientName && (
+                <span className="text-[9px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  {clientName}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 bg-muted rounded-full p-0.5">
               <button
-                onClick={handleReset}
-                className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setMode("live")}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors ${
+                  mode === "live" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+                }`}
               >
-                <RotateCcw className="h-3 w-3" />
-                Reset
+                <Eye className="h-3 w-3" />
+                Live
+              </button>
+              <button
+                onClick={() => setMode("edit")}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors ${
+                  mode === "edit" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+                }`}
+              >
+                <Pencil className="h-3 w-3" />
+                Edit
               </button>
             </div>
-            {clientName && (
-              <span className="inline-block mt-1.5 text-[9px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                {clientName}
-              </span>
-            )}
           </div>
 
-          {/* Scrollable card list */}
-          <div className="h-[480px] overflow-y-auto px-3 py-2 space-y-1">
-            {cards.map((card, index) => (
-              <div
-                key={card.key}
-                data-card-index={index}
-                draggable
-                onDragStart={() => handleDragStart(index)}
-                onDragOver={(e) => handleDragOver(e, index)}
-                onDragEnd={handleDragEnd}
-                onTouchStart={() => handleTouchStart(index)}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-all select-none ${
-                  dragIndex === index || touchDragIndex === index
-                    ? "bg-primary/5 border-primary/30 shadow-sm"
-                    : "bg-background border-border hover:border-primary/20"
-                } ${!card.visible ? "opacity-50" : ""}`}
-              >
-                <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0 cursor-grab active:cursor-grabbing" />
-                <span className="text-xs font-medium flex-1 truncate">{card.label}</span>
-                <Switch
-                  checked={card.visible}
-                  onCheckedChange={() => toggleVisibility(index)}
-                  className="shrink-0 scale-90"
-                />
+          {mode === "live" ? (
+            /* Live iframe preview */
+            <div className="relative w-[308px] h-[480px] overflow-hidden">
+              <iframe
+                src={`/client/dashboard?preview=1${clientId ? `&previewClientId=${clientId}` : ""}`}
+                className="absolute top-0 left-0 border-0"
+                style={{
+                  width: "390px",
+                  height: "844px",
+                  transform: "scale(0.79)",
+                  transformOrigin: "top left",
+                }}
+                title="Client Dashboard Preview"
+              />
+            </div>
+          ) : (
+            /* Edit mode - drag to reorder */
+            <>
+              <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+                <p className="text-[10px] text-muted-foreground">Drag to reorder, toggle visibility</p>
+                <button
+                  onClick={handleReset}
+                  className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Reset
+                </button>
               </div>
-            ))}
-          </div>
+              <div className="h-[440px] overflow-y-auto px-3 py-2 space-y-1">
+                {cards.map((card, index) => (
+                  <div
+                    key={card.key}
+                    data-card-index={index}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragEnd={handleDragEnd}
+                    onTouchStart={() => handleTouchStart(index)}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-all select-none ${
+                      dragIndex === index || touchDragIndex === index
+                        ? "bg-primary/5 border-primary/30 shadow-sm"
+                        : "bg-background border-border hover:border-primary/20"
+                    } ${!card.visible ? "opacity-50" : ""}`}
+                  >
+                    <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0 cursor-grab active:cursor-grabbing" />
+                    <span className="text-xs font-medium flex-1 truncate">{card.label}</span>
+                    <Switch
+                      checked={card.visible}
+                      onCheckedChange={() => toggleVisibility(index)}
+                      className="shrink-0 scale-90"
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
 
           {/* Save button inside phone */}
           {hasChanges && (
