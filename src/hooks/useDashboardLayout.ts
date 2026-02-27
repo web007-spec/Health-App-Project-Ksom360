@@ -45,7 +45,7 @@ export function useDashboardLayout(trainerId: string | undefined, clientId?: str
 
       const { data: existing } = await supabase
         .from("dashboard_card_layouts" as any)
-        .select("id")
+        .select("id, client_id")
         .eq("trainer_id", trainerId)
         .then(res => {
           // Filter in JS since we need conditional null check
