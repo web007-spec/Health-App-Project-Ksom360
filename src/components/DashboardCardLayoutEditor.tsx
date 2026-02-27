@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { GripVertical, RotateCcw, Eye, Pencil } from "lucide-react";
+import { GripVertical, RotateCcw, Eye, Pencil, Ban } from "lucide-react";
 import { DashboardCardConfig, DEFAULT_CARD_ORDER } from "@/lib/dashboardCards";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,6 +14,8 @@ interface DashboardCardLayoutEditorProps {
   clientName?: string;
   clientId?: string;
   showPreview?: boolean;
+  /** Card keys that don't apply to this client (engine mode / feature flags) */
+  disabledCards?: Record<string, string>;
 }
 
 export function DashboardCardLayoutEditor({
@@ -24,6 +26,7 @@ export function DashboardCardLayoutEditor({
   description = "Drag to reorder, toggle to show/hide cards on the client dashboard.",
   clientName,
   clientId,
+  disabledCards = {},
 }: DashboardCardLayoutEditorProps) {
   const { toast } = useToast();
   const [cards, setCards] = useState<DashboardCardConfig[]>(initialCards);
@@ -177,32 +180,51 @@ export function DashboardCardLayoutEditor({
                 </button>
               </div>
               <div className="h-[440px] overflow-y-auto px-3 py-2 space-y-1">
-                {cards.map((card, index) => (
-                  <div
-                    key={card.key}
-                    data-card-index={index}
-                    draggable
-                    onDragStart={() => handleDragStart(index)}
-                    onDragOver={(e) => handleDragOver(e, index)}
-                    onDragEnd={handleDragEnd}
-                    onTouchStart={() => handleTouchStart(index)}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
-                    className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-all select-none ${
-                      dragIndex === index || touchDragIndex === index
-                        ? "bg-primary/5 border-primary/30 shadow-sm"
-                        : "bg-background border-border hover:border-primary/20"
-                    } ${!card.visible ? "opacity-50" : ""}`}
-                  >
-                    <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0 cursor-grab active:cursor-grabbing" />
-                    <span className="text-xs font-medium flex-1 truncate">{card.label}</span>
-                    <Switch
-                      checked={card.visible}
-                      onCheckedChange={() => toggleVisibility(index)}
-                      className="shrink-0 scale-90"
-                    />
-                  </div>
-                ))}
+                {cards.map((card, index) => {
+                  const disabledReason = disabledCards[card.key];
+                  const isDisabled = !!disabledReason;
+
+                  return (
+                    <div
+                      key={card.key}
+                      data-card-index={index}
+                      draggable={!isDisabled}
+                      onDragStart={() => !isDisabled && handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                      onTouchStart={() => !isDisabled && handleTouchStart(index)}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleTouchEnd}
+                      className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-all select-none ${
+                        isDisabled
+                          ? "bg-muted/50 border-border opacity-40 cursor-not-allowed"
+                          : dragIndex === index || touchDragIndex === index
+                          ? "bg-primary/5 border-primary/30 shadow-sm"
+                          : !card.visible
+                          ? "bg-background border-border opacity-50"
+                          : "bg-background border-border hover:border-primary/20"
+                      }`}
+                    >
+                      {isDisabled ? (
+                        <Ban className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      ) : (
+                        <GripVertical className="h-3.5 w-3.5 text-muted-foreground shrink-0 cursor-grab active:cursor-grabbing" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-medium truncate block">{card.label}</span>
+                        {isDisabled && (
+                          <span className="text-[9px] text-muted-foreground">{disabledReason}</span>
+                        )}
+                      </div>
+                      <Switch
+                        checked={isDisabled ? false : card.visible}
+                        onCheckedChange={() => toggleVisibility(index)}
+                        disabled={isDisabled}
+                        className="shrink-0 scale-90"
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}

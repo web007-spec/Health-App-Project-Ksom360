@@ -5,10 +5,10 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Dumbbell, MessageSquare, Camera, CheckSquare, Utensils, Activity, Target, Scale, BookOpen, CalendarDays, List, ChefHat, Eye, Clock, Smile, Type, Image, Shield, TrendingUp, Zap } from "lucide-react";
+import { Dumbbell, MessageSquare, Camera, CheckSquare, Utensils, Activity, Target, Scale, BookOpen, CalendarDays, List, ChefHat, Eye, Clock, Smile, Type, Image, Shield, TrendingUp, Zap, LayoutGrid } from "lucide-react";
 import { InsightCoachControls } from "./InsightCoachControls";
 import { CoachPlanOverrides } from "./CoachPlanOverrides";
-import { ENGINE_MODE_OPTIONS, type EngineMode } from "@/lib/engineConfig";
+import { ENGINE_MODE_OPTIONS, type EngineMode, getEngineConfig } from "@/lib/engineConfig";
 import { Slider } from "@/components/ui/slider";
 import { RestDayCardEditor } from "./RestDayCardEditor";
 import { SportDayCardEditor } from "./SportDayCardEditor";
@@ -26,6 +26,8 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Trash2, Plus } from "lucide-react";
+import { DashboardCardLayoutEditor } from "@/components/DashboardCardLayoutEditor";
+import { useDashboardLayout } from "@/hooks/useDashboardLayout";
 
 interface ClientSettingsTabProps {
   clientId: string;
@@ -701,6 +703,9 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
       <MaintenanceScheduleAssignment clientId={clientId} trainerId={trainerId} settings={settings} />
       <FastingStrictModeSettings settings={settings} toggleMutation={toggleMutation} />
 
+      {/* Dashboard Card Layout Editor */}
+      <DashboardLayoutSection clientId={clientId} trainerId={trainerId} settings={settings} />
+
       <ClientRemindersSection clientId={clientId} />
     </div>
   );
@@ -1067,5 +1072,67 @@ function MealSlideshowEditor({ clientId, trainerId }: { clientId: string; traine
         )}
       </div>
     </div>
+  );
+}
+
+// ─── Dashboard Card Layout Section ─────────────────────────────────────────
+function DashboardLayoutSection({ clientId, trainerId, settings }: { clientId: string; trainerId: string; settings: any }) {
+  const { cards, isLoading, save, isSaving } = useDashboardLayout(trainerId, clientId);
+
+  // Compute which cards are N/A based on engine mode + feature settings
+  const engineMode = (settings?.engine_mode || "performance") as EngineMode;
+  const engineConfig = getEngineConfig(engineMode);
+
+  const disabledCards: Record<string, string> = {};
+
+  // Engine-based restrictions
+  if (engineConfig.fastingDisabled) {
+    disabledCards["fasting"] = "N/A — Athletic engine";
+    disabledCards["coach_tip"] = "N/A — No fasting";
+  }
+  if (!engineConfig.features.showGameStats) {
+    disabledCards["game_stats"] = `N/A — ${engineConfig.shortLabel} engine`;
+  }
+
+  // Feature flag restrictions
+  if (!settings?.training_enabled) disabledCards["workouts"] = "Training disabled";
+  if (!settings?.fasting_enabled && !engineConfig.fastingDisabled) disabledCards["fasting"] = "Fasting disabled";
+  if (!settings?.restore_enabled) disabledCards["restore"] = "Restore disabled";
+  if (!settings?.tasks_enabled) {
+    disabledCards["tasks"] = "Tasks disabled";
+    disabledCards["habits"] = "Tasks disabled";
+  }
+  if (!settings?.macros_enabled) disabledCards["nutrition"] = "Macros disabled";
+  if (!settings?.food_journal_enabled) disabledCards["food_journal"] = "Food journal disabled";
+  if (!settings?.activity_logging_enabled) disabledCards["step_tracker"] = "Activity logging disabled";
+  if (!settings?.body_metrics_enabled) disabledCards["progress"] = "Body metrics disabled";
+  if (!settings?.sport_schedule_enabled && !engineConfig.features.showGameStats) {
+    disabledCards["game_stats"] = "Sport schedule disabled";
+  }
+
+  if (isLoading) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <LayoutGrid className="h-5 w-5" />
+          Today Screen Layout
+        </CardTitle>
+        <CardDescription>
+          Customize which cards appear and their order on this client's Today screen.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex justify-center">
+        <DashboardCardLayoutEditor
+          cards={cards}
+          onSave={(newCards) => save({ cards: newCards, forClient: clientId })}
+          isSaving={isSaving}
+          clientName={settings?.greeting_emoji ? `${settings.greeting_emoji} Client` : "Client"}
+          clientId={clientId}
+          disabledCards={disabledCards}
+        />
+      </CardContent>
+    </Card>
   );
 }

@@ -39,7 +39,7 @@ import { DashboardFocusSelector } from "@/components/DashboardFocusSelector";
 import { DashboardInsightCard } from "@/components/DashboardInsightCard";
 import { LevelProgressionCard } from "@/components/LevelProgressionCard";
 import { InAppNotifications } from "@/components/InAppNotifications";
-
+import { useDashboardLayoutClient } from "@/hooks/useDashboardLayoutClient";
 // Fasting Protocol Card sub-component
 function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; navigate: (path: string) => void }) {
   const queryClient = useQueryClient();
@@ -612,6 +612,7 @@ export default function ClientDashboard() {
   const { settings } = useClientFeatureSettings();
   const { config: engineConfig } = useEngineMode();
   const { toast } = useToast();
+  const { cards: layoutCards } = useDashboardLayoutClient();
 
   // Unread messages count for floating lion badge
   // Use clientId (effectiveClientId) so it works correctly when trainer is previewing as a client
@@ -1204,289 +1205,548 @@ export default function ClientDashboard() {
         {/* In-App Notifications */}
         <InAppNotifications />
 
-        {/* Day Strip Calendar */}
-        {settings.calendar_days_ahead > 0 && clientId && (
-          <DayStripCalendar
-            clientId={clientId}
-            daysAhead={settings.calendar_days_ahead}
-            trainingEnabled={settings.training_enabled}
-            tasksEnabled={settings.tasks_enabled}
-          />
-        )}
+        {/* Layout-driven card rendering */}
+        {layoutCards.filter(c => c.visible).map((card) => {
+          switch (card.key) {
+            case "calendar":
+              return settings.calendar_days_ahead > 0 && clientId ? (
+                <DayStripCalendar
+                  key="calendar"
+                  clientId={clientId}
+                  daysAhead={settings.calendar_days_ahead}
+                  trainingEnabled={settings.training_enabled}
+                  tasksEnabled={settings.tasks_enabled}
+                />
+              ) : null;
 
-        {/* Today's Workouts — show FIRST when fasting is NOT enabled */}
-        {!settings.fasting_enabled && settings.training_enabled && (
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-              {isRestDay ? "Today" : hasSportEvents && todaysWorkouts.length === 0 ? "Today's Schedule" : `Today's Workout${hasMultiple ? "s" : ""}`}
-            </h2>
-            {isRestDay ? (
-              <Card className="overflow-hidden">
-                {restDayCard?.image_url ? (
-                  <div className="relative h-56">
-                    <img src={restDayCard.image_url} alt="Rest day" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Rest Day</p>
-                      <p className="text-base font-bold text-white">
-                        {restDayCard?.message || "No workouts scheduled for today. Enjoy your rest!"}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <CardContent className="p-6 text-center">
-                    <Dumbbell className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
-                    <p className="text-lg font-semibold">Rest Day</p>
-                    <p className="text-sm text-muted-foreground">
-                      {restDayCard?.message || "No workouts scheduled for today. Enjoy your rest!"}
-                    </p>
-                  </CardContent>
-                )}
-              </Card>
-            ) : (
-              <div>
-                <div ref={!settings.fasting_enabled ? scrollRef : undefined} className={hasMultiple ? "flex overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-hide" : ""}>
-                  {todaysWorkouts.map((workout) => (
-                    <Card
-                      key={workout.id}
-                      className={`overflow-hidden cursor-pointer hover:shadow-md transition-all duration-300 shrink-0 snap-center ${hasMultiple ? "w-full min-w-full" : "w-full"}`}
-                      onClick={() => navigate(`/client/workouts/${workout.workout_plan_id}`)}
-                    >
-                      <div className="relative h-56 bg-gradient-to-br from-primary/20 to-primary/5">
-                        {workout.workout_plan?.image_url ? (
-                          <img src={workout.workout_plan.image_url} alt={workout.workout_plan.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Dumbbell className="h-16 w-16 text-primary/20" />
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                        <div className="absolute bottom-0 left-0 right-0 p-4">
-                          <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Today's Workout</p>
-                          <p className="text-lg font-bold text-white">{workout.workout_plan?.name}</p>
-                        </div>
-                      </div>
-                      <CardContent className="p-3">
-                        <Button className="w-full" size="lg" variant="outline" onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/client/workouts/${workout.workout_plan_id}`);
-                        }}>
-                          View Workout
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Fasting Protocol Card — hidden for Athletic engine */}
-        {settings.fasting_enabled && !engineConfig.fastingDisabled && (
-          <FastingProtocolCard clientId={clientId} navigate={navigate} />
-        )}
-
-        {/* Restore Recovery Hub Card */}
-        {settings.restore_enabled && (
-          <Card
-            className="overflow-hidden border-primary/20 shadow-md cursor-pointer hover:shadow-lg transition-shadow"
-            onClick={() => navigate("/client/vibes")}
-          >
-            <CardContent className="px-5 py-5 flex items-center gap-4">
-              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Sparkles className="h-6 w-6 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-bold">Restore</h3>
-                <p className="text-xs text-muted-foreground">Soundscapes, breathing & guided recovery</p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Engine-driven dashboard cards (always show for all engines) */}
-        <>
-          {engineConfig.features.showFastingUI && <DashboardFocusSelector currentFocus={null} />}
-          <DailyCheckinCard />
-          <RecommendationCard />
-          <LevelProgressionCard />
-          <DashboardInsightCard />
-        </>
-
-        {/* Break Your Fast Card — only for engines with fasting, during active eating window */}
-        {settings.fasting_enabled && !engineConfig.fastingDisabled && mealGateStatus === "allowed" && fastingState?.eating_window_ends_at && new Date(fastingState.eating_window_ends_at) > new Date() && (
-          <BreakYourFastCard hasFlexibleMealPlan={settings.meal_plan_type === "flexible"} />
-        )}
-
-        {/* Coach Tip & Protocol Progress — only for engines with fasting */}
-        {settings.fasting_enabled && !engineConfig.fastingDisabled && (fastingState?.selected_protocol_id || fastingState?.maintenance_mode) && (
-          <FastingCoachTipCard
-            protocolStartDate={fastingState?.protocol_start_date ?? null}
-            protocolDurationDays={coachTipProtocol?.duration_days ?? null}
-            hideProtocolProgress={!!fastingState?.maintenance_mode}
-          />
-        )}
-
-        {/* Today's Workouts & Sport Events — right after fasting card when fasting is enabled */}
-        {settings.fasting_enabled && settings.training_enabled && (
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-              {isRestDay ? "Today" : hasSportEvents && todaysWorkouts.length === 0 ? "Today's Schedule" : `Today's Workout${hasMultiple ? "s" : ""}`}
-            </h2>
-            {isRestDay ? (
-              <Card className="overflow-hidden">
-                {restDayCard?.image_url ? (
-                  <div className="relative h-56">
-                    <img src={restDayCard.image_url} alt="Rest day" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Rest Day</p>
-                      <p className="text-base font-bold text-white">
-                        {restDayCard?.message || "No workouts scheduled for today. Enjoy your rest!"}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <CardContent className="p-6 text-center">
-                    <Dumbbell className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
-                    <p className="text-lg font-semibold">Rest Day</p>
-                    <p className="text-sm text-muted-foreground">
-                      {restDayCard?.message || "No workouts scheduled for today. Enjoy your rest!"}
-                    </p>
-                  </CardContent>
-                )}
-              </Card>
-            ) : (
-              <div>
-                <div ref={scrollRef} className={hasMultiple ? "flex overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-hide" : ""}>
-                  {todaysWorkouts.map((workout) => (
-                    <Card
-                      key={workout.id}
-                      className={`overflow-hidden cursor-pointer hover:shadow-md transition-all duration-300 shrink-0 snap-center ${hasMultiple ? "w-full min-w-full" : "w-full"}`}
-                      onClick={() => navigate(`/client/workouts/${workout.workout_plan_id}`)}
-                    >
-                      <div className="relative h-56 bg-gradient-to-br from-primary/20 to-primary/5">
-                        {workout.workout_plan?.image_url ? (
-                          <img src={workout.workout_plan.image_url} alt={workout.workout_plan.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Dumbbell className="h-16 w-16 text-primary/20" />
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                        <div className="absolute bottom-0 left-0 right-0 p-4">
-                          <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Today's Workout</p>
-                          <p className="text-lg font-bold text-white">{workout.workout_plan?.name}</p>
-                        </div>
-                      </div>
-                      <CardContent className="p-3">
-                        <Button className="w-full" size="lg" variant="outline" onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/client/workouts/${workout.workout_plan_id}`);
-                        }}>
-                          View Workout
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  {todaySportEvents?.map((event: any) => {
-                    const isGame = event.event_type === "game" || event.event_type === "event";
-                    const customCard = isGame ? gameCard : practiceCard;
-                    const EventIcon = isGame ? Swords : Trophy;
-                    const gradientFrom = isGame ? "from-rose-500/20" : "from-sky-500/20";
-                    const gradientTo = isGame ? "to-rose-500/5" : "to-sky-500/5";
-                    const iconColor = isGame ? "text-rose-400/30" : "text-sky-400/30";
-                    const label = isGame ? "Game Day" : "Practice";
-                    const startTime = formatEventTime(event.start_time);
-                    const endTime = event.end_time ? formatEventTime(event.end_time) : null;
-                    const timeDisplay = endTime && endTime !== startTime ? `${startTime} - ${endTime}` : startTime;
-                    const completion = sportEventCompletions?.find((c: any) => c.sport_event_id === event.id);
-                    const isEventCompleted = !!completion;
-                    return (
-                      <Card
-                        key={event.id}
-                        className={`overflow-hidden shrink-0 snap-center cursor-pointer hover:shadow-md transition-all ${hasMultiple ? "w-full min-w-full" : "w-full"} ${isEventCompleted ? "opacity-75" : ""}`}
-                        onClick={() => {
-                          if (!isEventCompleted) {
-                            setSelectedSportEvent(event);
-                            setSportCompletionOpen(true);
-                          }
-                        }}
-                      >
-                        <div className={`relative h-56 bg-gradient-to-br ${gradientFrom} ${gradientTo}`}>
-                          {customCard?.image_url ? (
-                            <img src={customCard.image_url} alt={label} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <EventIcon className={`h-16 w-16 ${iconColor}`} />
-                            </div>
-                          )}
+            case "workouts":
+              return settings.training_enabled ? (
+                <div key="workouts">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                    {isRestDay ? "Today" : hasSportEvents && todaysWorkouts.length === 0 ? "Today's Schedule" : `Today's Workout${hasMultiple ? "s" : ""}`}
+                  </h2>
+                  {isRestDay ? (
+                    <Card className="overflow-hidden">
+                      {restDayCard?.image_url ? (
+                        <div className="relative h-56">
+                          <img src={restDayCard.image_url} alt="Rest day" className="w-full h-full object-cover" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                          {isEventCompleted && (
-                            <div className="absolute top-3 right-3">
-                              <div className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
-                                completion.status === 'completed' ? 'bg-emerald-500 text-white' :
-                                completion.status === 'incomplete' ? 'bg-amber-500 text-white' :
-                                'bg-destructive text-white'
-                              }`}>
-                                <Check className="h-3 w-3" />
-                                {completion.status === 'completed' ? 'Done' : completion.status === 'incomplete' ? 'Partial' : 'Missed'}
+                          <div className="absolute bottom-0 left-0 right-0 p-4">
+                            <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Rest Day</p>
+                            <p className="text-base font-bold text-white">
+                              {restDayCard?.message || "No workouts scheduled for today. Enjoy your rest!"}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <CardContent className="p-6 text-center">
+                          <Dumbbell className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                          <p className="text-lg font-semibold">Rest Day</p>
+                          <p className="text-sm text-muted-foreground">
+                            {restDayCard?.message || "No workouts scheduled for today. Enjoy your rest!"}
+                          </p>
+                        </CardContent>
+                      )}
+                    </Card>
+                  ) : (
+                    <div>
+                      <div ref={scrollRef} className={hasMultiple ? "flex overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-hide" : ""}>
+                        {todaysWorkouts.map((workout) => (
+                          <Card
+                            key={workout.id}
+                            className={`overflow-hidden cursor-pointer hover:shadow-md transition-all duration-300 shrink-0 snap-center ${hasMultiple ? "w-full min-w-full" : "w-full"}`}
+                            onClick={() => navigate(`/client/workouts/${workout.workout_plan_id}`)}
+                          >
+                            <div className="relative h-56 bg-gradient-to-br from-primary/20 to-primary/5">
+                              {workout.workout_plan?.image_url ? (
+                                <img src={workout.workout_plan.image_url} alt={workout.workout_plan.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Dumbbell className="h-16 w-16 text-primary/20" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                              <div className="absolute bottom-0 left-0 right-0 p-4">
+                                <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">Today's Workout</p>
+                                <p className="text-lg font-bold text-white">{workout.workout_plan?.name}</p>
                               </div>
                             </div>
-                          )}
-                          <div className="absolute bottom-0 left-0 right-0 p-4">
-                            <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">{label}</p>
-                            <p className="text-lg font-bold text-white">{event.title}</p>
-                            <div className="flex items-center gap-3 mt-1">
-                              <p className="text-sm text-white/80">{timeDisplay}</p>
-                              {event.location && (
-                                <p className="text-sm text-white/80 flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {event.location}
-                                </p>
+                            <CardContent className="p-3">
+                              <Button className="w-full" size="lg" variant="outline" onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/client/workouts/${workout.workout_plan_id}`);
+                              }}>
+                                View Workout
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))}
+                        {todaySportEvents?.map((event: any) => {
+                          const isGame = event.event_type === "game" || event.event_type === "event";
+                          const customCard = isGame ? gameCard : practiceCard;
+                          const EventIcon = isGame ? Swords : Trophy;
+                          const gradientFrom = isGame ? "from-rose-500/20" : "from-sky-500/20";
+                          const gradientTo = isGame ? "to-rose-500/5" : "to-sky-500/5";
+                          const iconColor = isGame ? "text-rose-400/30" : "text-sky-400/30";
+                          const label = isGame ? "Game Day" : "Practice";
+                          const startTime = formatEventTime(event.start_time);
+                          const endTime = event.end_time ? formatEventTime(event.end_time) : null;
+                          const timeDisplay = endTime && endTime !== startTime ? `${startTime} - ${endTime}` : startTime;
+                          const completion = sportEventCompletions?.find((c: any) => c.sport_event_id === event.id);
+                          const isEventCompleted = !!completion;
+                          return (
+                            <Card
+                              key={event.id}
+                              className={`overflow-hidden shrink-0 snap-center cursor-pointer hover:shadow-md transition-all ${hasMultiple ? "w-full min-w-full" : "w-full"} ${isEventCompleted ? "opacity-75" : ""}`}
+                              onClick={() => {
+                                if (!isEventCompleted) {
+                                  setSelectedSportEvent(event);
+                                  setSportCompletionOpen(true);
+                                }
+                              }}
+                            >
+                              <div className={`relative h-56 bg-gradient-to-br ${gradientFrom} ${gradientTo}`}>
+                                {customCard?.image_url ? (
+                                  <img src={customCard.image_url} alt={label} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <EventIcon className={`h-16 w-16 ${iconColor}`} />
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                                {isEventCompleted && (
+                                  <div className="absolute top-3 right-3">
+                                    <div className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
+                                      completion.status === 'completed' ? 'bg-emerald-500 text-white' :
+                                      completion.status === 'incomplete' ? 'bg-amber-500 text-white' :
+                                      'bg-destructive text-white'
+                                    }`}>
+                                      <Check className="h-3 w-3" />
+                                      {completion.status === 'completed' ? 'Done' : completion.status === 'incomplete' ? 'Partial' : 'Missed'}
+                                    </div>
+                                  </div>
+                                )}
+                                <div className="absolute bottom-0 left-0 right-0 p-4">
+                                  <p className="text-xs font-semibold text-white/70 uppercase tracking-wider">{label}</p>
+                                  <p className="text-lg font-bold text-white">{event.title}</p>
+                                  <div className="flex items-center gap-3 mt-1">
+                                    <p className="text-sm text-white/80">{timeDisplay}</p>
+                                    {event.location && (
+                                      <p className="text-sm text-white/80 flex items-center gap-1">
+                                        <MapPin className="h-3 w-3" />
+                                        {event.location}
+                                      </p>
+                                    )}
+                                  </div>
+                                  {customCard?.message && (
+                                    <p className="text-sm text-white/90 mt-1 font-medium">{customCard.message}</p>
+                                  )}
+                                </div>
+                              </div>
+                              {!isEventCompleted && (
+                                <CardContent className="p-3">
+                                  <Button className="w-full" size="lg" variant="outline" onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedSportEvent(event);
+                                    setSportCompletionOpen(true);
+                                  }}>
+                                    Log {isGame ? "Game" : "Practice"}
+                                  </Button>
+                                </CardContent>
                               )}
+                            </Card>
+                          );
+                        })}
+                      </div>
+                      {hasMultiple && (
+                        <div className="flex justify-center gap-1.5 mt-3">
+                          {Array.from({ length: totalCards }).map((_, i) => (
+                            <button
+                              key={i}
+                              className={`h-2 rounded-full transition-all duration-300 ${i === activeIndex ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30"}`}
+                              onClick={() => {
+                                scrollRef.current?.scrollTo({ left: i * (scrollRef.current?.clientWidth || 0), behavior: "smooth" });
+                              }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : null;
+
+            case "fasting":
+              return settings.fasting_enabled && !engineConfig.fastingDisabled ? (
+                <div key="fasting">
+                  <FastingProtocolCard clientId={clientId} navigate={navigate} />
+                  {/* Break Your Fast Card */}
+                  {mealGateStatus === "allowed" && fastingState?.eating_window_ends_at && new Date(fastingState.eating_window_ends_at) > new Date() && (
+                    <div className="mt-5">
+                      <BreakYourFastCard hasFlexibleMealPlan={settings.meal_plan_type === "flexible"} />
+                    </div>
+                  )}
+                </div>
+              ) : null;
+
+            case "restore":
+              return settings.restore_enabled ? (
+                <Card
+                  key="restore"
+                  className="overflow-hidden border-primary/20 shadow-md cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => navigate("/client/vibes")}
+                >
+                  <CardContent className="px-5 py-5 flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <Sparkles className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-bold">Restore</h3>
+                      <p className="text-xs text-muted-foreground">Soundscapes, breathing & guided recovery</p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                  </CardContent>
+                </Card>
+              ) : null;
+
+            case "engine_cards":
+              return (
+                <div key="engine_cards" className="space-y-5">
+                  {engineConfig.features.showFastingUI && <DashboardFocusSelector currentFocus={null} />}
+                  <DailyCheckinCard />
+                  <RecommendationCard />
+                  <LevelProgressionCard />
+                  <DashboardInsightCard />
+                </div>
+              );
+
+            case "coach_tip":
+              return settings.fasting_enabled && !engineConfig.fastingDisabled && (fastingState?.selected_protocol_id || fastingState?.maintenance_mode) ? (
+                <FastingCoachTipCard
+                  key="coach_tip"
+                  protocolStartDate={fastingState?.protocol_start_date ?? null}
+                  protocolDurationDays={coachTipProtocol?.duration_days ?? null}
+                  hideProtocolProgress={!!fastingState?.maintenance_mode}
+                />
+              ) : null;
+
+            case "habits":
+              return settings.tasks_enabled && habits && habits.length > 0 ? (
+                <div key="habits">
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-lg font-bold">Habits</h2>
+                    <button onClick={() => navigate("/client/habits")} className="text-sm font-semibold text-primary">View all</button>
+                  </div>
+                  <Card>
+                    <CardContent className="p-0 divide-y divide-border">
+                      {habits.map((habit: any) => {
+                        const todayCompletionCount = habitCompletions?.filter((c: any) => c.habit_id === habit.id).length || 0;
+                        const icon = habit.icon_url?.startsWith("emoji:") ? habit.icon_url.replace("emoji:", "") : "🎯";
+                        return (
+                          <div
+                            key={habit.id}
+                            className="flex items-center gap-4 px-5 py-4 hover:bg-muted/30 transition-colors cursor-pointer"
+                            onClick={() => navigate(`/client/habits/${habit.id}`)}
+                          >
+                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-xl shrink-0">
+                              {icon}
                             </div>
-                            {customCard?.message && (
-                              <p className="text-sm text-white/90 mt-1 font-medium">{customCard.message}</p>
-                            )}
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm font-semibold">{habit.name}</span>
+                              <p className="text-xs text-muted-foreground mt-0.5">{todayCompletionCount} of {habit.goal_value} {habit.goal_unit} today</p>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : null;
+
+            case "nutrition":
+              if (!settings.macros_enabled) return null;
+              if (!macroTargets) {
+                return (
+                  <div key="nutrition">
+                    <Card className="overflow-hidden cursor-pointer hover:shadow-sm transition-shadow" onClick={() => navigate("/client/macro-setup")}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-1">
+                            <h3 className="font-bold text-base">Set Macro Goals</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                              Macros First, Magic Later.{"\n"}Let's Lock in That Goal Today!
+                            </p>
+                            <button className="text-sm font-semibold text-primary mt-2">Set goals</button>
+                          </div>
+                          <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-3xl">
+                            🍱
                           </div>
                         </div>
-                        {!isEventCompleted && (
-                          <CardContent className="p-3">
-                            <Button className="w-full" size="lg" variant="outline" onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedSportEvent(event);
-                              setSportCompletionOpen(true);
-                            }}>
-                              Log {isGame ? "Game" : "Practice"}
-                            </Button>
-                          </CardContent>
-                        )}
-                      </Card>
-                    );
-                  })}
-                </div>
-                {hasMultiple && (
-                  <div className="flex justify-center gap-1.5 mt-3">
-                    {Array.from({ length: totalCards }).map((_, i) => (
-                      <button
-                        key={i}
-                        className={`h-2 rounded-full transition-all duration-300 ${i === activeIndex ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30"}`}
-                        onClick={() => {
-                          scrollRef.current?.scrollTo({ left: i * (scrollRef.current?.clientWidth || 0), behavior: "smooth" });
-                        }}
-                      />
-                    ))}
+                      </CardContent>
+                    </Card>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+                );
+              }
+              return (
+                <div key="nutrition">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Nutrition</h2>
+                      {getDietLabel() && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                          {getDietLabel()}
+                        </span>
+                      )}
+                    </div>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 gap-1 text-xs" onClick={(e) => { e.stopPropagation(); openMacroEdit(); }}>
+                      <Pencil className="h-3 w-3" /> Edit
+                    </Button>
+                  </div>
+                  <Card className="cursor-pointer hover:shadow-sm transition-shadow min-h-[160px]" onClick={() => navigate("/client/nutrition")}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-4">
+                        <div className="relative w-20 h-20 shrink-0">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={[
+                                  { value: todayCalories, color: "hsl(var(--primary))" },
+                                  { value: Math.max((macroTargets.target_calories || 0) - todayCalories, 0), color: "hsl(var(--muted))" },
+                                ]}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={28}
+                                outerRadius={38}
+                                startAngle={90}
+                                endAngle={-270}
+                                paddingAngle={0}
+                                dataKey="value"
+                                strokeWidth={0}
+                              >
+                                <Cell fill="hsl(var(--primary))" />
+                                <Cell fill="hsl(var(--muted))" />
+                              </Pie>
+                            </PieChart>
+                          </ResponsiveContainer>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <span className="text-xs font-bold text-foreground leading-none">{todayCalories}</span>
+                            <span className="text-[9px] text-muted-foreground">cal</span>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm">
+                            {todayCalories} / {macroTargets.target_calories?.toLocaleString()} cal
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {todayMealCount > 0
+                              ? `${todayMealCount} meal${todayMealCount > 1 ? "s" : ""} logged today`
+                              : "No meals logged yet"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-3 mt-3">
+                        {[
+                          { label: "P", current: Math.round(todayProtein), target: Math.round(Number(macroTargets.target_protein) || 0), color: "#6366f1" },
+                          { label: "C", current: Math.round(todayCarbs), target: Math.round(Number(macroTargets.target_carbs) || 0), color: "#22c55e" },
+                          { label: "F", current: Math.round(todayFats), target: Math.round(Number(macroTargets.target_fats) || 0), color: "#eab308" },
+                        ].map((macro) => (
+                          <div key={macro.label} className="space-y-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold" style={{ color: macro.color }}>{macro.label}</span>
+                              <span className="text-xs text-muted-foreground">{macro.current}/{macro.target}</span>
+                            </div>
+                            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                              <div
+                                className="h-full rounded-full transition-all"
+                                style={{
+                                  width: `${macro.target > 0 ? Math.min((macro.current / macro.target) * 100, 100) : 0}%`,
+                                  backgroundColor: macro.color,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {mealGateStatus === "no_protocol" ? (
+                        <div className="mt-3 p-3 rounded-lg bg-muted/50 text-center space-y-2">
+                          <p className="text-xs text-muted-foreground font-medium">Choose a fasting protocol to log meals.</p>
+                          <Button variant="outline" size="sm" className="w-full" onClick={(e) => { e.stopPropagation(); navigate("/client/programs"); }}>
+                            Choose Protocol
+                          </Button>
+                        </div>
+                      ) : mealGateStatus === "fasting" ? (
+                        <div className="mt-3 p-3 rounded-lg bg-muted/50 text-center space-y-2">
+                          <p className="text-xs text-muted-foreground font-medium">You're currently fasting. Meals unlock when your fast ends.</p>
+                          <p className="text-[10px] text-muted-foreground">Eating window opens at {fastEndTimeStr}</p>
+                          <Button variant="outline" size="sm" className="w-full" onClick={async (e) => {
+                            e.stopPropagation();
+                            const ewHours = fastingState?.eating_window_hours || 8;
+                            const ewEnd = new Date(Date.now() + ewHours * 3600000).toISOString();
+                            await supabase.from("client_feature_settings").update({ last_fast_ended_at: new Date().toISOString(), last_fast_completed_at: new Date().toISOString(), active_fast_start_at: null, active_fast_target_hours: null, eating_window_ends_at: ewEnd }).eq("client_id", clientId);
+                            queryClient.invalidateQueries({ queryKey: ["fasting-gate-state"] });
+                            queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
+                          }}>
+                            End Fast
+                          </Button>
+                        </div>
+                      ) : mealGateStatus === "strict_locked" ? (
+                        <div className="mt-3 p-3 rounded-lg bg-muted/50 text-center space-y-2">
+                          <p className="text-xs text-muted-foreground font-medium">Start a fast to open your eating window.</p>
+                          <Button variant="outline" size="sm" className="w-full gap-1" onClick={(e) => { e.stopPropagation(); navigate("/client/programs"); }}>
+                            <Clock className="h-3.5 w-3.5" /> Start Fast
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          className="w-full mt-3 gap-1"
+                          onClick={(e) => { e.stopPropagation(); navigate("/client/log-meal"); }}
+                        >
+                          <Plus className="h-3.5 w-3.5" /> Log meal
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              );
 
-        {/* Install App Banner */}
+            case "food_journal":
+              return settings.food_journal_enabled && !settings.macros_enabled ? (
+                <div key="food_journal">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Food Journal</h2>
+                  <Card className="cursor-pointer hover:shadow-sm transition-shadow" onClick={() => navigate("/client/nutrition")}>
+                    <CardContent className="p-4 flex items-center gap-4">
+                      <div className="p-3 bg-accent/10 rounded-xl">
+                        <UtensilsCrossed className="h-6 w-6 text-accent" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm">
+                          {todayMealCount > 0
+                            ? `${todayMealCount} meal${todayMealCount > 1 ? "s" : ""} logged • ${todayCalories} cal`
+                            : "What did you eat today?"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {todayMealCount > 0 ? "Tap to add more" : "Track your meals and macros"}
+                        </p>
+                      </div>
+                      {mealGateStatus === "no_protocol" ? (
+                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate("/client/programs"); }}>
+                          Choose Protocol
+                        </Button>
+                      ) : mealGateStatus === "fasting" ? (
+                        <div className="text-right space-y-1">
+                          <p className="text-[10px] text-muted-foreground">Fasting · opens at {fastEndTimeStr}</p>
+                        </div>
+                      ) : mealGateStatus === "strict_locked" ? (
+                        <div className="text-right space-y-1">
+                          <p className="text-[10px] text-muted-foreground">Start a fast first</p>
+                        </div>
+                      ) : (
+                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate("/client/nutrition"); }}>
+                          Add meal
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : null;
+
+            case "step_tracker":
+              return settings.activity_logging_enabled ? (
+                <div key="step_tracker">
+                  <h2 className="text-lg font-bold mb-2">Step tracker</h2>
+                  <Card className="cursor-pointer hover:shadow-sm transition-shadow min-h-[120px]" onClick={() => navigate("/client/health-connect")}>
+                    <CardContent className="p-5 flex items-center gap-4 h-full">
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm text-primary">Connect Apple Health</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Track your daily steps and activity</p>
+                      </div>
+                      <div className="p-3 bg-primary/10 rounded-xl">
+                        <Footprints className="h-10 w-10 text-primary" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : null;
+
+            case "tasks":
+              return settings.tasks_enabled && tasks && tasks.length > 0 ? (
+                <div key="tasks">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                    Tasks ({completedTaskCount}/{totalTaskCount})
+                  </h2>
+                  <Card>
+                    <CardContent className="p-0 divide-y divide-border">
+                      {tasks.slice(0, 5).map((task) => {
+                        const isCompleted = !!task.completed_at;
+                        return (
+                          <div
+                            key={task.id}
+                            className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
+                            onClick={() => { if (!isCompleted) completeMutation.mutate(task.id); }}
+                          >
+                            {isCompleted ? (
+                              <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                            ) : (
+                              <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
+                            )}
+                            <span className={`text-sm flex-1 ${isCompleted ? "line-through text-muted-foreground" : "font-medium"}`}>
+                              {task.name}
+                            </span>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  </Card>
+                  {tasks.length > 5 && (
+                    <Button variant="ghost" size="sm" className="w-full mt-1 text-xs" onClick={() => navigate("/client/tasks")}>
+                      View all tasks
+                    </Button>
+                  )}
+                </div>
+              ) : null;
+
+            case "progress":
+              return settings.body_metrics_enabled && clientId ? (
+                <MyProgressSection key="progress" clientId={clientId} />
+              ) : null;
+
+            case "game_stats":
+              return <LatestGameStatsCard key="game_stats" clientId={clientId} navigate={navigate} />;
+
+            case "cardio":
+              return todayCardioSessions && todayCardioSessions.filter((s: any) => s.status === "completed").length > 0 ? (
+                <div key="cardio">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Activity</h2>
+                  <Card>
+                    <CardContent className="p-0 divide-y divide-border">
+                      {todayCardioSessions.filter((s: any) => s.status === "completed").map((session: any) => (
+                        <div key={session.id} className="flex items-center gap-3 px-4 py-3">
+                          <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold capitalize">{session.activity_type.replace(/_/g, " ")}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Completed.{" "}
+                              {session.distance_miles && `📍 ${session.distance_miles} miles `}
+                              {session.duration_seconds > 0 && `⏱ ${formatCardioTime(session.duration_seconds)}`}
+                            </p>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : null;
+
+            default:
+              return null;
+          }
+        })}
+
+        {/* Install App Banner (always at bottom, not layout-driven) */}
         {showInstallBanner && (
           <Card className="border-primary/30 bg-primary/5 overflow-hidden">
             <CardContent className="p-4 relative">
@@ -1518,317 +1778,6 @@ export default function ClientDashboard() {
               </div>
             </CardContent>
           </Card>
-        )}
-
-        {/* Habits - only if tasks enabled */}
-        {settings.tasks_enabled && habits && habits.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-bold">Habits</h2>
-              <button onClick={() => navigate("/client/habits")} className="text-sm font-semibold text-primary">View all</button>
-            </div>
-            <Card>
-              <CardContent className="p-0 divide-y divide-border">
-                {habits.map((habit: any) => {
-                  const todayCompletionCount = habitCompletions?.filter((c: any) => c.habit_id === habit.id).length || 0;
-                  const icon = habit.icon_url?.startsWith("emoji:") ? habit.icon_url.replace("emoji:", "") : "🎯";
-                  return (
-                    <div
-                      key={habit.id}
-                      className="flex items-center gap-4 px-5 py-4 hover:bg-muted/30 transition-colors cursor-pointer"
-                      onClick={() => navigate(`/client/habits/${habit.id}`)}
-                    >
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-xl shrink-0">
-                        {icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-semibold">{habit.name}</span>
-                        <p className="text-xs text-muted-foreground mt-0.5">{todayCompletionCount} of {habit.goal_value} {habit.goal_unit} today</p>
-                      </div>
-                      <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Nutrition (Macros card) */}
-        {settings.macros_enabled && !macroTargets && (
-          <div>
-            <Card className="overflow-hidden cursor-pointer hover:shadow-sm transition-shadow" onClick={() => navigate("/client/macro-setup")}>
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-base">Set Macro Goals</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                      Macros First, Magic Later.{"\n"}Let's Lock in That Goal Today!
-                    </p>
-                    <button className="text-sm font-semibold text-primary mt-2">Set goals</button>
-                  </div>
-                  <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-3xl">
-                    🍱
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {settings.macros_enabled && macroTargets && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Nutrition</h2>
-                {getDietLabel() && (
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                    {getDietLabel()}
-                  </span>
-                )}
-              </div>
-              <Button variant="ghost" size="sm" className="h-6 px-2 gap-1 text-xs" onClick={(e) => { e.stopPropagation(); openMacroEdit(); }}>
-                <Pencil className="h-3 w-3" /> Edit
-              </Button>
-            </div>
-            <Card className="cursor-pointer hover:shadow-sm transition-shadow min-h-[160px]" onClick={() => navigate("/client/nutrition")}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  {/* Mini donut chart */}
-                  <div className="relative w-20 h-20 shrink-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={[
-                            { value: todayCalories, color: "hsl(var(--primary))" },
-                            { value: Math.max((macroTargets.target_calories || 0) - todayCalories, 0), color: "hsl(var(--muted))" },
-                          ]}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={28}
-                          outerRadius={38}
-                          startAngle={90}
-                          endAngle={-270}
-                          paddingAngle={0}
-                          dataKey="value"
-                          strokeWidth={0}
-                        >
-                          <Cell fill="hsl(var(--primary))" />
-                          <Cell fill="hsl(var(--muted))" />
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-xs font-bold text-foreground leading-none">{todayCalories}</span>
-                      <span className="text-[9px] text-muted-foreground">cal</span>
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm">
-                      {todayCalories} / {macroTargets.target_calories?.toLocaleString()} cal
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {todayMealCount > 0
-                        ? `${todayMealCount} meal${todayMealCount > 1 ? "s" : ""} logged today`
-                        : "No meals logged yet"}
-                    </p>
-                  </div>
-                </div>
-                {/* Macro breakdown bars */}
-                <div className="grid grid-cols-3 gap-3 mt-3">
-                  {[
-                    { label: "P", current: Math.round(todayProtein), target: Math.round(Number(macroTargets.target_protein) || 0), color: "#6366f1" },
-                    { label: "C", current: Math.round(todayCarbs), target: Math.round(Number(macroTargets.target_carbs) || 0), color: "#22c55e" },
-                    { label: "F", current: Math.round(todayFats), target: Math.round(Number(macroTargets.target_fats) || 0), color: "#eab308" },
-                  ].map((macro) => (
-                    <div key={macro.label} className="space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold" style={{ color: macro.color }}>{macro.label}</span>
-                        <span className="text-xs text-muted-foreground">{macro.current}/{macro.target}</span>
-                      </div>
-                      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{
-                            width: `${macro.target > 0 ? Math.min((macro.current / macro.target) * 100, 100) : 0}%`,
-                            backgroundColor: macro.color,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {mealGateStatus === "no_protocol" ? (
-                  <div className="mt-3 p-3 rounded-lg bg-muted/50 text-center space-y-2">
-                    <p className="text-xs text-muted-foreground font-medium">Choose a fasting protocol to log meals.</p>
-                    <Button variant="outline" size="sm" className="w-full" onClick={(e) => { e.stopPropagation(); navigate("/client/programs"); }}>
-                      Choose Protocol
-                    </Button>
-                  </div>
-                ) : mealGateStatus === "fasting" ? (
-                  <div className="mt-3 p-3 rounded-lg bg-muted/50 text-center space-y-2">
-                    <p className="text-xs text-muted-foreground font-medium">You're currently fasting. Meals unlock when your fast ends.</p>
-                    <p className="text-[10px] text-muted-foreground">Eating window opens at {fastEndTimeStr}</p>
-                    <Button variant="outline" size="sm" className="w-full" onClick={async (e) => {
-                      e.stopPropagation();
-                      const ewHours = fastingState?.eating_window_hours || 8;
-                      const ewEnd = new Date(Date.now() + ewHours * 3600000).toISOString();
-                      await supabase.from("client_feature_settings").update({ last_fast_ended_at: new Date().toISOString(), last_fast_completed_at: new Date().toISOString(), active_fast_start_at: null, active_fast_target_hours: null, eating_window_ends_at: ewEnd }).eq("client_id", clientId);
-                      queryClient.invalidateQueries({ queryKey: ["fasting-gate-state"] });
-                      queryClient.invalidateQueries({ queryKey: ["my-feature-settings-fasting"] });
-                    }}>
-                      End Fast
-                    </Button>
-                  </div>
-                ) : mealGateStatus === "strict_locked" ? (
-                  <div className="mt-3 p-3 rounded-lg bg-muted/50 text-center space-y-2">
-                    <p className="text-xs text-muted-foreground font-medium">Start a fast to open your eating window.</p>
-                    <Button variant="outline" size="sm" className="w-full gap-1" onClick={(e) => { e.stopPropagation(); navigate("/client/programs"); }}>
-                      <Clock className="h-3.5 w-3.5" /> Start Fast
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="w-full mt-3 gap-1"
-                    onClick={(e) => { e.stopPropagation(); navigate("/client/log-meal"); }}
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Log meal
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Food Journal fallback (no macros but food journal enabled) */}
-        {settings.food_journal_enabled && !settings.macros_enabled && (
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Food Journal</h2>
-            <Card className="cursor-pointer hover:shadow-sm transition-shadow" onClick={() => navigate("/client/nutrition")}>
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="p-3 bg-accent/10 rounded-xl">
-                  <UtensilsCrossed className="h-6 w-6 text-accent" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-semibold text-sm">
-                    {todayMealCount > 0
-                      ? `${todayMealCount} meal${todayMealCount > 1 ? "s" : ""} logged • ${todayCalories} cal`
-                      : "What did you eat today?"}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {todayMealCount > 0 ? "Tap to add more" : "Track your meals and macros"}
-                  </p>
-                </div>
-                {mealGateStatus === "no_protocol" ? (
-                  <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate("/client/programs"); }}>
-                    Choose Protocol
-                  </Button>
-                ) : mealGateStatus === "fasting" ? (
-                  <div className="text-right space-y-1">
-                    <p className="text-[10px] text-muted-foreground">Fasting · opens at {fastEndTimeStr}</p>
-                  </div>
-                ) : mealGateStatus === "strict_locked" ? (
-                  <div className="text-right space-y-1">
-                    <p className="text-[10px] text-muted-foreground">Start a fast first</p>
-                  </div>
-                ) : (
-                  <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigate("/client/nutrition"); }}>
-                    Add meal
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Step Tracker / Health - only if activity logging enabled */}
-        {settings.activity_logging_enabled && (
-          <div>
-            <h2 className="text-lg font-bold mb-2">Step tracker</h2>
-            <Card className="cursor-pointer hover:shadow-sm transition-shadow min-h-[120px]" onClick={() => navigate("/client/health-connect")}>
-              <CardContent className="p-5 flex items-center gap-4 h-full">
-                <div className="flex-1">
-                  <p className="font-semibold text-sm text-primary">Connect Apple Health</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Track your daily steps and activity</p>
-                </div>
-                <div className="p-3 bg-primary/10 rounded-xl">
-                  <Footprints className="h-10 w-10 text-primary" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Tasks - only if tasks enabled */}
-        {settings.tasks_enabled && tasks && tasks.length > 0 && (
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-              Tasks ({completedTaskCount}/{totalTaskCount})
-            </h2>
-            <Card>
-              <CardContent className="p-0 divide-y divide-border">
-                {tasks.slice(0, 5).map((task) => {
-                  const isCompleted = !!task.completed_at;
-                  return (
-                    <div
-                      key={task.id}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
-                      onClick={() => { if (!isCompleted) completeMutation.mutate(task.id); }}
-                    >
-                      {isCompleted ? (
-                        <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                      ) : (
-                        <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
-                      )}
-                      <span className={`text-sm flex-1 ${isCompleted ? "line-through text-muted-foreground" : "font-medium"}`}>
-                        {task.name}
-                      </span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-            {tasks.length > 5 && (
-              <Button variant="ghost" size="sm" className="w-full mt-1 text-xs" onClick={() => navigate("/client/tasks")}>
-                View all tasks
-              </Button>
-            )}
-          </div>
-        )}
-
-        {/* My Progress Section */}
-        {settings.body_metrics_enabled && clientId && (
-          <MyProgressSection clientId={clientId} />
-        )}
-
-        {/* Latest Game Stats Card */}
-        <LatestGameStatsCard clientId={clientId} navigate={navigate} />
-
-        {/* Completed Cardio Activities */}
-        {todayCardioSessions && todayCardioSessions.filter((s: any) => s.status === "completed").length > 0 && (
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Activity</h2>
-            <Card>
-              <CardContent className="p-0 divide-y divide-border">
-                {todayCardioSessions.filter((s: any) => s.status === "completed").map((session: any) => (
-                  <div key={session.id} className="flex items-center gap-3 px-4 py-3">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold capitalize">{session.activity_type.replace(/_/g, " ")}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Completed.{" "}
-                        {session.distance_miles && `📍 ${session.distance_miles} miles `}
-                        {session.duration_seconds > 0 && `⏱ ${formatCardioTime(session.duration_seconds)}`}
-                      </p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
         )}
       </div>
 
