@@ -33,9 +33,6 @@ const libraryItems = [
   { title: "Recipes", url: "/recipes", icon: FileText },
   { title: "Recipe Books", url: "/recipe-books", icon: BookOpen },
   { title: "Meal Plans", url: "/meal-plans", icon: Calendar },
-];
-
-const nutritionItems = [
   { title: "Macro Calculator", url: "/macro-calculator", icon: Calculator },
   { title: "Macro Tracking", url: "/macro-tracking", icon: Activity },
 ];
@@ -169,27 +166,6 @@ export function TrainerSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Nutrition</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {nutritionItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      className="hover:bg-sidebar-accent"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
 
         <div className="mt-auto">
           <SidebarGroup>

@@ -13,17 +13,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ClientOverviewTab } from "@/components/command-center/ClientOverviewTab";
-import { ClientTrainingTab } from "@/components/command-center/ClientTrainingTab";
-import { ClientTasksTab } from "@/components/command-center/ClientTasksTab";
-import { ClientMetricsTab } from "@/components/command-center/ClientMetricsTab";
-import { ClientFoodJournalTab } from "@/components/command-center/ClientFoodJournalTab";
-import { ClientMacrosTab } from "@/components/command-center/ClientMacrosTab";
 import { ClientSettingsTab } from "@/components/command-center/ClientSettingsTab";
-import { ClientMealPlanTab } from "@/components/command-center/ClientMealPlanTab";
-import { ClientOnDemandTab } from "@/components/command-center/ClientOnDemandTab";
-import { ClientCalendarTab } from "@/components/command-center/ClientCalendarTab";
-import { AdminGoalsTab } from "@/components/command-center/AdminGoalsTab";
 import { CoachCommandCenterTab } from "@/components/command-center/CoachCommandCenterTab";
+import { GroupedTrainingTab } from "@/components/command-center/GroupedTrainingTab";
+import { GroupedNutritionTab } from "@/components/command-center/GroupedNutritionTab";
+import { GroupedProgressTab } from "@/components/command-center/GroupedProgressTab";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ClientCommandCenter() {
@@ -206,15 +200,9 @@ export default function ClientCommandCenter() {
           <TabsList className="w-full justify-start overflow-x-auto flex-nowrap">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="command">Command Center</TabsTrigger>
-            <TabsTrigger value="calendar">Calendar</TabsTrigger>
             <TabsTrigger value="training">Training</TabsTrigger>
-            <TabsTrigger value="tasks">Tasks</TabsTrigger>
-            <TabsTrigger value="metrics">Metrics</TabsTrigger>
-            <TabsTrigger value="food-journal">Food Journal</TabsTrigger>
-            <TabsTrigger value="macros">Macros</TabsTrigger>
-            <TabsTrigger value="meal-plan">Meal Plan</TabsTrigger>
-            <TabsTrigger value="goals">Goals</TabsTrigger>
-            <TabsTrigger value="on-demand">On-Demand</TabsTrigger>
+            <TabsTrigger value="nutrition">Nutrition</TabsTrigger>
+            <TabsTrigger value="progress">Progress</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -224,32 +212,14 @@ export default function ClientCommandCenter() {
           <TabsContent value="command">
             <CoachCommandCenterTab clientId={clientId!} trainerId={user?.id!} />
           </TabsContent>
-          <TabsContent value="calendar">
-            <ClientCalendarTab clientId={clientId!} trainerId={user?.id!} />
-          </TabsContent>
           <TabsContent value="training">
-            <ClientTrainingTab clientId={clientId!} trainerId={user?.id!} />
+            <GroupedTrainingTab clientId={clientId!} trainerId={user?.id!} />
           </TabsContent>
-          <TabsContent value="tasks">
-            <ClientTasksTab clientId={clientId!} trainerId={user?.id!} />
+          <TabsContent value="nutrition">
+            <GroupedNutritionTab clientId={clientId!} trainerId={user?.id!} />
           </TabsContent>
-          <TabsContent value="metrics">
-            <ClientMetricsTab clientId={clientId!} trainerId={user?.id!} />
-          </TabsContent>
-          <TabsContent value="food-journal">
-            <ClientFoodJournalTab clientId={clientId!} />
-          </TabsContent>
-          <TabsContent value="macros">
-            <ClientMacrosTab clientId={clientId!} trainerId={user?.id!} />
-          </TabsContent>
-          <TabsContent value="meal-plan">
-            <ClientMealPlanTab clientId={clientId!} trainerId={user?.id!} />
-          </TabsContent>
-          <TabsContent value="goals">
-            <AdminGoalsTab clientId={clientId!} trainerId={user?.id!} clientName={clientData?.client?.full_name} />
-          </TabsContent>
-          <TabsContent value="on-demand">
-            <ClientOnDemandTab clientId={clientId!} trainerId={user?.id!} />
+          <TabsContent value="progress">
+            <GroupedProgressTab clientId={clientId!} trainerId={user?.id!} clientName={clientData?.client?.full_name} />
           </TabsContent>
           <TabsContent value="settings">
             <ClientSettingsTab clientId={clientId!} trainerId={user?.id!} />
