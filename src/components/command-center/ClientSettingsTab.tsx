@@ -713,6 +713,14 @@ export function ClientSettingsTab({ clientId, trainerId }: ClientSettingsTabProp
 function ClientDashboardLayoutSection({ clientId, trainerId }: { clientId: string; trainerId: string }) {
   const { cards, save, isSaving, isClientOverride } = useDashboardLayout(trainerId, clientId);
 
+  const { data: profile } = useQuery({
+    queryKey: ["client-profile-name", clientId],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("full_name").eq("id", clientId).maybeSingle();
+      return data;
+    },
+  });
+
   return (
     <DashboardCardLayoutEditor
       cards={cards}
@@ -720,6 +728,7 @@ function ClientDashboardLayoutSection({ clientId, trainerId }: { clientId: strin
       isSaving={isSaving}
       title="Dashboard Card Layout"
       description={isClientOverride ? "Custom layout for this client. Overrides the global default." : "Using global default layout. Save changes to create a client-specific override."}
+      clientName={profile?.full_name || undefined}
     />
   );
 }

@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { GripVertical, RotateCcw } from "lucide-react";
 import { DashboardCardConfig, DEFAULT_CARD_ORDER } from "@/lib/dashboardCards";
 import { useToast } from "@/hooks/use-toast";
+import { TodayScreenPhonePreview } from "@/components/TodayScreenPhonePreview";
 
 interface DashboardCardLayoutEditorProps {
   cards: DashboardCardConfig[];
@@ -12,6 +13,8 @@ interface DashboardCardLayoutEditorProps {
   isSaving: boolean;
   title?: string;
   description?: string;
+  clientName?: string;
+  showPreview?: boolean;
 }
 
 export function DashboardCardLayoutEditor({
@@ -20,6 +23,8 @@ export function DashboardCardLayoutEditor({
   isSaving,
   title = "Dashboard Card Layout",
   description = "Drag to reorder, toggle to show/hide cards on the client dashboard.",
+  clientName,
+  showPreview = true,
 }: DashboardCardLayoutEditorProps) {
   const { toast } = useToast();
   const [cards, setCards] = useState<DashboardCardConfig[]>(initialCards);
@@ -99,56 +104,64 @@ export function DashboardCardLayoutEditor({
   };
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-base">{title}</CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">{description}</p>
+    <div className="flex gap-6 items-start">
+      <Card className="flex-1 min-w-0">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base">{title}</CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">{description}</p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={handleReset} className="gap-1 text-xs">
+              <RotateCcw className="h-3 w-3" /> Reset
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleReset} className="gap-1 text-xs">
-            <RotateCcw className="h-3 w-3" /> Reset
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-1 pb-4">
-        {cards.map((card, index) => (
-          <div
-            key={card.key}
-            data-card-index={index}
-            draggable
-            onDragStart={() => handleDragStart(index)}
-            onDragOver={(e) => handleDragOver(e, index)}
-            onDragEnd={handleDragEnd}
-            onTouchStart={() => handleTouchStart(index)}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            className={`flex items-center gap-3 p-3 rounded-lg border transition-all select-none ${
-              dragIndex === index || touchDragIndex === index
-                ? "bg-primary/5 border-primary/30 shadow-sm"
-                : "bg-background border-border hover:border-primary/20"
-            } ${!card.visible ? "opacity-50" : ""}`}
-          >
-            <GripVertical className="h-4 w-4 text-muted-foreground shrink-0 cursor-grab active:cursor-grabbing" />
-            <span className="text-sm font-medium flex-1">{card.label}</span>
-            <Switch
-              checked={card.visible}
-              onCheckedChange={() => toggleVisibility(index)}
-              className="shrink-0"
-            />
-          </div>
-        ))}
+        </CardHeader>
+        <CardContent className="space-y-1 pb-4">
+          {cards.map((card, index) => (
+            <div
+              key={card.key}
+              data-card-index={index}
+              draggable
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragEnd={handleDragEnd}
+              onTouchStart={() => handleTouchStart(index)}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              className={`flex items-center gap-3 p-3 rounded-lg border transition-all select-none ${
+                dragIndex === index || touchDragIndex === index
+                  ? "bg-primary/5 border-primary/30 shadow-sm"
+                  : "bg-background border-border hover:border-primary/20"
+              } ${!card.visible ? "opacity-50" : ""}`}
+            >
+              <GripVertical className="h-4 w-4 text-muted-foreground shrink-0 cursor-grab active:cursor-grabbing" />
+              <span className="text-sm font-medium flex-1">{card.label}</span>
+              <Switch
+                checked={card.visible}
+                onCheckedChange={() => toggleVisibility(index)}
+                className="shrink-0"
+              />
+            </div>
+          ))}
 
-        {hasChanges && (
-          <Button
-            className="w-full mt-3"
-            onClick={handleSave}
-            disabled={isSaving}
-          >
-            {isSaving ? "Saving..." : "Save Layout"}
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+          {hasChanges && (
+            <Button
+              className="w-full mt-3"
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              {isSaving ? "Saving..." : "Save Layout"}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      {showPreview && (
+        <div className="hidden lg:block shrink-0">
+          <TodayScreenPhonePreview cards={cards} clientName={clientName} />
+        </div>
+      )}
+    </div>
   );
 }
