@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { GripVertical, RotateCcw, Eye, Pencil } from "lucide-react";
+import { GripVertical, RotateCcw } from "lucide-react";
 import { DashboardCardConfig, DEFAULT_CARD_ORDER } from "@/lib/dashboardCards";
 import { useToast } from "@/hooks/use-toast";
 
@@ -29,7 +29,6 @@ export function DashboardCardLayoutEditor({
   const [cards, setCards] = useState<DashboardCardConfig[]>(initialCards);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
-  const [mode, setMode] = useState<"live" | "edit">("live");
 
   useEffect(() => {
     setCards(initialCards);
