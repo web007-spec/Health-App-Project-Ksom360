@@ -43,8 +43,8 @@ export function SportHeroBanner({ clientId, firstName }: SportHeroBannerProps) {
     queryFn: async () => {
       const now = new Date().toISOString();
       const { data, error } = await supabase
-        .from("sport_events" as any)
-        .select("id, event_type, sport_type")
+        .from("sport_schedule_events")
+        .select("id, event_type")
         .eq("client_id", clientId)
         .gte("start_time", now)
         .limit(20);
@@ -65,13 +65,8 @@ export function SportHeroBanner({ clientId, firstName }: SportHeroBannerProps) {
     if (profile.season_override === "in_season" || profile.season_override === "off_season") {
       seasonStatus = profile.season_override;
     } else {
-      // Auto-detect: if upcoming events exist for this sport, it's in season
-      const hasUpcoming = upcomingEvents?.some(
-        (e: any) => (e.sport_type || "").toLowerCase() === profile.sport.toLowerCase()
-      );
-      // If no sport_type on events, check if any events exist at all (legacy)
-      const hasAnyEvents = !hasUpcoming && upcomingEvents && upcomingEvents.length > 0;
-      seasonStatus = hasUpcoming || hasAnyEvents ? "in_season" : "off_season";
+      // Auto-detect: if any upcoming sport events exist, mark as in season
+      seasonStatus = upcomingEvents && upcomingEvents.length > 0 ? "in_season" : "off_season";
     }
 
     return { ...profile, ...config, seasonStatus };
