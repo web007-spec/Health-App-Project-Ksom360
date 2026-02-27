@@ -40,6 +40,7 @@ import { DashboardInsightCard } from "@/components/DashboardInsightCard";
 import { LevelProgressionCard } from "@/components/LevelProgressionCard";
 import { InAppNotifications } from "@/components/InAppNotifications";
 import { useDashboardLayoutClient } from "@/hooks/useDashboardLayoutClient";
+import { SportHeroBanner } from "@/components/SportHeroBanner";
 // Fasting Protocol Card sub-component
 function FastingProtocolCard({ clientId, navigate }: { clientId: string | null; navigate: (path: string) => void }) {
   const queryClient = useQueryClient();
@@ -1192,6 +1193,11 @@ export default function ClientDashboard() {
             <Bell className="h-5 w-5" />
           </Button>
         </div>
+
+        {/* Sport Hero Banner — always at top when sport_schedule_enabled */}
+        {settings.sport_schedule_enabled && clientId && (
+          <SportHeroBanner clientId={clientId} firstName={firstName} />
+        )}
 
         {/* Dashboard Hero Message */}
         {settings.dashboard_hero_message && (
