@@ -1,73 +1,90 @@
-# Welcome to your Lovable project
+# EverFit Stride
 
-## Project info
+Personal fitness and nutrition coaching platform. Track workouts, nutrition, and health metrics. Built for trainers and clients with Apple HealthKit integration on iOS.
 
-**URL**: https://lovable.dev/projects/e2639f10-dea7-413a-8fe8-ad86d72b42ec
+## Features
 
-## How can I edit this code?
+- **Health Dashboard** — Steps, active energy, resting energy, sleep, weight, workouts, heart rate, and active minutes synced from Apple HealthKit
+- **Trainer & Client Roles** — Trainers manage clients, assign workouts, and view health progress
+- **Exercise Library** — Custom exercises with muscle groups, equipment, tags, and demo videos
+- **Nutrition Tracking** — Food logging with USDA database integration
+- **Workout Builder** — Create and assign workout programs with drag-and-drop
+- **PWA & Native** — Web app with Capacitor for iOS (HealthKit) and Android
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 18, Vite, TypeScript, Tailwind CSS |
+| UI | shadcn/ui (Radix primitives) |
+| State/Data | TanStack React Query v5 |
+| Backend | Supabase |
+| Database | PostgreSQL 15 |
+| Auth | Supabase Auth (email/password) |
+| Mobile | Capacitor 8 (iOS, Android) |
+| Health | HealthKit (iOS) via `@johnjasonhudson/capacitor-healthkit` |
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/e2639f10-dea7-413a-8fe8-ad86d72b42ec) and start prompting.
+## Prerequisites
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js 18+ and npm
+- Supabase project (for backend)
+- Xcode (for iOS builds with HealthKit)
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Getting Started
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Clone the repository
 git clone <YOUR_GIT_URL>
+cd everfit-stride-cloud-updated
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Install dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Configure environment
+# Create .env with:
+#   VITE_SUPABASE_URL=
+#   VITE_SUPABASE_PUBLISHABLE_KEY=
+#   VITE_SUPABASE_PROJECT_ID=
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Scripts
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start Vite dev server |
+| `npm run build` | Production build |
+| `npm run build:ios` | Build and sync to iOS (Capacitor) |
+| `npm run build:ios:open` | Build, sync, and open in Xcode |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint |
 
-**Use GitHub Codespaces**
+## iOS Build (HealthKit)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. Run `npm run build:ios:open`
+2. Open the project in Xcode
+3. Add HealthKit capability in Signing & Capabilities
+4. Add required HealthKit usage descriptions in `Info.plist`
+5. Build and run on a physical device (HealthKit requires a real device)
 
-## What technologies are used for this project?
+## Project Structure
 
-This project is built with:
+```
+├── src/                 # React app source
+├── supabase/            # Edge functions, migrations, config
+├── ios/                 # Capacitor iOS project
+├── docs/                # Backend, Health sync, dashboard guides
+└── scripts/             # Build and HealthKit setup scripts
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Documentation
 
-## How can I deploy this project?
+- [Backend Reference](docs/backend.readme.md) — Database schema, edge functions, RLS
+- [Health Dashboard Guide](docs/HEALTH_DASHBOARD_GUIDE.md) — Health cards and data flow
+- [Health Sync Verification](docs/HEALTH_SYNC_VERIFICATION.md) — Testing HealthKit sync
 
-Simply open [Lovable](https://lovable.dev/projects/e2639f10-dea7-413a-8fe8-ad86d72b42ec) and click on Share -> Publish.
+## License
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Private project.
