@@ -155,7 +155,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     const rows = todayData ?? [];
 
-    // De-duplicate steps & calories: take max value per hour bucket
+    // Sum steps & calories across hour buckets.
+    // Each DB row should hold the correct per-hour total after sync.
+    // MAX within each hour handles legacy rows that weren't re-synced yet.
     function dedupeMaxPerHour(
       items: { value: number; recorded_at: string }[]
     ): number {

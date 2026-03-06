@@ -5,7 +5,7 @@ import { triggerHealthNotification } from '@/hooks/useHealthNotifications';
 
 // Type definitions for health data
 export interface HealthDataPoint {
-  data_type: 'heart_rate' | 'calories_burned' | 'steps' | 'active_minutes' | 'workout' | 'resting_heart_rate';
+  data_type: 'heart_rate' | 'active_energy' | 'resting_energy' | 'steps' | 'active_minutes' | 'workout' | 'resting_heart_rate' | 'sleep' | 'weight' | 'calories_burned';
   value: number;
   unit: string;
   recorded_at: string;
@@ -114,8 +114,11 @@ export const requestHealthPermissions = async (): Promise<boolean> => {
           'restingHeartRate',
           'stepCount',
           'activeEnergyBurned',
+          'basalEnergyBurned',
           'appleExerciseTime',
           'workoutType',
+          'sleepAnalysis',
+          'bodyMass',
         ],
         write: [],
       });
@@ -132,7 +135,10 @@ export const requestHealthPermissions = async (): Promise<boolean> => {
           'RestingHeartRate',
           'Steps',
           'ActiveCaloriesBurned',
+          'BasalMetabolicRate',
           'ExerciseSession',
+          'SleepSession',
+          'Weight',
         ],
         write: [],
       });
@@ -201,22 +207,137 @@ async function queryIOSHeartRate(since: Date): Promise<HealthDataPoint[]> {
 
 // ─── Hourly deduplication helper ──────────────────────────────────────────────
 // Apple Health returns raw samples from both iPhone AND Watch.
-// We bucket by hour and take the MAX per hour to avoid double-counting.
+// ─── Live HealthKit Statistics (cumulative sum — matches Apple Health) ───────
+
+/**
+ * Query HealthKit's HKStatisticsQuery for an exact cumulative sum over a date
+ * range. This matches the totals displayed in Apple Health and avoids any
+ * sample-level deduplication issues.
+ */
+async function queryHKStatisticsSum(sampleName: string, startDate: Date, endDate: Date): Promise<number> {
+  const hk = getHealthKit();
+  if (!hk) return 0;
+  try {
+    const result = await hk.queryHKitStatistics({
+      sampleName,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+    });
+    return result?.sum ?? 0;
+  } catch (err) {
+    console.error(`[queryHKStatisticsSum] ${sampleName} error:`, err);
+    return 0;
+  }
+}
+
+/**
+ * Get today's live HealthKit stats directly from the device.
+ * Returns cumulative sums for the current day, matching Apple Health exactly.
+ * Only works on iOS native. Returns null on other platforms.
+ */
+export async function queryTodayLiveStats(): Promise<{
+  activeEnergy: number;
+  restingEnergy: number;
+  steps: number;
+  latestWeight: number | null;
+} | null> {
+  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'ios') return null;
+
+  const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(now);
+  todayEnd.setHours(23, 59, 59, 999);
+
+  // Also get yesterday's full resting energy total to derive daily BMR rate.
+  // Apple Health shows a model-based estimate that outruns actual HK samples.
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+
+  const [activeEnergy, restingEnergyLive, restingEnergyYesterday, steps] = await Promise.all([
+    queryHKStatisticsSum('activeEnergyBurned', todayStart, now),
+    queryHKStatisticsSum('basalEnergyBurned', todayStart, todayEnd),
+    queryHKStatisticsSum('basalEnergyBurned', yesterdayStart, todayStart),
+    queryHKStatisticsSum('stepCount', todayStart, now),
+  ]);
+
+  // Estimate resting energy matching Apple Health's real-time BMR model:
+  // Use yesterday's total as daily rate, project by time elapsed today,
+  // then take whichever is higher (live samples or model estimate).
+  const hoursElapsed = (now.getTime() - todayStart.getTime()) / (1000 * 60 * 60);
+  const dailyRate = restingEnergyYesterday > 0 ? restingEnergyYesterday : 1700; // fallback ~average BMR
+  const modelEstimate = Math.round((dailyRate / 24) * hoursElapsed);
+  const restingEnergy = Math.max(restingEnergyLive, modelEstimate);
+
+  console.log(`[queryTodayLiveStats] resting: live=${Math.round(restingEnergyLive)} model=${modelEstimate} (yesterday=${Math.round(restingEnergyYesterday)}, ${hoursElapsed.toFixed(1)}h elapsed) → using ${Math.round(restingEnergy)}`);
+
+  // Also get latest weight from HealthKit (not a statistic, just last sample)
+  // No date limit — weight may be logged very infrequently (e.g. years ago)
+  let latestWeight: number | null = null;
+  try {
+    const hk = getHealthKit();
+    if (hk) {
+      const weightResult = await hk.queryHKitSampleType({
+        sampleName: 'bodyMass',
+        startDate: new Date('2000-01-01').toISOString(),
+        endDate: now.toISOString(),
+        limit: 1,
+      });
+      const samples = weightResult?.resultData ?? [];
+      if (samples.length > 0) {
+        latestWeight = parseFloat(samples[0].value.toFixed(1));
+      }
+    }
+  } catch (wErr) {
+    console.warn('[queryTodayLiveStats] weight query error:', wErr);
+  }
+
+  console.log(`[queryTodayLiveStats] steps=${Math.round(steps)} active=${Math.round(activeEnergy)} resting=${Math.round(restingEnergy)} weight=${latestWeight}`);
+  return {
+    activeEnergy: Math.round(activeEnergy),
+    restingEnergy: Math.round(restingEnergy),
+    steps: Math.round(steps),
+    latestWeight,
+  };
+}
+
+// Each sample is an *incremental* count for its time range (not cumulative).
+// Strategy:
+//   1. SUM all samples from the same source device within the same hour
+//      (samples from one device don't overlap).
+//   2. Take the MAX across different source devices for the same hour
+//      (iPhone and Watch measure the same movement → avoid double-counting).
+//   3. Emit one data point per (data_type, hour) with the correct total.
 function deduplicateHourly(points: HealthDataPoint[]): HealthDataPoint[] {
-  const buckets = new Map<string, HealthDataPoint>();
+  // Step 1: Sum per (data_type, hour, source_device)
+  const sourceHourSums = new Map<string, { sum: number; point: HealthDataPoint }>();
   for (const p of points) {
-    // Bucket key = data_type + hour
     const d = new Date(p.recorded_at);
-    const hourKey = `${p.data_type}|${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:00:00`;
-    const existing = buckets.get(hourKey);
-    if (!existing || p.value > existing.value) {
-      // Use the hour-start as recorded_at for consistent dedup
+    const hourStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:00:00`;
+    const sourceName = (p.metadata as Record<string, unknown>)?.device ?? 'unknown';
+    const key = `${p.data_type}|${hourStr}|${sourceName}`;
+    const existing = sourceHourSums.get(key);
+    if (existing) {
+      existing.sum += p.value;
+    } else {
       const hourStart = new Date(d);
       hourStart.setMinutes(0, 0, 0);
-      buckets.set(hourKey, { ...p, recorded_at: hourStart.toISOString() });
+      sourceHourSums.set(key, { sum: p.value, point: { ...p, recorded_at: hourStart.toISOString() } });
     }
   }
-  return Array.from(buckets.values());
+
+  // Step 2: For each (data_type, hour), take MAX sum across source devices
+  const hourBest = new Map<string, { sum: number; point: HealthDataPoint }>();
+  for (const [key, val] of sourceHourSums) {
+    const parts = key.split('|');
+    const hourKey = `${parts[0]}|${parts[1]}`; // data_type|hour
+    const existing = hourBest.get(hourKey);
+    if (!existing || val.sum > existing.sum) {
+      hourBest.set(hourKey, { sum: val.sum, point: { ...val.point, value: Math.round(val.sum) } });
+    }
+  }
+
+  return Array.from(hourBest.values()).map(v => v.point);
 }
 
 async function queryIOSStepsAndCalories(since: Date): Promise<HealthDataPoint[]> {
@@ -240,6 +361,7 @@ async function queryIOSStepsAndCalories(since: Date): Promise<HealthDataPoint[]>
         unit: 'count',
         recorded_at: sample.startDate ?? sample.date,
         source: 'apple_health',
+        metadata: { device: sample.sourceName ?? 'iPhone' } as Json,
       });
     }
 
@@ -252,11 +374,12 @@ async function queryIOSStepsAndCalories(since: Date): Promise<HealthDataPoint[]>
 
     for (const sample of calResult?.resultData ?? []) {
       rawPoints.push({
-        data_type: 'calories_burned',
+        data_type: 'active_energy',
         value: Math.round(sample.value),
         unit: 'kcal',
         recorded_at: sample.startDate ?? sample.date,
         source: 'apple_health',
+        metadata: { device: sample.sourceName ?? 'iPhone' } as Json,
       });
     }
   } catch (err) {
@@ -267,6 +390,125 @@ async function queryIOSStepsAndCalories(since: Date): Promise<HealthDataPoint[]>
   const deduped = deduplicateHourly(rawPoints);
   console.log('[queryIOSStepsAndCalories] raw:', rawPoints.length, 'deduped:', deduped.length);
   return deduped;
+}
+
+// ─── iOS Resting Energy (Basal Energy Burned) ──────────────────────────────
+
+async function queryIOSRestingEnergy(since: Date): Promise<HealthDataPoint[]> {
+  const hk = getHealthKit();
+  if (!hk) return [];
+
+  const rawPoints: HealthDataPoint[] = [];
+
+  try {
+    const result = await hk.queryHKitSampleType({
+      sampleName: 'basalEnergyBurned',
+      startDate: since.toISOString(),
+      endDate: new Date().toISOString(),
+      limit: 5000,
+    });
+
+    for (const sample of result?.resultData ?? []) {
+      rawPoints.push({
+        data_type: 'resting_energy',
+        value: sample.value,  // keep raw float — individual samples are tiny (0.1-0.8 kcal); rounding kills them
+        unit: 'kcal',
+        recorded_at: sample.startDate ?? sample.date,
+        source: 'apple_health',
+        metadata: { device: sample.sourceName ?? 'iPhone' } as Json,
+      });
+    }
+  } catch (err) {
+    console.error('iOS resting energy query error:', err);
+  }
+
+  // Deduplicate: same strategy as steps/calories
+  const deduped = deduplicateHourly(rawPoints);
+  console.log('[queryIOSRestingEnergy] raw:', rawPoints.length, 'deduped:', deduped.length);
+  return deduped;
+}
+
+// ─── iOS Sleep (Category Type) ──────────────────────────────────────────────
+
+async function queryIOSSleep(since: Date): Promise<HealthDataPoint[]> {
+  const hk = getHealthKit();
+  if (!hk) return [];
+
+  const points: HealthDataPoint[] = [];
+
+  try {
+    const result = await hk.queryHKitSampleType({
+      sampleName: 'sleepAnalysis',
+      startDate: since.toISOString(),
+      endDate: new Date().toISOString(),
+      limit: 500,
+    });
+
+    for (const sample of result?.resultData ?? []) {
+      // Skip "inBed" and "awake" states — only count actual sleep
+      const sleepState = sample.sleepState ?? 'unknown';
+      if (sleepState === 'awake' || sleepState === 'inBed') continue;
+
+      // Duration in minutes (endDate - startDate)
+      const start = new Date(sample.startDate);
+      const end = new Date(sample.endDate);
+      const durationMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
+
+      if (durationMinutes <= 0) continue;
+
+      points.push({
+        data_type: 'sleep',
+        value: durationMinutes,
+        unit: 'min',
+        recorded_at: sample.startDate,
+        source: 'apple_health',
+        metadata: {
+          sleepState,
+          endDate: sample.endDate,
+          device: sample.source ?? sample.sourceName,
+        } as Json,
+      });
+    }
+    console.log('[queryIOSSleep] sleep samples (filtered):', points.length);
+  } catch (err) {
+    console.error('iOS sleep query error:', err);
+  }
+
+  return points;
+}
+
+// ─── iOS Weight (Body Mass) ─────────────────────────────────────────────────
+
+async function queryIOSWeight(since: Date): Promise<HealthDataPoint[]> {
+  const hk = getHealthKit();
+  if (!hk) return [];
+
+  const points: HealthDataPoint[] = [];
+
+  try {
+    const result = await hk.queryHKitSampleType({
+      sampleName: 'bodyMass',
+      startDate: since.toISOString(),
+      endDate: new Date().toISOString(),
+      limit: 100,
+    });
+
+    for (const sample of result?.resultData ?? []) {
+      points.push({
+        data_type: 'weight',
+        value: parseFloat(sample.value.toFixed(1)),
+        unit: 'kg',
+        recorded_at: sample.startDate ?? sample.date,
+        source: 'apple_health',
+        metadata: { device: sample.source ?? sample.sourceName } as Json,
+      });
+    }
+    console.log('[queryIOSWeight] weight samples:', points.length);
+  } catch (err) {
+    console.error('iOS weight query error:', err);
+  }
+
+  return points;
 }
 
 // ─── iOS Active Minutes + Workouts ──────────────────────────────────────────
@@ -416,7 +658,7 @@ async function queryAndroidStepsAndCalories(since: Date): Promise<HealthDataPoin
 
     for (const record of calResult?.records ?? []) {
       points.push({
-        data_type: 'calories_burned',
+        data_type: 'active_energy',
         value: Math.round(record.energy?.inKilocalories ?? 0),
         unit: 'kcal',
         recorded_at: record.startTime,
@@ -444,7 +686,7 @@ export const syncHealthData = async (clientId: string): Promise<{ success: boole
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     const source = platform === 'ios' ? 'apple_health' : 'health_connect';
-    const permissions = ['heart_rate', 'resting_heart_rate', 'steps', 'calories', 'workouts'];
+    const permissions = ['heart_rate', 'resting_heart_rate', 'steps', 'active_energy', 'resting_energy', 'sleep', 'weight', 'workouts'];
 
     // Always save locally so UI shows connected immediately
     setLocalHealthConnected(clientId, source);
@@ -452,12 +694,18 @@ export const syncHealthData = async (clientId: string): Promise<{ success: boole
     let healthDataPoints: HealthDataPoint[] = [];
 
     if (platform === 'ios') {
-      const [hrPoints, activityPoints, activeWorkoutPoints] = await Promise.all([
+      // Weight is logged infrequently — look back all-time
+      const allTimeStart = new Date('2000-01-01');
+
+      const [hrPoints, activityPoints, activeWorkoutPoints, restingEnergyPoints, sleepPoints, weightPoints] = await Promise.all([
         queryIOSHeartRate(sevenDaysAgo),
         queryIOSStepsAndCalories(sevenDaysAgo),
         queryIOSActiveMinutesAndWorkouts(sevenDaysAgo),
+        queryIOSRestingEnergy(sevenDaysAgo),
+        queryIOSSleep(sevenDaysAgo),
+        queryIOSWeight(allTimeStart),
       ]);
-      healthDataPoints = [...hrPoints, ...activityPoints, ...activeWorkoutPoints];
+      healthDataPoints = [...hrPoints, ...activityPoints, ...activeWorkoutPoints, ...restingEnergyPoints, ...sleepPoints, ...weightPoints];
     } else {
       const [hrPoints, activityPoints] = await Promise.all([
         queryAndroidHeartRate(sevenDaysAgo),
@@ -502,7 +750,7 @@ export const syncHealthData = async (clientId: string): Promise<{ success: boole
         .lte('recorded_at', `${today}T23:59:59`);
 
       const todaySteps = todayData?.find(d => d.data_type === 'steps')?.value || 0;
-      const todayCalories = todayData?.find(d => d.data_type === 'calories_burned')?.value || 0;
+      const todayCalories = todayData?.find(d => d.data_type === 'active_energy')?.value || todayData?.find(d => d.data_type === 'calories_burned')?.value || 0;
       const todayHeartRate = todayData?.find(d => d.data_type === 'heart_rate')?.value;
 
       await triggerHealthNotification(clientId, 'health_sync', {
@@ -614,7 +862,7 @@ export const getHealthConnectionStatus = async (clientId: string): Promise<Healt
             provider: local.provider as 'apple_health' | 'health_connect',
             is_connected: true,
             last_sync_at: local.lastSyncAt,
-            permissions: ['heart_rate', 'resting_heart_rate', 'steps', 'calories', 'workouts'],
+            permissions: ['heart_rate', 'resting_heart_rate', 'steps', 'active_energy', 'resting_energy', 'sleep', 'weight', 'workouts'],
           }];
         }
       }
@@ -639,7 +887,7 @@ export const getHealthConnectionStatus = async (clientId: string): Promise<Healt
           provider: local.provider as 'apple_health' | 'health_connect',
           is_connected: true,
           last_sync_at: local.lastSyncAt,
-          permissions: ['heart_rate', 'resting_heart_rate', 'steps', 'calories', 'workouts'],
+          permissions: ['heart_rate', 'resting_heart_rate', 'steps', 'active_energy', 'resting_energy', 'sleep', 'weight', 'workouts'],
         }];
       }
     }
@@ -655,7 +903,7 @@ export const getHealthConnectionStatus = async (clientId: string): Promise<Healt
           provider: local.provider as 'apple_health' | 'health_connect',
           is_connected: true,
           last_sync_at: local.lastSyncAt,
-          permissions: ['heart_rate', 'resting_heart_rate', 'steps', 'calories', 'workouts'],
+          permissions: ['heart_rate', 'resting_heart_rate', 'steps', 'active_energy', 'resting_energy', 'sleep', 'weight', 'workouts'],
         }];
       }
     }

@@ -1,10 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Footprints, Flame, Heart, Timer, Dumbbell, Activity } from 'lucide-react';
+import { Footprints, Flame, Heart, Timer, Dumbbell, Activity, Moon, Scale, Zap, BatteryCharging } from 'lucide-react';
 import { useHealthStats } from '@/hooks/useHealthData';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface ActivitySummaryProps {
   clientId?: string;
+}
+
+function formatSleep(minutes: number): string {
+  if (minutes <= 0) return '0h';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
 export function ActivitySummary({ clientId }: ActivitySummaryProps) {
@@ -13,20 +20,53 @@ export function ActivitySummary({ clientId }: ActivitySummaryProps) {
   const statCards = [
     {
       title: 'Steps',
-      value: stats?.todaySteps.toLocaleString() || '0',
+      value: (stats?.todaySteps ?? 0).toLocaleString(),
       icon: Footprints,
       color: 'text-blue-500',
       bgColor: 'bg-blue-500/10',
       goal: 10000,
-      current: stats?.todaySteps || 0,
+      current: stats?.todaySteps ?? 0,
     },
     {
-      title: 'Calories Burned',
-      value: stats?.todayCalories.toLocaleString() || '0',
+      title: 'Active Energy',
+      value: (stats?.todayActiveEnergy ?? 0).toLocaleString(),
       unit: 'kcal',
       icon: Flame,
       color: 'text-orange-500',
       bgColor: 'bg-orange-500/10',
+    },
+    {
+      title: 'Resting Energy',
+      value: (stats?.todayRestingEnergy ?? 0).toLocaleString(),
+      unit: 'kcal',
+      icon: BatteryCharging,
+      color: 'text-amber-500',
+      bgColor: 'bg-amber-500/10',
+    },
+    {
+      title: 'Sleep',
+      value: formatSleep(stats?.todaySleep || 0),
+      icon: Moon,
+      color: 'text-indigo-500',
+      bgColor: 'bg-indigo-500/10',
+      goal: 480, // 8 hours in minutes
+      current: stats?.todaySleep || 0,
+      goalLabel: '8h goal',
+    },
+    {
+      title: 'Weight',
+      value: stats?.todayWeight != null ? stats.todayWeight.toFixed(1) : '--',
+      unit: stats?.todayWeight != null ? 'kg' : undefined,
+      icon: Scale,
+      color: 'text-teal-500',
+      bgColor: 'bg-teal-500/10',
+    },
+    {
+      title: 'Workouts',
+      value: stats?.workoutsCount || '0',
+      icon: Dumbbell,
+      color: 'text-purple-500',
+      bgColor: 'bg-purple-500/10',
     },
     {
       title: 'Avg Heart Rate',
@@ -52,19 +92,12 @@ export function ActivitySummary({ clientId }: ActivitySummaryProps) {
       color: 'text-green-500',
       bgColor: 'bg-green-500/10',
     },
-    {
-      title: 'Workouts',
-      value: stats?.workoutsCount || '0',
-      icon: Dumbbell,
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-500/10',
-    },
   ];
   
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 9 }).map((_, i) => (
           <Card key={i}>
             <CardHeader className="pb-2">
               <Skeleton className="h-4 w-20" />
@@ -79,7 +112,7 @@ export function ActivitySummary({ clientId }: ActivitySummaryProps) {
   }
   
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
       {statCards.map((stat) => {
         const Icon = stat.icon;
         const progressPercent = stat.goal ? Math.min((stat.current / stat.goal) * 100, 100) : null;
@@ -113,7 +146,7 @@ export function ActivitySummary({ clientId }: ActivitySummaryProps) {
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {Math.round(progressPercent)}% of {stat.goal?.toLocaleString()} goal
+                      {Math.round(progressPercent)}% of {stat.goalLabel ?? stat.goal?.toLocaleString() + ' goal'}
                     </p>
                   </div>
                 )}

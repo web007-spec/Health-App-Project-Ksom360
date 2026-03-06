@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>KS360</string>
+	<string>KSOM360</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -48,8 +48,8 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>NSHealthShareUsageDescription</key>
-	<string>KSOM360 reads your heart rate, steps, calories, and workout data from Apple Health to help your trainer monitor your progress and optimize your training program.</string>
+	<string>This app needs access to your health data to share your fitness progress with your trainer.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>KSOM360 may save workout summaries to Apple Health.</string>
+	<string>This app needs permission to save workout data to Apple Health.</string>
 </dict>
 </plist>

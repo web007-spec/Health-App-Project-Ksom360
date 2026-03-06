@@ -79,7 +79,8 @@ export default function ClientHealthConnect() {
                 <h4 className="font-medium">Activity Data</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• Daily step count</li>
-                  <li>• Calories burned</li>
+                  <li>• Active energy burned</li>
+                  <li>• Resting energy (basal metabolic)</li>
                   <li>• Active minutes</li>
                   <li>• Workouts from your watch</li>
                 </ul>
@@ -88,6 +89,8 @@ export default function ClientHealthConnect() {
                 <h4 className="font-medium">Health Metrics</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• Heart rate (average, resting, max)</li>
+                  <li>• Sleep duration &amp; stages</li>
+                  <li>• Weight (body mass)</li>
                   <li>• Workout heart rate zones</li>
                 </ul>
               </div>

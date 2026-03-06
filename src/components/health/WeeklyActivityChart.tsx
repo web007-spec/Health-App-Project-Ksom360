@@ -11,9 +11,13 @@ interface WeeklyActivityChartProps {
 
 export function WeeklyActivityChart({ clientId }: WeeklyActivityChartProps) {
   const { data: stepsData, isLoading: stepsLoading } = useHealthData(clientId, 'steps', 7);
-  const { data: caloriesData, isLoading: caloriesLoading } = useHealthData(clientId, 'calories_burned', 7);
+  const { data: activeEnergyData, isLoading: aeLoading } = useHealthData(clientId, 'active_energy', 7);
+  const { data: legacyCalData, isLoading: lcLoading } = useHealthData(clientId, 'calories_burned', 7);
   
-  const isLoading = stepsLoading || caloriesLoading;
+  const isLoading = stepsLoading || aeLoading || lcLoading;
+  
+  // Prefer active_energy, fallback to legacy calories_burned
+  const caloriesData = (activeEnergyData && activeEnergyData.length > 0) ? activeEnergyData : legacyCalData;
   
   const chartData = useMemo(() => {
     // Create map for all days

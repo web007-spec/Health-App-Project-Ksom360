@@ -6,7 +6,8 @@ import {
   getHealthConnectionStatus,
   disconnectHealthProvider,
   isNativePlatform,
-  getPlatform
+  getPlatform,
+  queryTodayLiveStats
 } from '@/services/healthSyncService';
 import { useAuth } from './useAuth';
 import { useEffectiveClientId } from './useEffectiveClientId';
@@ -43,6 +44,10 @@ export interface HealthDataRow {
 export interface HealthStats {
   todaySteps: number;
   todayCalories: number;
+  todayActiveEnergy: number;
+  todayRestingEnergy: number;
+  todaySleep: number;
+  todayWeight: number | null;
   avgHeartRate: number;
   restingHeartRate: number;
   activeMinutes: number;
@@ -106,6 +111,23 @@ export const useHealthData = (clientId?: string, dataType?: string, days: number
   });
 };
 
+// Normalize edge function stats response to our HealthStats shape.
+// The edge function may return different field names (e.g. activeEnergy vs todayActiveEnergy).
+function normalizeEdgeStats(raw: Record<string, any>): HealthStats {
+  return {
+    todaySteps: raw.todaySteps ?? 0,
+    todayCalories: raw.todayCalories ?? raw.activeEnergy ?? 0,
+    todayActiveEnergy: raw.todayActiveEnergy ?? raw.activeEnergy ?? 0,
+    todayRestingEnergy: raw.todayRestingEnergy ?? raw.restingEnergy ?? 0,
+    todaySleep: raw.todaySleep ?? (raw.sleepHours != null ? Math.round(raw.sleepHours * 60) : 0),
+    todayWeight: raw.todayWeight ?? raw.weight ?? null,
+    avgHeartRate: raw.avgHeartRate ?? 0,
+    restingHeartRate: raw.restingHeartRate ?? 0,
+    activeMinutes: raw.activeMinutes ?? 0,
+    workoutsCount: raw.workoutsCount ?? 0,
+  };
+}
+
 // Hook for fetching health stats summary
 export const useHealthStats = (clientId?: string) => {
   const { user } = useAuth();
@@ -121,6 +143,10 @@ export const useHealthStats = (clientId?: string) => {
       const emptyStats: HealthStats = {
         todaySteps: 0,
         todayCalories: 0,
+        todayActiveEnergy: 0,
+        todayRestingEnergy: 0,
+        todaySleep: 0,
+        todayWeight: null,
         avgHeartRate: 0,
         restingHeartRate: 0,
         activeMinutes: 0,
@@ -151,7 +177,7 @@ export const useHealthStats = (clientId?: string) => {
           const efRes = await edgeFnRead({ client_id: targetClientId, mode: 'stats' });
           if (efRes?.stats) {
             console.log('[useHealthStats] edge fn returned stats:', JSON.stringify(efRes.stats), 'todayRows:', efRes.todayRows, 'allTimeCount:', efRes.allTimeCount);
-            return efRes.stats as HealthStats;
+            return normalizeEdgeStats(efRes.stats);
           }
         } catch (efErr: any) {
           console.error('[useHealthStats] edge fn fallback failed:', efErr.message);
@@ -178,7 +204,7 @@ export const useHealthStats = (clientId?: string) => {
             const efRes = await edgeFnRead({ client_id: targetClientId, mode: 'stats' });
             if (efRes?.stats) {
               console.log('[useHealthStats] edge fn (own-user) returned stats:', JSON.stringify(efRes.stats));
-              return efRes.stats as HealthStats;
+              return normalizeEdgeStats(efRes.stats);
             }
           } catch (efErr: any) {
             console.error('[useHealthStats] edge fn (own-user) fallback failed:', efErr.message);
@@ -190,14 +216,37 @@ export const useHealthStats = (clientId?: string) => {
       
       const healthData = data || [];
       
-      // Deduplicate steps & calories: take max value per hour bucket
-      // (Apple Health reports raw samples from iPhone + Watch)
+      // Fetch latest weight separately — weight is logged infrequently,
+      // so we look back all-time instead of just today.
+      let latestWeight: number | null = null;
+      try {
+        const { data: weightRows } = await supabase
+          .from('health_data')
+          .select('value, recorded_at')
+          .eq('client_id', targetClientId)
+          .eq('data_type', 'weight')
+          .order('recorded_at', { ascending: false })
+          .limit(1);
+        if (weightRows && weightRows.length > 0) {
+          latestWeight = Number(weightRows[0].value);
+        }
+      } catch (wErr) {
+        console.warn('[useHealthStats] weight lookup failed:', wErr);
+      }
+      
+      // Sum steps & calories across hour buckets.
+      // After the sync-side fix, each DB row already holds the correct
+      // per-hour total (summed per source, max across sources).
+      // If multiple rows per hour still exist (e.g. old data), take
+      // the MAX within each hour to avoid double-counting, then sum hours.
       function dedupeMaxPerHour(rows: typeof healthData): number {
         const byHour = new Map<string, number>();
         for (const r of rows) {
           const d = new Date(r.recorded_at);
           const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${d.getHours()}`;
           const cur = byHour.get(key) || 0;
+          // Use MAX here because each row should already be an hourly sum;
+          // if the sync-side correctly merged, there's only one row per hour.
           byHour.set(key, Math.max(cur, Number(r.value)));
         }
         return Array.from(byHour.values()).reduce((sum, v) => sum + v, 0);
@@ -205,17 +254,58 @@ export const useHealthStats = (clientId?: string) => {
       
       // Calculate stats
       const stepsData = healthData.filter(d => d.data_type === 'steps');
+      const activeEnergyData = healthData.filter(d => d.data_type === 'active_energy');
       const caloriesData = healthData.filter(d => d.data_type === 'calories_burned');
+      const restingEnergyData = healthData.filter(d => d.data_type === 'resting_energy');
+      const sleepData = healthData.filter(d => d.data_type === 'sleep');
+      const weightData = healthData.filter(d => d.data_type === 'weight');
       const heartRateData = healthData.filter(d => d.data_type === 'heart_rate');
       const restingHrData = healthData.filter(d => d.data_type === 'resting_heart_rate');
       const activeMinData = healthData.filter(d => d.data_type === 'active_minutes');
       const workoutData = healthData.filter(d => d.data_type === 'workout');
       
-      console.log('[useHealthStats] breakdown — steps:', stepsData.length, 'cal:', caloriesData.length, 'hr:', heartRateData.length, 'rhr:', restingHrData.length, 'active:', activeMinData.length, 'workout:', workoutData.length);
+      console.log('[useHealthStats] breakdown — steps:', stepsData.length, 'activeEnergy:', activeEnergyData.length, 'cal(legacy):', caloriesData.length, 'restingEnergy:', restingEnergyData.length, 'sleep:', sleepData.length, 'weight:', weightData.length, 'hr:', heartRateData.length, 'rhr:', restingHrData.length, 'active:', activeMinData.length, 'workout:', workoutData.length);
       
+      // Active energy: prefer new 'active_energy' type, fallback to legacy 'calories_burned'
+      const effectiveActiveEnergyData = activeEnergyData.length > 0 ? activeEnergyData : caloriesData;
+      
+      // Sleep: sum all sleep segments for today (value is in minutes)
+      const todaySleepMinutes = sleepData.reduce((sum, d) => sum + Number(d.value), 0);
+      
+      // Weight: use the separately-fetched latest reading (not limited to today)
+      // If today has a weight reading, prefer that over the 90-day lookup
+      if (weightData.length > 0) {
+        latestWeight = Number(weightData.sort((a, b) => new Date(b.recorded_at).getTime() - new Date(a.recorded_at).getTime())[0].value);
+      }
+      
+      // On native iOS, get live cumulative stats directly from HealthKit
+      // (using HKStatisticsQuery). These match Apple Health exactly and
+      // don't depend on the DB sync being up to date.
+      let liveSteps = dedupeMaxPerHour(stepsData);
+      let liveActiveEnergy = dedupeMaxPerHour(effectiveActiveEnergyData);
+      let liveRestingEnergy = dedupeMaxPerHour(restingEnergyData);
+
+      try {
+        const liveStats = await queryTodayLiveStats();
+        if (liveStats) {
+          console.log('[useHealthStats] live HealthKit stats:', JSON.stringify(liveStats));
+          // Use live values if they're > 0 (HealthKit has data)
+          if (liveStats.steps > 0) liveSteps = liveStats.steps;
+          if (liveStats.activeEnergy > 0) liveActiveEnergy = liveStats.activeEnergy;
+          if (liveStats.restingEnergy > 0) liveRestingEnergy = liveStats.restingEnergy;
+          if (liveStats.latestWeight !== null) latestWeight = liveStats.latestWeight;
+        }
+      } catch (liveErr) {
+        console.warn('[useHealthStats] live stats failed, using DB values:', liveErr);
+      }
+
       const result: HealthStats = {
-        todaySteps: dedupeMaxPerHour(stepsData),
-        todayCalories: dedupeMaxPerHour(caloriesData),
+        todaySteps: liveSteps,
+        todayCalories: liveActiveEnergy,
+        todayActiveEnergy: liveActiveEnergy,
+        todayRestingEnergy: liveRestingEnergy,
+        todaySleep: todaySleepMinutes,
+        todayWeight: latestWeight,
         avgHeartRate: heartRateData.length > 0 
           ? Math.round(heartRateData.reduce((sum, d) => sum + Number(d.value), 0) / heartRateData.length)
           : 0,

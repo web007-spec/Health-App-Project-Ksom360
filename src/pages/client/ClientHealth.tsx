@@ -15,7 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formatDistanceToNow } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export default function ClientHealth() {
   const { user } = useAuth();
@@ -27,6 +27,17 @@ export default function ClientHealth() {
   const [seeding, setSeeding] = useState(false);
   const [snapshotOpen, setSnapshotOpen] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
+  const autoSyncDone = useRef(false);
+
+  // Auto-sync on page load (native only, once per mount)
+  useEffect(() => {
+    if (autoSyncDone.current) return;
+    if (!isNativePlatform()) return;
+    if (!effectiveClientId) return;
+    autoSyncDone.current = true;
+    console.log('[HealthDashboard] auto-sync triggered on mount');
+    syncMutation.mutate();
+  }, [effectiveClientId]);
   
   // Detect if trainer is impersonating a client on web (on native, allow sync)
   const isImpersonating = effectiveClientId !== user?.id && !isNativePlatform();

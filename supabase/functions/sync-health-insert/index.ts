@@ -1,3 +1,4 @@
+// @ts-nocheck — Deno edge function; not part of the app's TS build
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -101,7 +102,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
-  } catch (err) {
+  } catch (err: any) {
     console.error("[sync-health-insert] unexpected error:", err);
     return new Response(
       JSON.stringify({ error: err.message }),

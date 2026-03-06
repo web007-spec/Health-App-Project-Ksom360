@@ -22,19 +22,27 @@ interface HealthSnapshotDialogProps {
 const METRIC_ICONS: Record<string, React.ReactNode> = {
   steps: <Footprints className="h-4 w-4" />,
   calories_burned: <Flame className="h-4 w-4" />,
+  active_energy: <Flame className="h-4 w-4" />,
+  resting_energy: <Flame className="h-4 w-4" />,
   heart_rate: <Heart className="h-4 w-4" />,
   resting_heart_rate: <Heart className="h-4 w-4" />,
   active_minutes: <Timer className="h-4 w-4" />,
   workout: <Timer className="h-4 w-4" />,
+  sleep: <Timer className="h-4 w-4" />,
+  weight: <Footprints className="h-4 w-4" />,
 };
 
 const METRIC_COLORS: Record<string, string> = {
   steps: 'text-primary',
   calories_burned: 'text-primary',
+  active_energy: 'text-primary',
+  resting_energy: 'text-primary',
   heart_rate: 'text-destructive',
   resting_heart_rate: 'text-destructive',
   active_minutes: 'text-primary',
   workout: 'text-primary',
+  sleep: 'text-primary',
+  weight: 'text-primary',
 };
 
 export function HealthSnapshotDialog({ open, onOpenChange }: HealthSnapshotDialogProps) {
