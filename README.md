@@ -1,8 +1,8 @@
-# EverFit Stride
+# EverFit Stride 
 
 Personal fitness and nutrition coaching platform. Track workouts, nutrition, and health metrics. Built for trainers and clients with Apple HealthKit integration on iOS.
 
-## Features
+## Features (Phase - 1)
 
 - **Health Dashboard** — Steps, active energy, resting energy, sleep, weight, workouts, heart rate, and active minutes synced from Apple HealthKit
 - **Trainer & Client Roles** — Trainers manage clients, assign workouts, and view health progress
