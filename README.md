@@ -87,4 +87,4 @@ npm run dev
 
 ## License
 
-Private project.
+Private project...
